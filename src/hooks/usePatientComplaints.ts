@@ -15,6 +15,9 @@ export function usePatientComplaints(patientSSN: string) {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
 
+  // Use fallback SSN if patientSSN is empty
+  const effectiveSSN = patientSSN || '800000035';
+
   const fetchComplaints = useCallback(async () => {
     try {
       setLoading(true);
@@ -28,7 +31,7 @@ export function usePatientComplaints(patientSSN: string) {
         body: JSON.stringify({
           UserName: "CPRS-UAT",
           Password: "UAT@123",
-          PatientSSN: patientSSN,
+          PatientSSN: effectiveSSN,
           DUZ: "80",
           ihtLocation: 67,
           rcpAdmDateL: ""
@@ -40,6 +43,7 @@ export function usePatientComplaints(patientSSN: string) {
       }
 
       const data = await response.json();
+      console.log('Complaints API Response for SSN:', effectiveSSN, 'Data:', data);
       setComplaints(data);
     } catch (err) {
       console.error('Error fetching complaints:', err);
@@ -47,7 +51,7 @@ export function usePatientComplaints(patientSSN: string) {
     } finally {
       setLoading(false);
     }
-  }, [patientSSN]);
+  }, [effectiveSSN]);
 
   useEffect(() => {
     fetchComplaints();

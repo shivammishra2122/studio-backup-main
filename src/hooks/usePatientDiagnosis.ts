@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 export interface Diagnosis {
   Add: string;
@@ -25,7 +25,10 @@ export function usePatientDiagnosis(patientSSN: string): UsePatientDiagnosisResu
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const fetchDiagnosis = async () => {
+  // Use fallback SSN if patientSSN is empty
+  const effectiveSSN = patientSSN || '800000035';
+
+  const fetchDiagnosis = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -38,7 +41,7 @@ export function usePatientDiagnosis(patientSSN: string): UsePatientDiagnosisResu
         body: JSON.stringify({
           "UserName": "CPRS-UAT",
           "Password": "UAT@123",
-          "PatientSSN": patientSSN,
+          "PatientSSN": effectiveSSN,
           "DUZ": "80",
           "ihtLocation": "67",
           "rcpAdmDateL": "11084766"
@@ -50,7 +53,7 @@ export function usePatientDiagnosis(patientSSN: string): UsePatientDiagnosisResu
       }
 
       const data = await response.json();
-      console.log('Diagnosis API Response:', data);
+      console.log('Diagnosis API Response for SSN:', effectiveSSN, 'Data:', data);
       setDiagnosis(data);
     } catch (err) {
       console.error('Error fetching diagnosis data:', err);
@@ -58,11 +61,11 @@ export function usePatientDiagnosis(patientSSN: string): UsePatientDiagnosisResu
     } finally {
       setLoading(false);
     }
-  };
+  }, [effectiveSSN]);
 
   useEffect(() => {
     fetchDiagnosis();
-  }, [patientSSN]);
+  }, [fetchDiagnosis]);
 
   return {
     diagnosis,

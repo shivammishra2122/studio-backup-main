@@ -28,13 +28,16 @@ export function usePatientAllergies(patientSSN: string): UsePatientAllergiesResu
     try {
       setLoading(true);
       setError(null);
+      // Use fallback SSN if patientSSN is empty
+      const effectiveSSN = patientSSN || '800000035';
+      
       const response = await fetch('http://192.168.1.53/cgi-bin/apiAllergyList.sh', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           UserName: 'CPRS-UAT',
           Password: 'UAT@123',
-          PatientSSN: patientSSN,
+          PatientSSN: effectiveSSN,
           DUZ: '80',
           ihtLocation: '67'
         })
@@ -45,7 +48,7 @@ export function usePatientAllergies(patientSSN: string): UsePatientAllergiesResu
       }
       
       const data = await response.json();
-      console.log('Allergies API Response:', data);
+      console.log('Allergies API Response for SSN:', effectiveSSN, 'Data:', data);
       setAllergies(data);
     } catch (err) {
       console.error('Error fetching allergies:', err);

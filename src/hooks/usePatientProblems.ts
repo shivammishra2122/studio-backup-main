@@ -32,6 +32,9 @@ export function usePatientProblems(patientSSN: string): UsePatientProblemsResult
   const [isSearching, setIsSearching] = useState<boolean>(false);
   const [searchError, setSearchError] = useState<Error | null>(null);
 
+  // Use fallback SSN if patientSSN is empty
+  const effectiveSSN = patientSSN || '800000035';
+
   // Fetch patient's existing problems
   const fetchProblems = useCallback(async () => {
     try {
@@ -45,7 +48,7 @@ export function usePatientProblems(patientSSN: string): UsePatientProblemsResult
         body: JSON.stringify({
           UserName: 'CPRS-UAT',
           Password: 'UAT@123',
-          PatientSSN: patientSSN,
+          PatientSSN: effectiveSSN,
           DUZ: '80',
           ihtLocation: '67',
         }),
@@ -77,7 +80,7 @@ export function usePatientProblems(patientSSN: string): UsePatientProblemsResult
     } finally {
       setLoading(false);
     }
-  }, [patientSSN]);
+  }, [effectiveSSN]);
 
   // Search for problems
   const searchProblems = useCallback(async (searchTerm: string) => {
@@ -93,7 +96,7 @@ export function usePatientProblems(patientSSN: string): UsePatientProblemsResult
       const params: ProblemSearchParams = {
         UserName: 'CPRS-UAT',
         Password: 'UAT@123',
-        PatientSSN: patientSSN,
+        PatientSSN: effectiveSSN,
         DUZ: '80',
         cdpProbCat: '',
         other: searchTerm
@@ -102,15 +105,13 @@ export function usePatientProblems(patientSSN: string): UsePatientProblemsResult
       const results = await problemService.searchProblems(params);
       setSearchResults(results);
     } catch (err) {
-      console.error('Error searching problems:', err);
       setSearchError(err instanceof Error ? err : new Error('Failed to search problems'));
       setSearchResults([]);
     } finally {
       setIsSearching(false);
     }
-  }, [patientSSN]);
+  }, [effectiveSSN]);
 
-  // Initial data fetch
   useEffect(() => {
     fetchProblems();
   }, [fetchProblems]);
