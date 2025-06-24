@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardTitle, CardHeader as ShadcnCardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Table, TableBody, TableCell, TableRow, TableHeader, TableHead } from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import type { ChartConfig } from '@/components/ui/chart';
 import { CartesianGrid, XAxis, YAxis, Line, LineChart as RechartsLineChart } from 'recharts';
@@ -932,9 +932,12 @@ export default function DashboardPage({
         {secondRowInformationalCardTitles.map((title) => {
           const IconComponent = infoCardIcons[title] || FileText;
           const items = title === 'Allergies' ? allergiesToShow : dynamicPageCardContent[title] || [];
+          // Determine column span based on card type
+          const colSpan = (title === 'Allergies' || title === 'Radiology') ? 'md:col-span-2' : 'md:col-span-3';
+          
           if (title === 'Medications History') {
             return (
-              <Card key="medications-history" className="shadow-lg md:col-span-3">
+              <Card key="medications-history" className={`shadow-lg ${colSpan}`}>
                 <ShadcnCardHeader className="flex flex-row items-center justify-between pt-2 pb-0 px-3">
                   <div className="flex items-center space-x-1.5">
                     <IconComponent className="h-4 w-4 text-primary" />
@@ -964,16 +967,10 @@ export default function DashboardPage({
                     }
                   `}</style>
                   <Table>
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>Medication Name</TableCell>
-                        <TableCell>Status</TableCell>
-                      </TableRow>
-                    </TableHead>
                     <TableBody>
                       {medicationsLoading ? (
                         <TableRow>
-                          <TableCell colSpan={2} className="text-center">
+                          <TableCell className="text-center">
                             <div className="flex justify-center py-2">
                               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900"></div>
                             </div>
@@ -981,7 +978,7 @@ export default function DashboardPage({
                         </TableRow>
                       ) : medicationsError ? (
                         <TableRow>
-                          <TableCell colSpan={2} className="text-center text-red-500 text-xs py-2">
+                          <TableCell className="text-center text-red-500 text-xs py-2">
                             Error loading medications
                           </TableCell>
                         </TableRow>
@@ -996,22 +993,11 @@ export default function DashboardPage({
                                 {medication['Medication Name'] || medication.medicationName || 'Unnamed Medication'}
                               </div>
                             </TableCell>
-                            <TableCell className="px-2 py-1">
-                              <Badge 
-                                variant={
-                                  (medication.Status || '').toLowerCase() === 'active' ? 'default' : 
-                                  (medication.Status || '').toLowerCase().includes('discon') ? 'destructive' : 'secondary'
-                                }
-                                className="text-xs"
-                              >
-                                {medication.Status || medication.status || 'Unknown'}
-                              </Badge>
-                            </TableCell>
                           </TableRow>
                         ))
                       ) : (
                         <TableRow>
-                          <TableCell colSpan={2} className="text-center text-muted-foreground text-xs py-2">
+                          <TableCell className="text-center text-muted-foreground text-xs py-2">
                             No medications found
                           </TableCell>
                         </TableRow>
@@ -1025,22 +1011,22 @@ export default function DashboardPage({
             return (
               <Card
                 key={`${title.toLowerCase().replace(/\s+/g, '-')}`}
-                className="shadow-lg"
+                className={`shadow-lg ${colSpan}`}
               >
                 <ShadcnCardHeader className="flex flex-row items-center justify-between pt-2 pb-0 px-3">
                   <div className="flex items-center space-x-1.5">
                     <IconComponent className="h-4 w-4 text-primary" />
                     <CardTitle className="text-base">{title}</CardTitle>
-                    <Badge variant="secondary" className="text-xs px-1.5 py-0.5">{items.length}</Badge>
+                    <Badge variant="secondary" className="text-xs px-1.5 py-0.5">
+                      {title === 'Allergies' ? allergiesToShow.length : items.length}
+                    </Badge>
                   </div>
                   <Button
                     variant="ghost"
                     size="icon"
                     className="h-7 w-7"
                     onClick={() => {
-                      if (title === 'Medications History') {
-                        openFloatingDialog('medication', 'Order Medicines');
-                      } else if (title === 'Allergies') {
+                      if (title === 'Allergies') {
                         openFloatingDialog('allergies', 'Add New Allergy');
                       } else if (title === 'Radiology') {
                         openFloatingDialog('radiology', 'Order Radiology Test');
@@ -1055,113 +1041,57 @@ export default function DashboardPage({
                     <span className="sr-only">Edit {title}</span>
                   </Button>
                 </ShadcnCardHeader>
-                <CardContent className="p-0 max-h-[160px] overflow-hidden">
+                <CardContent className="p-0 max-h-[200px] overflow-y-auto">
                   <Table>
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>{title}</TableCell>
-                      </TableRow>
-                    </TableHead>
                     <TableBody>
                       {title === 'Allergies' ? (
                         allergiesToShow.length > 0 ? (
                           allergiesToShow.slice(0, 5).map((allergy: any, index: number) => (
                             <TableRow
                               key={allergy['Order IEN'] || index}
-                              className={`cursor-pointer hover:bg-muted/50 ${index % 2 === 0 ? 'bg-muted/30' : ''}`}
+                              className="hover:bg-muted/50"
                               onClick={() => {
                                 setSelectedAllergy(allergy);
                                 setShowAllergyDialog(true);
                               }}
                             >
                               <TableCell className="px-2 py-1">
-                                <div className="flex items-center">
-                                  <span className="text-xs">
-                                    {allergy.Allergies || 'Unknown Allergen'}
-                                    {allergy.Symptoms && ` - ${allergy.Symptoms}`}
-                                  </span>
+                                <div className="text-xs">
+                                  {allergy.Allergies || 'Unknown Allergen'}
+                                  {allergy.Symptoms && ` - ${allergy.Symptoms}`}
                                 </div>
                               </TableCell>
                             </TableRow>
                           ))
                         ) : (
                           <TableRow>
-                            <TableCell colSpan={1} className="px-2 py-2">
+                            <TableCell className="px-2 py-2">
                               <div className="text-xs text-muted-foreground">
                                 {allergiesLoading ? 'Loading allergies...' : 'No allergies listed.'}
                               </div>
                             </TableCell>
                           </TableRow>
                         )
-                      ) : title === 'Medications History' ? (
-                        medicationsLoading ? (
-                          <TableRow>
-                            <TableCell colSpan={1} className="px-2 py-2">
-                              <div className="text-xs text-muted-foreground">Loading medications...</div>
+                      ) : items.length > 0 ? (
+                        items.slice(0, 5).map((item: string, index: number) => (
+                          <TableRow 
+                            key={index}
+                            className="hover:bg-muted/50"
+                          >
+                            <TableCell className="px-2 py-1">
+                              <div className="text-xs">{item}</div>
                             </TableCell>
                           </TableRow>
-                        ) : medicationsError ? (
-                          <TableRow>
-                            <TableCell colSpan={1} className="px-2 py-2">
-                              <div className="text-xs text-red-500">Error loading medications</div>
-                            </TableCell>
-                          </TableRow>
-                        ) : !Array.isArray(medications) || medications.length === 0 ? (
-                          <TableRow>
-                            <TableCell colSpan={1} className="px-2 py-2">
-                              <div className="text-xs text-muted-foreground">No medications found.</div>
-                            </TableCell>
-                          </TableRow>
-                        ) : (
-                          medications.slice(0, 5).map((medication: any, index: number) => (
-                            <TableRow 
-                              key={medication['Order IEN'] || medication.id || index}
-                              className={`cursor-pointer hover:bg-muted/50 ${index % 2 === 0 ? 'bg-muted/30' : ''}`}
-                            >
-                              <TableCell className="px-2 py-1">
-                                <div className="flex items-center justify-between">
-                                  <span className="text-xs">
-                                    {medication['Medication Name'] || medication.medicationName || 'Unnamed Medication'}
-                                  </span>
-                                  <Badge 
-                                    variant={
-                                      (medication.Status || '').toLowerCase() === 'active' ? 'default' : 
-                                      (medication.Status || '').toLowerCase().includes('discon') ? 'destructive' : 'secondary'
-                                    }
-                                    className="text-xs"
-                                  >
-                                    {medication.Status || medication.status || 'Unknown'}
-                                  </Badge>
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          ))
-                        )
+                        ))
                       ) : (
-                        (items as string[]).length > 0 ? (
-                          (items as string[]).slice(0, 5).map((item, idx) => (
-                            <TableRow
-                              key={idx}
-                              className={`cursor-pointer hover:bg-muted/50 ${idx % 2 === 0 ? 'bg-muted/30' : ''}`}
-                            >
-                              <TableCell className="px-2 py-1">
-                                <div className="font-medium text-xs">{item}</div>
-                              </TableCell>
-                            </TableRow>
-                          ))
-                        ) : (
-                          <TableRow>
-                            <TableCell colSpan={1} className="px-2 py-2">
-                              <div className="text-xs text-muted-foreground">No items found</div>
-                            </TableCell>
-                          </TableRow>
-                        )
+                        <TableRow>
+                          <TableCell className="px-2 py-2">
+                            <div className="text-xs text-muted-foreground">No items found</div>
+                          </TableCell>
+                        </TableRow>
                       )}
                     </TableBody>
                   </Table>
-                  {(title === 'Allergies' ? allergiesToShow.length : title === 'Medications History' ? medications.length : (items as string[]).length) === 0 && (
-                    <p className="py-4 text-center text-xs text-muted-foreground">No items listed.</p>
-                  )}
                 </CardContent>
               </Card>
             );
@@ -1206,11 +1136,6 @@ export default function DashboardPage({
               </ShadcnCardHeader>
               <CardContent className="p-0 h-[120px] overflow-y-auto scrollbar-hide">
                 <Table>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>{title}</TableCell>
-                    </TableRow>
-                  </TableHead>
                   <TableBody>
                     {isLoading ? (
                       <TableRow>
@@ -1584,21 +1509,6 @@ export default function DashboardPage({
                 {selectedRows.length > 0 && (
                   <div className="overflow-x-auto">
                     <table className="min-w-full mt-2 border">
-                      <thead className="bg-sky-100 text-xs font-light " >
-                        <tr>
-                          <th className="px-2 py-1">Medicine Name</th>
-                          <th className="px-2 py-1">Dosage</th>
-                          <th className="px-2 py-1">Route</th>
-                          <th className="px-2 py-1">Schedule</th>
-                          <th className="px-2 py-1">PRN</th>
-                          <th className="px-2 py-1">Duration</th>
-                          <th className="px-2 py-1">Priority</th>
-                          <th className="px-2 py-1">Additional Dose Now</th>
-                          <th className="px-2 py-1">Comment</th>
-                          <th className="px-2 py-1">Remove</th>
-                          <th className="px-2 py-1">Save Quick Order</th>
-                        </tr>
-                      </thead>
                       <tbody>
                         {selectedRows.map((row, idx) => (
                           <tr key={row.medicationName}>
