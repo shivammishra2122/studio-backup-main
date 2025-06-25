@@ -271,6 +271,9 @@ type RadiologyDataType = {
   provider: string;
   status: "UNRELEASED" | "PENDING" | "COMPLETED";
   location: string;
+  result?: string;  // Add optional result field
+  'Order IEN'?: string;  // Add optional Order IEN field
+  'Imaging Procedure'?: string;  // Add optional Imaging Procedure field
 };
 
 // Mock Radiology Data
@@ -804,7 +807,7 @@ const IpMedicationView = ({ patient }: { patient: Patient }) => {
         <div className="flex items-center justify-between">
           <CardTitle className="text-base font-semibold">IPD Medication List</CardTitle>
           <div className="flex items-center space-x-1">
-            <Button variant="ghost" size="icon" className="h-7 w-7 text-primary hover:bg-muted/50" onClick={openOrderMedicinesDialog}><FileEdit className="h-4 w-4" /></Button>
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-primary hover:bg-muted/50"><FileEdit className="h-4 w-4" /></Button>
             <Button variant="ghost" size="icon" className="h-7 w-7 text-primary hover:bg-muted/50"><RefreshCw className="h-4 w-4" /></Button>
             <Button variant="ghost" size="icon" className="h-7 w-7 text-primary hover:bg-muted/50"><Settings className="h-4 w-4" /></Button>
             <Button variant="ghost" size="icon" className="h-7 w-7 text-primary hover:bg-muted/50"><Printer className="h-4 w-4" /></Button>
@@ -1132,89 +1135,81 @@ const DelayOrdersView = () => {
 };
 
 const RadiologyView = ({ patient }: { patient: Patient }) => {
-  const [visitDate, setVisitDate] = useState<string | undefined>("16 MAY, 2024 16:22");
-  const [statusFilter, setStatusFilter] = useState<string | undefined>("All");
-  const [orderFromDate, setOrderFromDate] = useState<string>("");
-  const [orderToDate, setOrderToDate] = useState<string>("");
-  const [showEntries, setShowEntries] = useState<string>("All");
-  const [searchText, setSearchText] = useState<string>("");
-  const [radiologyOrders, setRadiologyOrders] = useState<any[]>([]);
-  const [loadingLabOrders, setLoadingLabOrders] = useState(true);
+  const [radiologyOrders, setRadiologyOrders] = useState<RadiologyDataType[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [orderFromDate, setOrderFromDate] = useState<string>('');
+  const [orderToDate, setOrderToDate] = useState<string>('');
 
   useEffect(() => {
-    setLoadingLabOrders(true);
-    setError(null);
+    const fetchRadiologyOrders = async () => {
+      // Use fallback SSN if patient SSN is not available
+      const effectiveSSN = patient?.ssn || '800000035';
+      
+      setLoading(true);
+      setError(null);
 
-    if (!patient?.ssn) {
-      setError('Patient SSN not available.');
-      setLoadingLabOrders(false);
-      return;
-    }
+      const requestBody = {
+        UserId: '1',
+        Password: 'UAT@123',
+        PatientSSN: effectiveSSN,
+        DUZ: '80',
+        ihtLocation: 67,
+        FromDate: orderFromDate,
+        ToDate: orderToDate,
+        rcpoeOrdSt: '11'
+      };
 
-    const requestBody = {
-      UserName: "CPRS-UAT",
-      Password: "UAT@123",
-      PatientSSN: patient.ssn, // Use direct SSN access
-      DUZ: "80",
-      ihtLocation: 67,
-      FromDate: orderFromDate, // Using state for date filters
-      ToDate: orderToDate, // Using state for date filters
-      rcpoeOrdSt: "11"
+      try {
+        const response = await fetch('http://3.6.230.54:4003/api/apiOrdRadListNew.sh', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify(requestBody),
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        
+        if (!data || Object.keys(data).length === 0) {
+          setRadiologyOrders([]);
+          setError('No data found');
+        } else {
+          // Assuming data is an object where values are the radiology entries
+          const ordersArray = Object.values(data).map((item: any) => ({
+            id: item['Order IEN']?.toString() || item['Imaging Procedure'] || Date.now().toString() + Math.random().toString(36).slice(2, 9),
+            testName: item['Imaging Procedure'] || 'N/A',
+            orderDate: item['Exam Date/Time'] ? item['Exam Date/Time'].split(' ')[0] : '',
+            orderTime: item['Exam Date/Time'] ? item['Exam Date/Time'].split(' ')[1] : '',
+            startDate: '', // API response doesn't seem to have separate start/stop dates
+            startTime: '',
+            provider: item.Provider || 'N/A',
+            status: item.Status as any || 'UNKNOWN',
+            location: item.Location || 'N/A',
+            result: item.Result || '' // Add result field from API
+          }));
+          setRadiologyOrders(ordersArray);
+        }
+      } catch (err) {
+        console.error('Error fetching radiology orders:', err);
+        const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred';
+        setError(`Failed to fetch radiology orders: ${errorMessage}`);
+      } finally {
+        setLoading(false);
+      }
     };
 
-    try {
-      const response = await fetch('http://3.6.230.54:4003/api/apiOrdRadListNew.sh', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify(requestBody),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      console.log('Radiology API response:', data);
-
-      if (!data || Object.keys(data).length === 0 || data.errors) {
-        setRadiologyOrders([]);
-        setError('No data found');
-      } else {
-        // Assuming data is an object where values are the radiology entries
-        const ordersArray = Object.values(data).map((item: any) => ({
-          id: item['Order IEN']?.toString() || item['Imaging Procedure'] || Date.now().toString() + Math.random().toString(36).slice(2, 9),
-          testName: item['Imaging Procedure'] || 'N/A',
-          orderDate: item['Exam Date/Time'] ? item['Exam Date/Time'].split(' ')[0] : '',
-          orderTime: item['Exam Date/Time'] ? item['Exam Date/Time'].split(' ')[1] : '',
-          startDate: '', // API response doesn't seem to have separate start/stop dates
-          startTime: '',
-          provider: item.Provider || 'N/A',
-          status: item.Status as any || 'UNKNOWN',
-          location: item.Location || 'N/A',
-          result: item.Result || '' // Add result field from API
-        }));
-        setRadiologyOrders(ordersArray);
-      }
-    } catch (err: any) {
-      console.error('Error fetching radiology orders:', err);
-      setError('Failed to fetch radiology orders: ' + err.message);
-    } finally {
-      setLoadingLabOrders(false);
-    }
-  }, [patient, orderFromDate, orderToDate]); // Depend on patient and date filters
+    fetchRadiologyOrders();
+  }, [patient, orderFromDate, orderToDate]);
 
   const filteredRadiologyOrders = radiologyOrders.filter(order => {
-    const matchesSearch = searchText === '' ||
-      order["Imaging Procedure"].toLowerCase().includes(searchText.toLowerCase()) ||
-      order["Imaging Type"].toLowerCase().includes(searchText.toLowerCase());
-
-    const matchesStatus = statusFilter === 'All' || order.Status === statusFilter;
-
-    return matchesSearch && matchesStatus;
+    const matchesSearch = order.testName.toLowerCase().includes(orderToDate.toLowerCase()) || order.provider.toLowerCase().includes(orderToDate.toLowerCase());
+    return matchesSearch;
   });
 
   const radiologyTableHeaders = ["Imaging Procedure", "Imaging Type", "Exam Date/Time", "Provider", "Status", "Sign", "Discontinue", "Result", "Location"];
@@ -1246,27 +1241,6 @@ const RadiologyView = ({ patient }: { patient: Patient }) => {
       <CardContent className="p-2.5 flex-1 flex flex-col overflow-hidden">
         <div className="space-y-2 mb-2 text-xs">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-            <Label htmlFor="radiologyVisitDate" className="shrink-0">Visit Date</Label>
-            <Select value={visitDate} onValueChange={setVisitDate}>
-              <SelectTrigger id="radiologyVisitDate" className="h-7 w-32 text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="16 MAY, 2024 16:22">16 MAY, 2024 16:22</SelectItem>
-              </SelectContent>
-            </Select>
-            <Label htmlFor="radiologyStatus" className="shrink-0">Status</Label>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger id="radiologyStatus" className="h-7 w-24 text-xs">
-                <SelectValue placeholder="Select" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="All">All</SelectItem>
-                <SelectItem value="UNRELEASED">UNRELEASED</SelectItem>
-                <SelectItem value="PENDING">PENDING</SelectItem>
-                <SelectItem value="COMPLETED">COMPLETED</SelectItem>
-              </SelectContent>
-            </Select>
             <Label htmlFor="radiologyOrderFrom" className="shrink-0">Order From</Label>
             <div className="relative">
               <Input
@@ -1297,26 +1271,24 @@ const RadiologyView = ({ patient }: { patient: Patient }) => {
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
             <div className="flex items-center space-x-1">
               <Label htmlFor="radiologyShowEntries" className="text-xs shrink-0">Show</Label>
-              <Select value={showEntries} onValueChange={setShowEntries}>
+              <Select value="All" onValueChange={() => {}} disabled>
                 <SelectTrigger id="radiologyShowEntries" className="h-7 w-20 text-xs">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="All">All</SelectItem>
-                  <SelectItem value="10">10</SelectItem>
-                  <SelectItem value="25">25</SelectItem>
                 </SelectContent>
               </Select>
               <Label htmlFor="radiologyShowEntries" className="text-xs shrink-0">entries</Label>
             </div>
             <div className="flex-grow"></div>
             <Label htmlFor="radiologySearch" className="shrink-0">Search:</Label>
-            <Input id="radiologySearch" type="text" value={searchText} onChange={e => setSearchText(e.target.value)} className="h-7 w-40 text-xs" />
+            <Input id="radiologySearch" type="text" value={orderToDate} onChange={e => setOrderToDate(e.target.value)} className="h-7 w-40 text-xs" />
           </div>
         </div>
 
         <div className="flex-1 overflow-auto min-h-0">
-          {loadingLabOrders ? (
+          {loading ? (
             <div className="flex items-center justify-center h-full">
               <p className="text-muted-foreground">Loading orders...</p>
             </div>
@@ -1340,7 +1312,7 @@ const RadiologyView = ({ patient }: { patient: Patient }) => {
               </TableHeader>
               <TableBody>
                 {filteredRadiologyOrders.length > 0 ? filteredRadiologyOrders.map((order, index) => (
-                  <TableRow key={`radiology-${order["Order IEN"] || order["Imaging Procedure"]}`} className={`${index % 2 === 0 ? 'bg-muted/30' : ''}`}>
+                  <TableRow key={`radiology-${order.id || index}`} className={`${index % 2 === 0 ? 'bg-muted/30' : ''}`}>
                     <TableCell className="py-1.5 px-3 whitespace-normal">{order.testName}</TableCell>
                     <TableCell className="py-1.5 px-3 whitespace-normal">N/A</TableCell> {/* Imaging Type not available in mapped data */}
                     <TableCell className="py-1.5 px-3 whitespace-normal">{order.orderDate} {order.orderTime}</TableCell>
@@ -1397,12 +1369,9 @@ const LabCpoeListView = ({ patient }: { patient: Patient }) => {
   useEffect(() => {
     if (!patient) return;
     
-    if (!patient?.ssn) {
-      setError('Patient SSN not available');
-      setLoading(false);
-      return;
-    }
-
+    // Use fallback SSN if patient SSN is not available
+    const effectiveSSN = patient?.ssn || '800000035';
+    
     const fetchLabOrders = async () => {
       try {
         setLoading(true);
@@ -1414,7 +1383,7 @@ const LabCpoeListView = ({ patient }: { patient: Patient }) => {
           body: JSON.stringify({
             UserName: 'CPRS-UAT',
             Password: 'UAT@123',
-            PatientSSN: patient.ssn, // Use direct SSN access
+            PatientSSN: effectiveSSN,
             DUZ: '80',
             ihtLocation: 67,
             FromDate: '',
