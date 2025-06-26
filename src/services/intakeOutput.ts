@@ -4,10 +4,10 @@ export const fetchIntakeUpdateData = async (patientSSN: string): Promise<IntakeO
     throw new Error('Patient SSN is required');
   }
 
-  const apiUrl = 'http://3.6.230.54:4003/api/apiIntakeOutput.sh';
+  const apiUrl = 'http://192.168.1.53/cgi-bin/apiIntakeOutput.sh';
   const requestBody = {
     UserName: 'CPRS-UAT',
-    PatientSSN: patientSSN,
+    PatientSSN: patientSSN || 800000035,
     DUZ: '80',
     ihtLocation: 67,
     FromDate: '',
@@ -71,10 +71,10 @@ export const fetchIntakeOutputData = async (patientSSN: string): Promise<IntakeO
     throw new Error('Patient SSN is required');
   }
 
-  const apiUrl = 'http://3.6.230.54:4003/api/apiIntakeOutput.sh';
+  const apiUrl = 'http://192.168.1.53/cgi-bin/apiIntakeOutput.sh';
   const requestBody = {
     UserName: 'CPRS-UAT',
-    PatientSSN: patientSSN,
+    PatientSSN: patientSSN || 800000035,
     DUZ: '80',
     ihtLocation: 67,
     FromDate: '',

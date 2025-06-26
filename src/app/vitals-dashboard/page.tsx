@@ -257,7 +257,7 @@ const VitalsView = React.FC<{ patient?: Patient }> = ({ patient }) => {
     setError(null);
     
     try {
-      const response = await fetch('http://3.6.230.54:4003/api/apiVitalView.sh', {
+      const response = await fetch('http://192.168.1.53/cgi-bin/apiVitalView.sh', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -266,8 +266,8 @@ const VitalsView = React.FC<{ patient?: Patient }> = ({ patient }) => {
         body: JSON.stringify({
           UserName: 'CPRS-UAT',
           Password: 'UAT@123',
-          PatientSSN: patient?.ssn,
-          DUZ: '115'
+          PatientSSN: patient?.ssn || 800000035,
+          DUZ: '80'
         })
       });
 

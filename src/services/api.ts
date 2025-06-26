@@ -59,7 +59,23 @@ export const API_ENDPOINTS = {
   VITALS_ENTRY: `${API_BASE_URL}/apiVitalEntry.sh`,
   NOTE_DELETE: `${API_BASE_URL}/apiNotDel.sh`,
   NOTE_SIGN: `${API_BASE_URL}/apiNotSign.sh`,
-  CPOE_LIST: `${API_BASE_URL}/apiOrdCPOEList.sh`
+  CPOE_LIST: `${API_BASE_URL}/apiOrdCPOEList.sh`,
+  
+  // Orders
+  ORDERS_LIST: `${API_BASE_URL}/apiOrderList.sh`,
+  ORDERS_SAVE: `${API_BASE_URL}/apiOrderSave.sh`,
+  
+  // Lab Orders
+  LAB_ORDERS_NEW: `${API_BASE_URL}/apiLabCPOEList.sh`,
+  
+  // Radiology Orders
+  RADIOLOGY_ORDERS_NEW: `${API_BASE_URL}/apiRadiologyOrders.sh`,
+  
+  // IP Medications
+  IP_MEDICATIONS: `${API_BASE_URL}/apiIPMedications.sh`,
+  
+  // Visit/ADT
+  VISIT_ADT: `${API_BASE_URL}/apiVisitADT.sh`,
 } as const;
 
 // API Service Instance
@@ -289,6 +305,62 @@ export const apiService = {
                 console.error('Error in fetchClinicalNotes:', error);
             }
             return [];
+        }
+    },
+    
+    async getIPMedications(patientSSN: string, params: Record<string, any> = {}) {
+        try {
+            const response = await axios.post(API_ENDPOINTS.IP_MEDICATIONS, {
+                ...getAuthParams(),
+                PatientSSN: patientSSN,
+                ...params
+            });
+            return response.data;
+        } catch (error) {
+            console.error('Error fetching IP medications:', error);
+            throw error;
+        }
+    },
+    
+    async getRadiologyOrders(patientSSN: string, params: Record<string, any> = {}) {
+        try {
+            const response = await axios.post(API_ENDPOINTS.RADIOLOGY_ORDERS_NEW, {
+                ...getAuthParams(),
+                PatientSSN: patientSSN,
+                ...params
+            });
+            return response.data;
+        } catch (error) {
+            console.error('Error fetching radiology orders:', error);
+            throw error;
+        }
+    },
+    
+    async getLabOrders(patientSSN: string, params: Record<string, any> = {}) {
+        try {
+            const response = await axios.post(API_ENDPOINTS.LAB_ORDERS_NEW, {
+                ...getAuthParams(),
+                PatientSSN: patientSSN,
+                ...params
+            });
+            return response.data;
+        } catch (error) {
+            console.error('Error fetching lab orders:', error);
+            throw error;
+        }
+    },
+    
+    async getVisitADT(patientSSN: string, params: Record<string, any> = {}) {
+        try {
+            const response = await axios.post(API_ENDPOINTS.VISIT_ADT, {
+                ...getAuthParams(),
+                PatientSSN: patientSSN,
+                ...params
+            });
+            return response.data;
+        } catch (error) {
+            console.error('Error fetching visit/ADT data:', error);
+            throw error;
         }
     },
 };

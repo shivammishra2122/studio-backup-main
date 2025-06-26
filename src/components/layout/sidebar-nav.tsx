@@ -162,34 +162,40 @@ export default function SidebarNav() {
               </div>
             </div>
 
-            <hr className="my-2 border-[#2c5282] w-full px-4" />
+            <hr className="my-2 border-[#2c5282] w-full" />
 
-            <div className="mb-4 px-4 w-full text-blue-100">
-              <div className="font-semibold mb-2 text-white">Patient Visit / IPD Details</div>
-              <div className="flex items-center gap-2 mb-1">
-                <BedDouble className="h-4 w-4 flex-shrink-0 text-blue-200" />
-                <span className="truncate">{patient.Ward} - {patient.Bed}</span>
+            <div className="mb-4 w-full text-blue-100">
+              <div className="font-semibold mb-2 text-white px-4">Patient Visit / IPD Details</div>
+              <div className="space-y-1 px-4">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-blue-200">Ward:</span>
+                  <span>{patient.Ward}</span>
+                </div>
+                <div className="flex items-center gap-2 pl-6">
+                  <span className="font-medium text-blue-200">Bed:</span>
+                  <span>{patient.Bed}</span>
+                </div>
               </div>
-              <div className="flex items-center gap-2 mb-1">
+              <div className="flex items-center gap-2 mt-2 mb-1 px-4">
                 <CalendarDays className="h-4 w-4 flex-shrink-0 text-blue-200" />
                 <span className="truncate">{patient["Admission Date"]}</span>
               </div>
-              <div className="mb-1">
+              <div className="mb-1 px-4">
                 <span className="font-semibold text-blue-200">LOS:</span> {patient.LOS}
               </div>
-              <div className="mb-1">
+              <div className="mb-1 px-4">
                 <span className="font-semibold text-blue-200">Primary Consultant:</span> {patient["Primary Consultant"]}
               </div>
-              <div className="mb-1">
+              <div className="mb-1 px-4">
                 <span className="font-semibold text-blue-200">Encounter Provider:</span> {patient["Treating Consultant"]}
               </div>
             </div>
-            <hr className="my-2 border-[#2c5282] w-full px-4" />
-            <div className="mb-4 px-4 w-full text-blue-100">
-              <div className="font-semibold mb-2 text-white">Patient Clinical Details</div>
-              <div className="mb-1"><span className="font-semibold text-blue-200">Final Diagnosis:</span> {patient.finalDiagnosis}</div>
-              <div className="mb-1"><span className="font-semibold text-blue-200">Posting:</span> {patient.posting}</div>
-              <div className="mb-1"><span className="font-semibold text-blue-200">Reason For Visit:</span> {patient.reasonForVisit}</div>
+            <hr className="my-2 border-[#2c5282] w-full" />
+            <div className="mb-4 w-full text-blue-100">
+              <div className="font-semibold mb-2 text-white px-4">Patient Clinical Details</div>
+              <div className="mb-1 px-4"><span className="font-semibold text-blue-200">Final Diagnosis:</span> {patient.finalDiagnosis}</div>
+              <div className="mb-1 px-4"><span className="font-semibold text-blue-200">Posting:</span> {patient.posting}</div>
+              <div className="mb-1 px-4"><span className="font-semibold text-blue-200">Reason For Visit:</span> {patient.reasonForVisit}</div>
             </div>
           </>
         )}

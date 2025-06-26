@@ -33,7 +33,7 @@ export function usePatientDiagnosis(patientSSN: string): UsePatientDiagnosisResu
       setLoading(true);
       setError(null);
       
-      const response = await fetch('http://3.6.230.54:4003/api/apiDiagList.sh', {
+      const response = await fetch('http://192.168.1.53/cgi-bin/apiDiagList.sh', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

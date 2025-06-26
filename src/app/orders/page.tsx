@@ -205,6 +205,9 @@ interface IpMedicationEntryDataType {
   discontinueURL?: string;
   changeURL?: string;
   copyURL?: string;
+  flagURL?: string;
+  unflagURL?: string;
+  holdURL?: string;
   releaseURL?: string;
   renewURL?: string;
 }
@@ -1140,154 +1143,151 @@ const RadiologyView = ({ patient }: { patient: Patient }) => {
   const [error, setError] = useState<string | null>(null);
   const [orderFromDate, setOrderFromDate] = useState<string>('');
   const [orderToDate, setOrderToDate] = useState<string>('');
+  const [searchTerm, setSearchTerm] = useState<string>('');
 
+  // Fetch radiology orders when component mounts or patient changes
   useEffect(() => {
     const fetchRadiologyOrders = async () => {
-      // Use fallback SSN if patient SSN is not available
-      const effectiveSSN = patient?.ssn || '800000035';
-      
+      if (!patient?.ssn) {
+        console.log('No patient SSN available');
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
       setError(null);
-
-      const requestBody = {
-        UserId: '1',
-        Password: 'UAT@123',
-        PatientSSN: effectiveSSN,
-        DUZ: '80',
-        ihtLocation: 67,
-        FromDate: orderFromDate,
-        ToDate: orderToDate,
-        rcpoeOrdSt: '11'
-      };
-
+      
       try {
-        const response = await fetch('http://3.6.230.54:4003/api/apiOrdRadListNew.sh', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          },
-          body: JSON.stringify(requestBody),
+        const response = await apiService.getRadiologyOrders(patient.ssn, {
+          fromDate: orderFromDate,
+          toDate: orderToDate,
+          // Add any other required parameters
         });
 
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
+        // Transform the API response to match RadiologyDataType
+        const orders = Object.entries(response).map(([key, value]: [string, any]) => ({
+          id: key,
+          testName: value.testName || 'Unknown Test',
+          orderDate: value.orderDate || '',
+          orderTime: value.orderTime || '',
+          startDate: value.startDate,
+          startTime: value.startTime,
+          provider: value.orderedBy || 'Unknown',
+          status: value.status || 'UNRELEASED',
+          location: value.location || 'N/A',
+          result: value.result,
+          'Order IEN': value.orderIen,
+          'Imaging Procedure': value.imagingProcedure
+        }));
         
-        if (!data || Object.keys(data).length === 0) {
-          setRadiologyOrders([]);
-          setError('No data found');
-        } else {
-          // Assuming data is an object where values are the radiology entries
-          const ordersArray = Object.values(data).map((item: any) => ({
-            id: item['Order IEN']?.toString() || item['Imaging Procedure'] || Date.now().toString() + Math.random().toString(36).slice(2, 9),
-            testName: item['Imaging Procedure'] || 'N/A',
-            orderDate: item['Exam Date/Time'] ? item['Exam Date/Time'].split(' ')[0] : '',
-            orderTime: item['Exam Date/Time'] ? item['Exam Date/Time'].split(' ')[1] : '',
-            startDate: '', // API response doesn't seem to have separate start/stop dates
-            startTime: '',
-            provider: item.Provider || 'N/A',
-            status: item.Status as any || 'UNKNOWN',
-            location: item.Location || 'N/A',
-            result: item.Result || '' // Add result field from API
-          }));
-          setRadiologyOrders(ordersArray);
-        }
-      } catch (err) {
-        console.error('Error fetching radiology orders:', err);
-        const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred';
-        setError(`Failed to fetch radiology orders: ${errorMessage}`);
+        setRadiologyOrders(orders);
+      } catch (error) {
+        console.error('Error fetching radiology orders:', error);
+        setError('Failed to load radiology orders. Please try again.');
+        // Fallback to mock data for development
+        setRadiologyOrders(mockRadiologyData);
       } finally {
         setLoading(false);
       }
     };
 
     fetchRadiologyOrders();
-  }, [patient, orderFromDate, orderToDate]);
+  }, [patient?.ssn, orderFromDate, orderToDate]);
 
-  const filteredRadiologyOrders = radiologyOrders.filter(order => {
-    const matchesSearch = order.testName.toLowerCase().includes(orderToDate.toLowerCase()) || order.provider.toLowerCase().includes(orderToDate.toLowerCase());
-    return matchesSearch;
-  });
+  const filteredRadiologyOrders = radiologyOrders.filter(order => 
+    order.testName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    order.provider.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
-  const radiologyTableHeaders = ["Imaging Procedure", "Imaging Type", "Exam Date/Time", "Provider", "Status", "Sign", "Discontinue", "Result", "Location"];
+  const radiologyTableHeaders = [
+    "Imaging Procedure", 
+    "Type", 
+    "Order Date/Time", 
+    "Provider", 
+    "Status", 
+    "Sign", 
+    "Discontinue", 
+    "Result",
+    "Location"
+  ];
 
   return (
-    <Card className="flex-1 flex flex-col shadow overflow-hidden">
-      <CardHeader className="p-2.5 border-b bg-card text-foreground rounded-t-md">
+    <Card className="w-full h-full flex flex-col overflow-hidden border">
+      <CardHeader className="p-3 border-b bg-muted/30">
         <div className="flex items-center justify-between">
           <CardTitle className="text-base font-semibold">Radiology Orders</CardTitle>
           <div className="flex items-center space-x-1">
-            <Button variant="ghost" size="icon" className="h-7 w-7 text-primary hover:bg-muted/50">
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:bg-muted/50">
               <Settings className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-7 w-7 text-primary hover:bg-muted/50">
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:bg-muted/50">
               <RefreshCw className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-7 w-7 text-primary hover:bg-muted/50">
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:bg-muted/50">
               <Printer className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-7 w-7 text-primary hover:bg-muted/50">
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:bg-muted/50">
               <Download className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-7 w-7 text-primary hover:bg-muted/50">
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:bg-muted/50">
               <Filter className="h-4 w-4" />
             </Button>
           </div>
         </div>
       </CardHeader>
-      <CardContent className="p-2.5 flex-1 flex flex-col overflow-hidden">
-        <div className="space-y-2 mb-2 text-xs">
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-            <Label htmlFor="radiologyOrderFrom" className="shrink-0">Order From</Label>
-            <div className="relative">
+      
+      <CardContent className="p-4 flex-1 flex flex-col overflow-hidden">
+        {/* Filters */}
+        <div className="space-y-3 mb-4 pb-3 border-b">
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex items-center space-x-2">
+              <Label htmlFor="orderFrom" className="text-xs whitespace-nowrap">Order From</Label>
+              <div className="relative">
+                <Input
+                  id="orderFrom"
+                  type="text"
+                  value={orderFromDate}
+                  onChange={(e) => setOrderFromDate(e.target.value)}
+                  className="h-8 w-32 text-xs pr-7"
+                  placeholder="DD/MM/YYYY"
+                />
+                <CalendarDays className="h-3.5 w-3.5 absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              </div>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Label htmlFor="orderTo" className="text-xs whitespace-nowrap">To</Label>
+              <div className="relative">
+                <Input
+                  id="orderTo"
+                  type="text"
+                  value={orderToDate}
+                  onChange={(e) => setOrderToDate(e.target.value)}
+                  className="h-8 w-32 text-xs pr-7"
+                  placeholder="DD/MM/YYYY"
+                />
+                <CalendarDays className="h-3.5 w-3.5 absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              </div>
+            </div>
+            
+            <div className="flex-1"></div>
+            
+            <div className="flex items-center space-x-2">
+              <Label htmlFor="search" className="text-xs whitespace-nowrap">Search:</Label>
               <Input
-                id="radiologyOrderFrom"
+                id="search"
                 type="text"
-                value={orderFromDate}
-                onChange={e => setOrderFromDate(e.target.value)}
-                className="h-7 w-24 text-xs pr-7"
-                aria-label="Radiology Order From Date"
-                placeholder="DD/MM/YYYY"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="h-8 w-48 text-xs"
+                placeholder="Search orders..."
               />
-              <CalendarDays className="h-3.5 w-3.5 absolute right-1.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
             </div>
-            <Label htmlFor="radiologyOrderTo" className="shrink-0">Order To</Label>
-            <div className="relative">
-              <Input
-                id="radiologyOrderTo"
-                type="text"
-                value={orderToDate}
-                onChange={e => setOrderToDate(e.target.value)}
-                className="h-7 w-24 text-xs pr-7"
-                aria-label="Radiology Order To Date"
-                placeholder="DD/MM/YYYY"
-              />
-              <CalendarDays className="h-3.5 w-3.5 absolute right-1.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            </div>
-          </div>
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-            <div className="flex items-center space-x-1">
-              <Label htmlFor="radiologyShowEntries" className="text-xs shrink-0">Show</Label>
-              <Select value="All" onValueChange={() => {}} disabled>
-                <SelectTrigger id="radiologyShowEntries" className="h-7 w-20 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="All">All</SelectItem>
-                </SelectContent>
-              </Select>
-              <Label htmlFor="radiologyShowEntries" className="text-xs shrink-0">entries</Label>
-            </div>
-            <div className="flex-grow"></div>
-            <Label htmlFor="radiologySearch" className="shrink-0">Search:</Label>
-            <Input id="radiologySearch" type="text" value={orderToDate} onChange={e => setOrderToDate(e.target.value)} className="h-7 w-40 text-xs" />
           </div>
         </div>
-
-        <div className="flex-1 overflow-auto min-h-0">
+        
+        {/* Table */}
+        <div className="flex-1 overflow-auto">
           {loading ? (
             <div className="flex items-center justify-center h-full">
               <p className="text-muted-foreground">Loading orders...</p>
@@ -1297,59 +1297,68 @@ const RadiologyView = ({ patient }: { patient: Patient }) => {
               <p className="text-destructive">{error}</p>
             </div>
           ) : (
-            <Table className="text-xs w-full">
-              <TableHeader className="bg-accent sticky top-0 z-10">
+            <Table className="text-xs">
+              <TableHeader className="bg-muted/50 sticky top-0">
                 <TableRow>
-                  {radiologyTableHeaders.map(header => (
-                    <TableHead key={header} className="py-1 px-3 text-xs h-auto">
-                      <div className="flex items-center justify-between">
-                        {header}
-                        <ArrowUpDown className="h-3 w-3 ml-1 text-muted-foreground hover:text-foreground cursor-pointer" />
-                      </div>
+                  {radiologyTableHeaders.map((header) => (
+                    <TableHead key={header} className="py-2 px-3 font-medium">
+                      {header}
                     </TableHead>
                   ))}
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredRadiologyOrders.length > 0 ? filteredRadiologyOrders.map((order, index) => (
-                  <TableRow key={`radiology-${order.id || index}`} className={`${index % 2 === 0 ? 'bg-muted/30' : ''}`}>
-                    <TableCell className="py-1.5 px-3 whitespace-normal">{order.testName}</TableCell>
-                    <TableCell className="py-1.5 px-3 whitespace-normal">N/A</TableCell> {/* Imaging Type not available in mapped data */}
-                    <TableCell className="py-1.5 px-3 whitespace-normal">{order.orderDate} {order.orderTime}</TableCell>
-                    <TableCell className="py-1.5 px-3 whitespace-normal">{order.provider}</TableCell>
-                    <TableCell className="py-1.5 px-3 text-xs whitespace-normal">{order.status}</TableCell>
-                    <TableCell className="py-1.5 px-3 text-center">
-                      <Button variant="ghost" size="icon" className="h-6 w-6">
-                        <PenLine className="h-3.5 w-3.5 text-blue-600" />
-                      </Button>
-                    </TableCell>
-                    <TableCell className="py-1.5 px-3 text-center">
-                      <Button variant="ghost" size="icon" className="h-6 w-6">
-                        <Ban className="h-3.5 w-3.5 text-red-500" />
-                      </Button>
-                    </TableCell>
-                    <TableCell className="py-1.5 px-3">{order.result}</TableCell>
-                    <TableCell className="py-1.5 px-3">{order.location}</TableCell>
-                  </TableRow>
-                )) : (
+                {filteredRadiologyOrders.length > 0 ? (
+                  filteredRadiologyOrders.map((order, index) => (
+                    <TableRow 
+                      key={`${order.id}-${index}`}
+                      className={index % 2 === 0 ? 'bg-muted/5' : ''}
+                    >
+                      <TableCell className="py-2 px-3">{order.testName}</TableCell>
+                      <TableCell className="py-2 px-3">N/A</TableCell>
+                      <TableCell className="py-2 px-3 whitespace-nowrap">
+                        {order.orderDate} {order.orderTime}
+                      </TableCell>
+                      <TableCell className="py-2 px-3">{order.provider}</TableCell>
+                      <TableCell className="py-2 px-3">
+                        <Badge 
+                          variant={
+                            order.status === 'COMPLETED' ? 'default' : 
+                            order.status === 'PENDING' ? 'secondary' : 'outline'
+                          }
+                          className="text-xs"
+                        >
+                          {order.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="py-1 px-3 text-center">
+                        <Button variant="ghost" size="icon" className="h-7 w-7">
+                          <PenLine className="h-3.5 w-3.5 text-blue-600" />
+                        </Button>
+                      </TableCell>
+                      <TableCell className="py-1 px-3 text-center">
+                        <Button variant="ghost" size="icon" className="h-7 w-7">
+                          <Ban className="h-3.5 w-3.5 text-red-500" />
+                        </Button>
+                      </TableCell>
+                      <TableCell className="py-2 px-3">
+                        {order.result || 'N/A'}
+                      </TableCell>
+                      <TableCell className="py-2 px-3">
+                        {order.location}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
                   <TableRow>
-                    <TableCell colSpan={radiologyTableHeaders.length} className="text-center py-10 text-muted-foreground">
-                      No radiology orders found.
+                    <TableCell colSpan={radiologyTableHeaders.length} className="py-8 text-center text-muted-foreground">
+                      No orders found
                     </TableCell>
                   </TableRow>
                 )}
               </TableBody>
             </Table>
           )}
-        </div>
-
-        <div className="flex items-center justify-between p-2.5 border-t text-xs text-muted-foreground mt-auto">
-          <div>Showing {filteredRadiologyOrders.length > 0 ? 1 : 0} to {filteredRadiologyOrders.length} of {filteredRadiologyOrders.length} entries</div>
-          <div className="flex items-center space-x-1">
-            <Button variant="outline" size="sm" className="h-7 text-xs px-2 py-1">Previous</Button>
-            <Button variant="outline" size="sm" className="h-7 text-xs px-2 py-1 bg-accent text-foreground border-border">1</Button>
-            <Button variant="outline" size="sm" className="h-7 text-xs px-2 py-1">Next</Button>
-          </div>
         </div>
       </CardContent>
     </Card>
@@ -1367,18 +1376,24 @@ const LabCpoeListView = ({ patient }: { patient: Patient }) => {
   const [currentPage, setCurrentPage] = useState<number>(1);
 
   useEffect(() => {
-    if (!patient) return;
-    
-    // Use fallback SSN if patient SSN is not available
-    const effectiveSSN = patient?.ssn || '800000035';
-    
     const fetchLabOrders = async () => {
       try {
         setLoading(true);
-        const response = await fetch('http://3.6.230.54:4003/api/apiLabCPOEList.sh', {
+        
+        // Use the correct endpoint and ensure we have a valid SSN
+        const effectiveSSN = patient?.ssn || '800000035'; // Fallback to default SSN if not available
+        
+        if (!effectiveSSN) {
+          console.error('No patient SSN available for lab orders');
+          setError('Patient SSN is required to fetch lab orders');
+          return;
+        }
+
+        const response = await fetch('http://192.168.1.53/cgi-bin/apiLabCPOEList.sh', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'Accept': 'application/json',
           },
           body: JSON.stringify({
             UserName: 'CPRS-UAT',
@@ -1397,8 +1412,9 @@ const LabCpoeListView = ({ patient }: { patient: Patient }) => {
         }
 
         const data = await response.json();
-        
-        // Transform the API response to match our interface
+        console.log('Lab orders response:', data);
+
+        // Transform the response data to match the expected format
         const orders = Object.entries(data).map(([key, value]: [string, any]) => ({
           id: key,
           section: value.Section || 'UNKNOWN',
@@ -1414,7 +1430,9 @@ const LabCpoeListView = ({ patient }: { patient: Patient }) => {
         setLabOrders(orders);
       } catch (err) {
         console.error('Error fetching lab orders:', err);
-        setError('Failed to load lab orders');
+        setError('Failed to load lab orders. Please try again later.');
+        // Fallback to empty array to prevent rendering errors
+        setLabOrders([]);
       } finally {
         setLoading(false);
       }
@@ -1422,6 +1440,206 @@ const LabCpoeListView = ({ patient }: { patient: Patient }) => {
 
     fetchLabOrders();
   }, [patient.ssn]);
+
+  const filteredLabOrders = labOrders.filter(order => {
+    const matchesSection = sectionFilter ? order.section.toLowerCase() === sectionFilter.toLowerCase() : true;
+    const matchesSearch = searchTerm ? Object.values(order).some((value) => (value as any)?.toString().toLowerCase().includes(searchTerm.toLowerCase())) : true;
+    return matchesSection && matchesSearch;
+  });
+
+  const totalPages = Math.ceil(filteredLabOrders.length / parseInt(showEntries));
+  const startIndex = (currentPage - 1) * parseInt(showEntries);
+  const endIndex = startIndex + parseInt(showEntries);
+  const paginatedLabOrders = filteredLabOrders.slice(startIndex, endIndex);
+
+  const labCpoeTableHeaders = ["Section", "Lab Test", "Sample", "Order Date", "Order Time", "Start Date", "Start Time", "Status"];
+
+  return (
+    <Card className="flex-1 flex flex-col shadow overflow-hidden">
+      <CardHeader className="p-2.5 border-b bg-card text-foreground rounded-t-md">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-base font-semibold">Lab CPOE List</CardTitle>
+          <div className="flex items-center space-x-1">
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-primary hover:bg-muted/50">
+              <Settings className="h-4 w-4" />
+            </Button>
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-primary hover:bg-muted/50">
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="p-2.5 flex-1 flex flex-col overflow-hidden">
+        <div className="space-y-2 mb-2 text-xs">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+            <Label htmlFor="labSection" className="shrink-0">Section</Label>
+            <Select value={sectionFilter} onValueChange={setSectionFilter}>
+              <SelectTrigger id="labSection" className="h-7 w-24 text-xs">
+                <SelectValue placeholder="Select" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="All">All</SelectItem>
+                {Array.from(new Set(labOrders.map(order => order.section))).map(section => (
+                  <SelectItem key={`section-${section}`} value={section}>{section}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Label htmlFor="labSearch" className="shrink-0">Search:</Label>
+            <Input id="labSearch" type="text" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="h-7 w-40 text-xs" />
+          </div>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+            <div className="flex items-center space-x-1">
+              <Label htmlFor="labShowEntries" className="text-xs shrink-0">Show</Label>
+              <Select value={showEntries} onValueChange={setShowEntries}>
+                <SelectTrigger id="labShowEntries" className="h-7 w-16 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="10">10</SelectItem>
+                  <SelectItem value="25">25</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                </SelectContent>
+              </Select>
+              <Label htmlFor="labShowEntries" className="text-xs shrink-0">entries</Label>
+            </div>
+            <div className="flex-grow"></div>
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-auto min-h-0">
+          {loading ? (
+            <div className="flex items-center justify-center h-full">
+              <p className="text-muted-foreground">Loading lab orders...</p>
+            </div>
+          ) : error ? (
+            <div className="flex items-center justify-center h-full">
+              <p className="text-destructive">{error}</p>
+            </div>
+          ) : (
+            <Table className="text-xs w-full">
+              <TableHeader className="bg-accent sticky top-0 z-10">
+                <TableRow>
+                  {labCpoeTableHeaders.map(header => (
+                    <TableHead key={header} className="py-1 px-3 text-xs h-auto">
+                      <div className="flex items-center justify-between">
+                        {header}
+                        <ArrowUpDown className="h-3 w-3 ml-1 text-muted-foreground hover:text-foreground cursor-pointer" />
+                      </div>
+                    </TableHead>
+                  ))}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {paginatedLabOrders.length > 0 ? paginatedLabOrders.map((lab, index) => (
+                  <TableRow key={`lab-${lab.id}`} className={`${index % 2 === 0 ? 'bg-muted/30' : ''}`}>
+                    <TableCell className="py-1 px-3">{lab.section}</TableCell>
+                    <TableCell className="py-1 px-3">{lab.labTest}</TableCell>
+                    <TableCell className="py-1 px-3">{lab.sample}</TableCell>
+                    <TableCell className="py-1 px-3">{lab.orderDate}</TableCell>
+                    <TableCell className="py-1 px-3">{lab.orderTime}</TableCell>
+                    <TableCell className="py-1 px-3">{lab.startDate}</TableCell>
+                    <TableCell className="py-1 px-3">{lab.startTime}</TableCell>
+                    <TableCell className="py-1 px-3 text-xs">{lab.status}</TableCell>
+                  </TableRow>
+                )) : (
+                  <TableRow>
+                    <TableCell colSpan={labCpoeTableHeaders.length} className="text-center py-10 text-muted-foreground">
+                      No lab orders found.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          )}
+        </div>
+
+        <div className="flex items-center justify-between p-2.5 border-t text-xs text-muted-foreground mt-auto">
+          <div>Showing {paginatedLabOrders.length > 0 ? startIndex + 1 : 0} to {Math.min(endIndex, filteredLabOrders.length)} of {filteredLabOrders.length} entries</div>
+          <div className="flex items-center space-x-1">
+            <Button variant="outline" size="sm" className="h-7 text-xs px-2 py-1" onClick={() => setCurrentPage(currentPage - 1)} disabled={currentPage === 1}>Previous</Button>
+            <Button variant="outline" size="sm" className="h-7 text-xs px-2 py-1 bg-accent text-foreground border-border">{currentPage}</Button>
+            <Button variant="outline" size="sm" className="h-7 text-xs px-2 py-1" onClick={() => setCurrentPage(currentPage + 1)} disabled={currentPage === totalPages}>Next</Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
+const LabCpoeListViewUpdated = ({ patient }: { patient: Patient }) => {
+  const [labOrders, setLabOrders] = useState<LabCpoeDataType[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [sectionFilter, setSectionFilter] = useState<string>("");
+  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [showEntries, setShowEntries] = useState<string>("10");
+  const [currentPage, setCurrentPage] = useState<number>(1);
+
+  useEffect(() => {
+    const fetchLabOrders = async () => {
+      try {
+        setLoading(true);
+        
+        // Use the correct endpoint and ensure we have a valid SSN
+        const effectiveSSN = patient?.ssn || '800000035'; // Fallback to default SSN if not available
+        
+        if (!effectiveSSN) {
+          console.error('No patient SSN available for lab orders');
+          setError('Patient SSN is required to fetch lab orders');
+          return;
+        }
+
+        const response = await fetch('/api/lab/apiLabCPOEList.sh', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+          body: JSON.stringify({
+            UserName: 'CPRS-UAT',
+            Password: 'UAT@123',
+            PatientSSN: effectiveSSN,
+            DUZ: '80',
+            ihtLocation: 67,
+            FromDate: '',
+            ToDate: '',
+            Action: 'L'
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log('Lab orders response:', data);
+
+        // Transform the response data to match the expected format
+        const orders = Object.entries(data).map(([key, value]: [string, any]) => ({
+          id: key,
+          section: value.Section || 'UNKNOWN',
+          labTest: value['Lab Test'] || 'N/A',
+          sample: value.Sample || 'N/A',
+          orderDate: value['Order Date'] || '',
+          orderTime: value['Order Time'] || '',
+          startDate: value['Start Date'] || '',
+          startTime: value['Start Time'] || '',
+          status: value.Status || 'UNKNOWN',
+        }));
+
+        setLabOrders(orders);
+      } catch (err) {
+        console.error('Error fetching lab orders:', err);
+        setError('Failed to load lab orders. Please try again later.');
+        // Fallback to empty array to prevent rendering errors
+        setLabOrders([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchLabOrders();
+  }, [patient]);
 
   const filteredLabOrders = labOrders.filter(order => {
     const matchesSection = sectionFilter ? order.section.toLowerCase() === sectionFilter.toLowerCase() : true;
@@ -1766,11 +1984,13 @@ const OrdersPage: NextPage<OrdersPageProps> = ({ patient: initialPatient }) => {
           // Fetch default patient using the default SSN
           const defaultSSN = "800000035";
           const data = await apiService.getPatients({ searchSSN: defaultSSN }) as ApiPatientResponse[];
-          console.log('Default Patient API response:', data);
+          console.log('Default Patient API response:', JSON.stringify(data, null, 2));
 
           if (data && data.length > 0) {
             // Map API data to Patient type from constants.ts
             const defaultPatientData = data[0]; // Get the first patient from the results
+            console.log('Raw patient data for mapping:', defaultPatientData);
+            
             const defaultPatient: Patient = {
               id: String(defaultPatientData.DFN || ''),
               name: defaultPatientData.Name || '',
@@ -1790,26 +2010,34 @@ const OrdersPage: NextPage<OrdersPageProps> = ({ patient: initialPatient }) => {
               finalDiagnosis: '',
               posting: defaultPatientData.posting || '',
               reasonForVisit: '',
-              ssn: String(defaultPatientData.ssn || ''),
+              ssn: String(
+                defaultPatientData.SSN || 
+                defaultPatientData.ssn || 
+                defaultPatientData['SSN No'] || 
+                defaultSSN
+              ),
+              "IP No": defaultPatientData["IP No"] || 0,
               "Admission Date": defaultPatientData["Admission Date"] || '',
-              Age: defaultPatientData.Age,
+              "Mobile No": Number(defaultPatientData["Mobile No"] || 0),
+              "Primary Consultant": defaultPatientData["Primary Consultant"] || '',
+              "Secondary Consultant": defaultPatientData["Secondary Consultant"] || '',
+              "Treating Consultant": defaultPatientData["Treating Consultant"] || '',
+              LOS: defaultPatientData.LOS || '',
+              Specialty: defaultPatientData.Specialty || '',
+              Ward: defaultPatientData.Ward || '',
               Bed: defaultPatientData.Bed || '',
-              DFN: defaultPatientData.DFN || 0,
+              Age: defaultPatientData.Age || 0,
+              DFN: Number(defaultPatientData.DFN || 0),
               DOB: defaultPatientData.DOB || '',
               Gender: defaultPatientData.Gender || '',
-              "IP No": defaultPatientData["IP No"] || 0,
-              LOS: defaultPatientData.LOS || '',
-              "Mobile No": defaultPatientData["Mobile No"] || 0,
               Name: defaultPatientData.Name || '',
-              "Primary Consultant": defaultPatientData["Primary Consultant"] || '',
-              Specialty: defaultPatientData.Specialty || '',
-              "Treating Consultant": defaultPatientData["Treating Consultant"] || '',
-              Ward: defaultPatientData.Ward || '',
+              reasonForVisit: ''
             };
-            console.log('Mapped patient data:', defaultPatient);
+            
+            console.log('Mapped patient data with SSN:', defaultPatient.ssn);
             setPatient(defaultPatient);
           } else {
-            console.log('No default patient data found for SSN', defaultSSN);
+            console.log('No patient data found for default SSN');
             setPatient(null);
           }
         } catch (error) {
@@ -1819,7 +2047,7 @@ const OrdersPage: NextPage<OrdersPageProps> = ({ patient: initialPatient }) => {
           setLoadingLabOrders(false);
         }
       } else {
-        console.log('Using initial patient data:', initialPatient);
+        console.log('Using initial patient data with SSN:', initialPatient.ssn);
         setPatient(initialPatient);
       }
     };
@@ -1848,17 +2076,17 @@ const OrdersPage: NextPage<OrdersPageProps> = ({ patient: initialPatient }) => {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-var(--top-nav-height,40px))] bg-background text-sm px-2.5 pb-4 pt-0">
+    <div className="flex flex-col h-[calc(100vh-var(--top-nav-height,40px))] bg-background text-sm">
       {/* Horizontal Sub-Navigation Bar */}
-      <div className="flex items-end space-x-1 px-1 pb-0 overflow-x-auto no-scrollbar">
+      <div className="flex items-end space-x-1 px-4 pt-0 pb-0 overflow-x-auto no-scrollbar border-b border-border">
         {orderSubNavItems.map((item) => (
           <Button
-            key={item} // Add key prop here
+            key={item}
             onClick={() => setActiveSubNav(item)}
-            className={`text-xs px-3 py-1.5 h-auto rounded-b-none rounded-t-md whitespace-nowrap focus-visible:ring-0 focus-visible:ring-offset-0
+            className={`text-xs px-4 py-2 h-auto rounded-none whitespace-nowrap focus-visible:ring-0 focus-visible:ring-offset-0 transition-colors
               ${activeSubNav === item
-                ? 'bg-background text-primary border-x border-t border-border border-b-2 border-b-background shadow-sm relative -mb-px z-10 hover:bg-background hover:text-primary'
-                : 'bg-muted text-muted-foreground hover:bg-accent hover:text-foreground border-x border-t border-transparent'
+                ? 'bg-background text-primary border-x border-t border-border border-b-2 border-b-background shadow-sm relative -mb-px z-10 hover:bg-background/80'
+                : 'bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground border-x border-t border-transparent'
               }`}
           >
             {item}
@@ -1867,15 +2095,17 @@ const OrdersPage: NextPage<OrdersPageProps> = ({ patient: initialPatient }) => {
       </div>
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col pt-0 pb-2.5 overflow-hidden">
-        {activeSubNav === "CPOE Order List" && <CpoeOrderListView patient={patient} />}
-        {activeSubNav === "Write Delay Order" && <DelayOrdersView />}
-        {activeSubNav === "IP Medication" && <IpMedicationView patient={patient} />}
-        {activeSubNav === "Laboratory" && <LabCpoeListView patient={patient} />}
-        {activeSubNav === "Radiology" && <RadiologyView patient={patient} />}
-        {activeSubNav === "Visit/ADT" && <VisitAdtView patient={patient} />}
-        {activeSubNav === "Procedure Order" && <ProcedureOrderView />}
-        {activeSubNav === "Nursing Care" && <NursingCareView />}
+      <main className="flex-1 flex flex-col overflow-hidden">
+        <div className="w-full h-full">
+          {activeSubNav === "CPOE Order List" && <CpoeOrderListView patient={patient} />}
+          {activeSubNav === "Write Delay Order" && <DelayOrdersView />}
+          {activeSubNav === "IP Medication" && <IpMedicationView patient={patient} />}
+          {activeSubNav === "Laboratory" && <LabCpoeListViewUpdated patient={patient} />}
+          {activeSubNav === "Radiology" && <RadiologyView patient={patient} />}
+          {activeSubNav === "Visit/ADT" && <VisitAdtView patient={patient} />}
+          {activeSubNav === "Procedure Order" && <ProcedureOrderView />}
+          {activeSubNav === "Nursing Care" && <NursingCareView />}
+        </div>
       </main>
     </div>
   );
