@@ -1463,15 +1463,15 @@ export default function DashboardPage({
                     >
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="UNKNOWN" id={`immediacy-unknown-${dialog.id}`} />
-                        <Label htmlFor={`immediacy-unknown-${dialog.id}`} className="text-sm">Unknown</Label>
+                        <Label htmlFor={`immediacy-unknown-${dialog.id}`} className="text-xs">Unknown</Label>
                       </div>
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="ACUTE" id={`immediacy-acute-${dialog.id}`} />
-                        <Label htmlFor={`immediacy-acute-${dialog.id}`} className="text-sm">Acute</Label>
+                        <Label htmlFor={`immediacy-acute-${dialog.id}`} className="text-xs">Acute</Label>
                       </div>
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="CHRONIC" id={`immediacy-chronic-${dialog.id}`} />
-                        <Label htmlFor={`immediacy-chronic-${dialog.id}`} className="text-sm">Chronic</Label>
+                        <Label htmlFor={`immediacy-chronic-${dialog.id}`} className="text-xs">Chronic</Label>
                       </div>
                     </RadioGroup>
                   </div>

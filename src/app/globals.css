@@ -189,6 +189,45 @@ body {
   body {
     @apply bg-background text-foreground;
   }
+
+  /* Remove focus outlines while maintaining accessibility */
+  *:focus, *:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
+    --ring: transparent;
+  }
+
+  /* For browsers that support :focus-visible */
+  *:focus:not(:focus-visible) {
+    outline: none !important;
+    box-shadow: none !important;
+    --ring: transparent;
+  }
+
+  /* For WebKit browsers (Safari, Chrome) */
+  *:focus {
+    outline: none !important;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* For buttons and interactive elements */
+  button:focus, button:active,
+  input:focus, input:active,
+  select:focus, select:active,
+  textarea:focus, textarea:active,
+  [role="button"]:focus, [role="button"]:active {
+    outline: none !important;
+    box-shadow: none !important;
+    --ring: transparent;
+  }
+
+  /* For radio buttons and checkboxes */
+  [type='radio']:focus,
+  [type='checkbox']:focus {
+    outline: none !important;
+    box-shadow: none !important;
+    --ring: transparent;
+  }
 }
 
 @layer utilities {
