@@ -212,6 +212,84 @@ export default function DashboardPage({
     Record<string, { search: string; quickSearch: string; selected: string[] }>
   >({});
 
+  // Allergy search state
+  const [allergySearchTerm, setAllergySearchTerm] = useState('');
+  const [allergySearchResults, setAllergySearchResults] = useState<any[]>([]);
+  const [isSearchingAllergies, setIsSearchingAllergies] = useState(false);
+  const [showAllergyDropdown, setShowAllergyDropdown] = useState(false);
+
+  // Debounced allergy search function
+  const searchAllergies = useCallback(debounce(async (searchTerm: string) => {
+    if (!searchTerm.trim()) {
+      setAllergySearchResults([]);
+      return;
+    }
+
+    setIsSearchingAllergies(true);
+    try {
+      const response = await fetch('http://192.168.1.53/cgi-bin/apiAllergySrh.sh', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          UserName: 'CPRS-UAT',
+          Password: 'UAT@123',
+          PatientSSN: '800000035',
+          cpProvDiag: searchTerm,
+          iAllrgy: searchTerm,
+          DUZ: '80'
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const responseText = await response.text();
+      let data;
+      
+      try {
+        data = responseText ? JSON.parse(responseText) : [];
+      } catch (e) {
+        console.warn('Response is not valid JSON, treating as text:', responseText);
+        data = responseText.split('\n').filter(Boolean).map((item, index) => ({
+          id: index,
+          name: item.trim()
+        }));
+      }
+
+      // Handle different response formats
+      if (Array.isArray(data)) {
+        setAllergySearchResults(data);
+      } else if (data && typeof data === 'object') {
+        // Handle object with numeric keys
+        const results = Object.entries(data).map(([id, name]) => ({
+          id,
+          name: String(name)
+        }));
+        setAllergySearchResults(results);
+      }
+    } catch (error) {
+      console.error('Error searching allergies:', error);
+      toast.error('Failed to search for allergies. Please try again.');
+      setAllergySearchResults([]);
+    } finally {
+      setIsSearchingAllergies(false);
+    }
+  }, 300), []);
+
+  // Update search term and trigger search
+  const handleAllergySearchChange = (value: string) => {
+    setAllergySearchTerm(value);
+    if (value.trim()) {
+      searchAllergies(value);
+      setShowAllergyDropdown(true);
+    } else {
+      setShowAllergyDropdown(false);
+    }
+  };
+
   // Dialog refs for dragging
   const dialogRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const dialogDragging = useRef<Record<string, boolean>>({});
@@ -1993,20 +2071,59 @@ export default function DashboardPage({
             ) : dialog.type === 'allergies' ? (
               <div className="flex flex-col gap-4 text-sm">
                 {/* Allergies Input */}
-                <div className="grid grid-cols-1 gap-2">
+                <div className="grid grid-cols-1 gap-2 relative">
                   <Label htmlFor={`allergies-${dialog.id}`} className="font-medium">Allergies</Label>
-                  <Input
-                    id={`allergies-${dialog.id}`}
-                    value={allergyInputs[dialog.id]?.allergies || ''}
-                    onChange={(e) => setAllergyInputs(prev => ({
-                      ...prev,
-                      [dialog.id]: { ...prev[dialog.id], allergies: e.target.value }
-                    }))}
-                    placeholder="Enter allergies"
-                  />
+                  <div className="relative">
+                    <Input
+                      id={`allergies-${dialog.id}`}
+                      value={allergyInputs[dialog.id]?.allergies || ''}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setAllergyInputs(prev => ({
+                          ...prev,
+                          [dialog.id]: { ...(prev[dialog.id] || {}), allergies: value }
+                        }));
+                        handleAllergySearchChange(value);
+                      }}
+                      onFocus={() => allergySearchTerm.trim() && setShowAllergyDropdown(true)}
+                      onBlur={() => setTimeout(() => setShowAllergyDropdown(false), 200)}
+                      placeholder="Start typing to search allergies..."
+                      className="w-full"
+                    />
+                    {isSearchingAllergies && (
+                      <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Allergy search results dropdown */}
+                  {showAllergyDropdown && allergySearchResults.length > 0 && (
+                    <div className="absolute z-[9999] w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto mt-1">
+                      {allergySearchResults.map((result) => (
+                        <div
+                          key={result.id || result.name}
+                          className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            setAllergyInputs(prev => ({
+                              ...prev,
+                              [dialog.id]: { 
+                                ...(prev[dialog.id] || {}), 
+                                allergies: result.name || result.AllergyName || result.allergen || result || ''
+                              }
+                            }));
+                            setShowAllergyDropdown(false);
+                          }}
+                        >
+                          {result.name || result.AllergyName || result.allergen || result}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
-                {/* Nature of Reaction - Select + Radio Group */}
+                {/* Nature of Reaction - Select */}
                 <div className="grid grid-cols-1 gap-2">
                   <Label className="font-medium">Nature of Reaction</Label>
                   <div className="flex gap-4">
@@ -2017,7 +2134,7 @@ export default function DashboardPage({
                         [dialog.id]: { ...prev[dialog.id], natureOfReaction: value }
                       }))}
                     >
-                      <SelectTrigger className="flex-1">
+                      <SelectTrigger className="w-full">
                         <SelectValue placeholder="Select nature of reaction" />
                       </SelectTrigger>
                       <SelectContent>
@@ -2036,11 +2153,11 @@ export default function DashboardPage({
                     >
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="Observed" id={`observed-${dialog.id}`} />
-                        <Label htmlFor={`observed-${dialog.id}`}>Observed</Label>
+                        <Label htmlFor={`observed-${dialog.id}`} className="text-xs">Observed</Label>
                       </div>
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="Historical" id={`historical-${dialog.id}`} />
-                        <Label htmlFor={`historical-${dialog.id}`}>Historical</Label>
+                        <Label htmlFor={`historical-${dialog.id}`} className="text-xs">Historical</Label>
                       </div>
                     </RadioGroup>
                   </div>

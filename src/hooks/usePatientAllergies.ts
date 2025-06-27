@@ -23,6 +23,7 @@ export function usePatientAllergies(patientSSN: string): UsePatientAllergiesResu
   const [allergies, setAllergies] = useState<Record<string, Allergy>>({});
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
+  const [isMounted, setIsMounted] = useState(true);
 
   const fetchAllergies = useCallback(async () => {
     try {
@@ -49,17 +50,31 @@ export function usePatientAllergies(patientSSN: string): UsePatientAllergiesResu
       
       const data = await response.json();
       console.log('Allergies API Response for SSN:', effectiveSSN, 'Data:', data);
-      setAllergies(data);
+      
+      // Only update state if component is still mounted
+      if (isMounted) {
+        setAllergies(data);
+      }
     } catch (err) {
       console.error('Error fetching allergies:', err);
-      setError(err instanceof Error ? err : new Error('Failed to fetch allergies'));
+      if (isMounted) {
+        setError(err instanceof Error ? err : new Error('Failed to fetch allergies'));
+      }
     } finally {
-      setLoading(false);
+      if (isMounted) {
+        setLoading(false);
+      }
     }
-  }, [patientSSN]);
+  }, [patientSSN, isMounted]);
 
   useEffect(() => {
+    setIsMounted(true);
     fetchAllergies();
+    
+    // Cleanup function to prevent state updates after unmount
+    return () => {
+      setIsMounted(false);
+    };
   }, [fetchAllergies]);
 
   return { allergies, loading, error, refresh: fetchAllergies };
