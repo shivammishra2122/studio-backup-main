@@ -8,24 +8,31 @@ export interface ClinicalNote {
   status: string;
   author: string;
 }
+// Fallback SSN to use when patient SSN is not available
+const FALLBACK_SSN = '800000035';
 
-export function useClinicalNotes(patientSSN: string) {
+export function useClinicalNotes(patientSSN?: string) {
   const [notes, setNotes] = useState<ClinicalNote[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
     const loadNotes = async () => {
-      if (!patientSSN) {
-        console.log('No patient SSN provided, skipping clinical notes fetch');
+      // Use the provided SSN or fall back to the default SSN if not available
+      const effectiveSSN = patientSSN || FALLBACK_SSN;
+      
+      if (!effectiveSSN) {
+        console.error('No patient SSN provided and no fallback SSN available');
         setNotes([]);
         setLoading(false);
         return;
       }
 
+      console.log(`Fetching clinical notes for SSN: ${effectiveSSN}`);
+      
       try {
         setLoading(true);
-        const data = await apiService.fetchClinicalNotes({ patientSSN });
+        const data = await apiService.fetchClinicalNotes({ patientSSN: effectiveSSN });
         
         // Transform the API response to match the ClinicalNote interface
         const formattedNotes = data.map((note: any) => ({
@@ -48,7 +55,7 @@ export function useClinicalNotes(patientSSN: string) {
     };
 
     loadNotes();
-  }, [patientSSN]);
+  }, [patientSSN]); // Re-run when patientSSN changes
 
   return { notes, loading, error };
 }

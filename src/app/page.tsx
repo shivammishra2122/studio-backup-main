@@ -32,9 +32,12 @@ import { Dialog, DialogContent } from '@/components/ui/dialog';
 import usePatientProblems from '@/hooks/usePatientProblems';
 import { usePatientAllergies } from '@/hooks/usePatientAllergies';
 import { useClinicalNotes, type ClinicalNote } from '@/hooks/useClinicalNotes';
-import { saveProblem, type ApiProbSavePayload } from '@/services/problem';
+import { saveProblem as saveProblemService, type ApiProbSavePayload } from '@/services/problem';
 import { saveAllergy, type ApiAllergySavePayload } from '@/services/allergy';
 import { useMedications } from '@/hooks/useMedications';
+import useProblemSave from '@/hooks/useProblemSave';
+import useProblemSearch from '@/hooks/useProblemSearch';
+import { debounce } from 'lodash';
 
 // Chart configurations
 const glucoseChartConfig: ChartConfig = { level: { label: 'Glucose (mg/dL)', color: 'hsl(var(--chart-2))' } };
@@ -117,17 +120,30 @@ export default function DashboardPage({
   // Use the useMedications hook to fetch medications
   const { data: medications = initialMedications, loading: medicationsLoading, error: medicationsError } = useMedications();
 
+  // Use the useProblemSave hook
+  const { saveProblem, isLoading: isSavingProblem } = useProblemSave();
+  
+  // Use the useProblemSearch hook
+  const { 
+    searchProblems, 
+    searchResults, 
+    isSearching, 
+    searchError, 
+    clearSearch 
+  } = useProblemSearch();
+
   // State for problem inputs
   const [problemInputs, setProblemInputs] = useState<Record<string, {
     input: string;
     category: ProblemCategory | '';
     other: boolean;
-    preferred: string[];
     status: ProblemStatus | '';
     immediacy: ProblemImmediacy | '';
     dateOnset: string;
     service: string;
     comment: string;
+    problemName: string;
+    problemCode: string;
   }>>({});
 
   // Fetch up-to-date problems for the patient (fallback to provided problems until fetch completes)
@@ -292,12 +308,13 @@ export default function DashboardPage({
           input: '',
           category: '',
           other: false,
-          preferred: [],
           status: '',
           immediacy: '',
           dateOnset: '',
           service: '',
           comment: '',
+          problemName: '',
+          problemCode: ''
         },
       }));
     } else if (type === 'medication') {
@@ -475,98 +492,74 @@ export default function DashboardPage({
     setSelectedRows((prev) => prev.filter((_, i) => i !== idx));
   };
 
-  const handleAddProblem = async (dialogId: string) => {
+  const handleAddProblem = useCallback(async (dialogId: string) => {
     const input = problemInputs[dialogId];
     if (!input) {
       toast.error('Problem input not found');
       return;
     }
 
-    // Check if either preferred problems are selected or other problem is entered
-    const hasPreferredProblems = input.preferred && input.preferred.length > 0;
-    const hasOtherProblem = input.other && input.input?.trim();
-    
-    if (!hasPreferredProblems && !hasOtherProblem) {
-      toast.error('Please select at least one problem or enter a custom problem');
+    // Validate required fields
+    if (!input.category) {
+      toast.error('Please select a category');
+      return;
+    }
+
+    if (!input.input.trim()) {
+      toast.error('Please enter a problem description');
       return;
     }
 
     try {
-      // Prepare the request body
-      const requestBody = {
-        PatientSSN: patient?.ssn || '', // Use the patient's SSN from props
-        Problem: hasOtherProblem ? input.input : input.preferred?.join(', '),
-        Status: input.status || 'ACTIVE',
-        DateOfOnset: input.dateOnset || new Date().toISOString().split('T')[0],
-        Service: input.service || 'GENERAL',
-        Immediacy: input.immediacy || 'UNKNOWN',
-        Comment: input.comment || '',
-        DUZ: '115',
-        // Include both preferred and other fields for the API
-        preferred: hasPreferredProblems ? input.preferred : [],
-        other: hasOtherProblem ? input.input : ''
+      const problemDescription = input.input;
+      
+      // Map the form data to the API payload
+      const payload = {
+        PatientSSN: patient.ssn || '800000035',
+        DUZ: '1', // Default DUZ value
+        ihtLocation: '1', // Default location
+        cdpProbL: problemDescription,
+        cpClinic: '1', // Default clinic
+        cdpDOSet: input.dateOnset || new Date().toISOString().split('T')[0],
+        cdpStts: input.status || 'ACTIVE',
+        cdpServ: input.service || 'GENERAL',
+        cdpImmed: input.immediacy || 'ACUTE',
+        cdpCMT: input.comment || '',
+        cpWard: '1', // Default ward
+        DUZIP: '1.1.1.1', // Default IP
       };
 
-      console.log('Sending request to /api/problems/save:', requestBody);
-
-      const response = await fetch('/api/problems/save', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+      await saveProblem(payload);
+      
+      // Close the dialog and reset the form
+      closeFloatingDialog(dialogId);
+      
+      // Clear the form
+      setProblemInputs(prev => ({
+        ...prev,
+        [dialogId]: {
+          input: '',
+          category: '',
+          other: false,
+          status: '',
+          immediacy: '',
+          dateOnset: '',
+          service: '',
+          comment: '',
+          problemName: '',
+          problemCode: ''
         },
-        body: JSON.stringify(requestBody)
-      });
-
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        const text = await response.text();
-        console.error('Non-JSON response:', text);
-        throw new Error(`Unexpected response format: ${text.substring(0, 100)}...`);
-      }
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        console.error('API Error:', result);
-        throw new Error(result.error || `Request failed with status ${response.status}`);
-      }
-
-      console.log('API Response:', result);
-
-      if (result.success || result.Success) {
-        // Reset the form
-        setProblemInputs(prev => ({
-          ...prev,
-          [dialogId]: {
-            input: '',
-            category: '',
-            other: false,
-            preferred: [],
-            status: '',
-            immediacy: '',
-            dateOnset: '',
-            service: '',
-            comment: ''
-          }
-        }));
-        
-        // Close the dialog
-        closeFloatingDialog(dialogId);
-        
-        // Show success message
-        toast.success('Problem saved successfully');
-        
-        // Refresh problems list or update local state as needed
-        // You might want to add this functionality
-      } else {
-        throw new Error(result.message || result.Message || 'Failed to save problem');
-      }
+      }));
+      
+      // Refresh problems list
+      // Note: You might want to implement a refetch function in your usePatientProblems hook
+      // and call it here to refresh the problems list
+      
     } catch (error) {
-      console.error('Error in handleAddProblem:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to save problem';
-      toast.error(errorMessage);
+      // Error is already handled by the useProblemSave hook
+      console.error('Error saving problem:', error);
     }
-  };
+  }, [problemInputs, patient.ssn, saveProblem]);
 
   const handleAddMedication = (dialogId: string) => {
     const input = medicationInputs[dialogId];
@@ -648,6 +641,61 @@ export default function DashboardPage({
     toast.success('Item added successfully!');
     closeFloatingDialog(dialogId);
   };
+
+  // Handle problem search input change with debounce
+  const handleSearchChange = useCallback(
+    debounce((searchTerm: string, dialogId: string) => {
+      if (searchTerm.trim().length >= 2) {  // Only search if 2 or more characters
+        console.log('Initiating search for:', searchTerm);
+        searchProblems(searchTerm, patient.ssn || '800000035');
+      } else {
+        console.log('Search term too short, clearing results');
+        clearSearch();
+      }
+    }, 300),
+    [searchProblems, patient.ssn, clearSearch]
+  );
+
+  // Handle input change with immediate feedback
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>, dialogId: string) => {
+    const value = e.target.value;
+    console.log('Input changed:', value, 'for dialog:', dialogId);
+    
+    // Update input value
+    setProblemInputs(prev => ({
+      ...prev,
+      [dialogId]: { 
+        ...(prev[dialogId] || {}), 
+        input: value,
+        other: true // Ensure other is true when typing
+      }
+    }));
+    
+    // Clear results if input is cleared
+    if (!value.trim()) {
+      console.log('Input cleared, clearing search');
+      clearSearch();
+    } else if (value.trim().length >= 2) {
+      console.log('Triggering search for:', value);
+      handleSearchChange(value, dialogId);
+    } else {
+      console.log('Search term too short, not searching');
+      clearSearch();
+    }
+  }, [handleSearchChange, clearSearch]);
+
+  // Handle problem selection from search results
+  const handleSelectProblem = useCallback((problem: string, dialogId: string) => {
+    setProblemInputs(prev => ({
+      ...prev,
+      [dialogId]: {
+        ...prev[dialogId],
+        input: problem,
+        other: true // Keep the search input visible after selection
+      }
+    }));
+    clearSearch();
+  }, [clearSearch]);
 
   return (
     <div className="flex flex-1 flex-col min-h-0 overflow-auto bg-background relative">
@@ -970,7 +1018,7 @@ export default function DashboardPage({
                     <TableBody>
                       {medicationsLoading ? (
                         <TableRow>
-                          <TableCell className="text-center">
+                          <TableCell className="text-center" colSpan={1}>
                             <div className="flex justify-center py-2">
                               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900"></div>
                             </div>
@@ -1139,7 +1187,7 @@ export default function DashboardPage({
                   <TableBody>
                     {isLoading ? (
                       <TableRow>
-                        <TableCell colSpan={1} className="text-center">
+                        <TableCell className="text-center" colSpan={1}>
                           <div className="flex justify-center py-2">
                             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900"></div>
                           </div>
@@ -1147,7 +1195,7 @@ export default function DashboardPage({
                       </TableRow>
                     ) : itemCount === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={1} className="text-center text-muted-foreground text-xs py-2">
+                        <TableCell className="text-center text-muted-foreground text-xs py-2">
                           No items found
                         </TableCell>
                       </TableRow>
@@ -1192,26 +1240,25 @@ export default function DashboardPage({
             onMouseDown={(e) => handleMouseDown(dialog.id, e)}
           >
             <h2 className="text-base font-semibold">{dialog.title}</h2>
-            <Button variant="ghost" size="icon" onClick={() => closeFloatingDialog(dialog.id)}>
-              <X className="h-4 w-4" />
-            </Button>
+            <div className="flex items-center gap-4">
+              <div className="text-xs text-muted-foreground flex items-center gap-x-4">
+                <span>Patient ID: 148</span>
+                <span>Name: Anonymous One</span>
+                <span>Age: 65</span>
+                <span>Sex: FEMALE</span>
+                <span>Patient Type: In Patient</span>
+              </div>
+              <Button variant="ghost" size="icon" onClick={() => closeFloatingDialog(dialog.id)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
           <div className="p-4">
             {dialog.type === 'problem' ? (
               <div className="flex flex-col gap-3 text-sm">
-                <div className="bg-sky-100 p-3 -m-4 mb-4 text-xs text-sky-700 flex flex-wrap items-center gap-x-6 gap-y-1">
-                  <span>Patient ID: {patient.id}</span>
-                  <span>Name: {patient.name}</span>
-                  <span>Age: {patient.age}</span>
-                  <span>Sex: {patient.gender}</span>
-                  <span>Patient Type: In Patient</span>
-                </div>
-                
-                <div className="flex items-center gap-3">
-                  <Label htmlFor={`problemCategory-${dialog.id}`} className="w-[120px] min-w-[120px] shrink-0">
-                    Categories
-                  </Label>
-                  <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="w-1/2">
+                    <Label className="font-medium mb-1 block">Categories</Label>
                     <Select
                       value={problemInputs[dialog.id]?.category}
                       onValueChange={(value) =>
@@ -1221,16 +1268,16 @@ export default function DashboardPage({
                         }))
                       }
                     >
-                      <SelectTrigger className="w-full">
+                      <SelectTrigger className="h-8 text-xs">
                         <SelectValue placeholder="Select Category" />
                       </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Common Problems">Common Problems</SelectItem>
-                        <SelectItem value="Other">Other</SelectItem>
+                      <SelectContent className="text-xs">
+                        <SelectItem value="Common Problems" className="text-xs py-1.5">Common Problems</SelectItem>
+                        <SelectItem value="Other" className="text-xs py-1.5">Other</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="flex items-center space-x-2 ml-2">
+                  <div className="flex items-center gap-2 mt-6">
                     <Checkbox
                       id={`otherProblems-${dialog.id}`}
                       checked={problemInputs[dialog.id]?.other || false}
@@ -1242,102 +1289,168 @@ export default function DashboardPage({
                       }
                       className="h-4 w-4"
                     />
-                    <Label htmlFor={`otherProblems-${dialog.id}`} className="text-sm whitespace-nowrap">
+                    <Label htmlFor={`otherProblems-${dialog.id}`} className="text-sm">
                       Other Problems
                     </Label>
                   </div>
                 </div>
 
-                {/* Problem description input - shown when 'Other Problems' is checked */}
-                {problemInputs[dialog.id]?.other && (
-                  <div className="flex items-center gap-3">
-                    <Label htmlFor={`problemInput-${dialog.id}`} className="w-[120px] min-w-[120px] shrink-0">
-                      Problem
-                    </Label>
-                    <Input
-                      id={`problemInput-${dialog.id}`}
-                      value={problemInputs[dialog.id]?.input || ''}
-                      onChange={(e) =>
-                        setProblemInputs((prev) => ({
-                          ...prev,
-                          [dialog.id]: { ...prev[dialog.id], input: e.target.value },
-                        }))
-                      }
-                      placeholder="Enter problem description"
-                      className="flex-1"
-                    />
-                  </div>
-                )}
-
-                {/* Preferred problems grid - shown when 'Other Problems' is not checked */}
+                {/* Preferred Problems List */}
                 {!problemInputs[dialog.id]?.other && (
-                  <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto p-2 border rounded">
-                    {[
-                      'Fever', 'Headache', 'Cough', 'Fatigue', 'Nausea',
-                      'Dizziness', 'Shortness of breath', 'Chest pain'
-                    ].map((problem) => (
-                      <div key={problem} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={`${problem}-${dialog.id}`}
-                          checked={problemInputs[dialog.id]?.preferred?.includes(problem) || false}
-                          onCheckedChange={(checked) => {
-                            setProblemInputs((prev) => {
-                              const current = prev[dialog.id] || {};
-                              const preferred = [...(current.preferred || [])];
-                              
-                              if (checked) {
-                                preferred.push(problem);
+                  <div className="mt-2">
+                    <h4 className="text-sm font-medium text-muted-foreground mb-1">Preferred Problems</h4>
+                    <div className="text-xs text-muted-foreground grid grid-cols-2 gap-1 max-h-40 overflow-y-auto p-2 border rounded bg-muted/50">
+                      {[
+                        { name: "Anemia", code: "D64.9" },
+                        { name: "Diabetes", code: "E11.9" },
+                        { name: "Dehydration", code: "E86.0" },
+                        { name: "Burns", code: "T30.0" },
+                        { name: "Post operative discharge", code: "T81.4XXA" }
+                      ].map((problem, index) => {
+                        const problemText = `${problem.name} (${problem.code})`;
+                        const isSelected = problemInputs[dialog.id]?.problemName === problem.name && 
+                                         problemInputs[dialog.id]?.problemCode === problem.code;
+                        
+                        return (
+                          <div 
+                            key={index}
+                            className="flex items-center gap-2 p-1 hover:bg-accent hover:text-accent-foreground rounded cursor-pointer"
+                            onClick={() => {
+                              // Toggle selection
+                              if (isSelected) {
+                                // Clear selection if clicking on already selected item
+                                setProblemInputs(prev => ({
+                                  ...prev,
+                                  [dialog.id]: {
+                                    ...prev[dialog.id],
+                                    input: '',
+                                    problemName: '',
+                                    problemCode: ''
+                                  },
+                                }));
                               } else {
-                                const index = preferred.indexOf(problem);
-                                if (index > -1) {
-                                  preferred.splice(index, 1);
-                                }
+                                // Set the problem without showing the search field
+                                setProblemInputs(prev => ({
+                                  ...prev,
+                                  [dialog.id]: {
+                                    ...prev[dialog.id],
+                                    input: problemText,
+                                    other: false,
+                                    problemName: problem.name,
+                                    problemCode: problem.code
+                                  },
+                                }));
+                                // Clear any existing search results
+                                clearSearch();
                               }
-                              
-                              return {
-                                ...prev,
-                                [dialog.id]: {
-                                  ...current,
-                                  preferred,
-                                  input: checked ? problem : (current.input === problem ? '' : current.input)
-                                },
-                              };
-                            });
-                          }}
-                        />
-                        <Label htmlFor={`${problem}-${dialog.id}`} className="text-sm">
-                          {problem}
-                        </Label>
-                      </div>
-                    ))}
+                            }}
+                          >
+                            <input 
+                              type="checkbox" 
+                              checked={isSelected}
+                              onChange={() => {}} // Empty handler to prevent React warning
+                              className="h-3 w-3 rounded border-gray-300 text-primary focus:ring-primary"
+                              onClick={(e) => e.stopPropagation()} // Prevent double trigger with parent div
+                            />
+                            <span>{problemText}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
 
+                {/* Problem description input */}
+                <div className="relative w-full mt-3">
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center gap-3">
+                      <Label htmlFor={`problemInput-${dialog.id}`} className="w-[120px] min-w-[120px] shrink-0">
+                        {problemInputs[dialog.id]?.other ? 'Search Problem' : 'Problem'}
+                      </Label>
+                      <div className="relative flex-1">
+                        <Input
+                          id={`problemInput-${dialog.id}`}
+                          value={problemInputs[dialog.id]?.input || ''}
+                          onChange={(e) => handleInputChange(e, dialog.id)}
+                          onFocus={() => {
+                            // Trigger search if we have a value but no results yet
+                            const currentValue = problemInputs[dialog.id]?.input || '';
+                            if (currentValue.trim().length >= 2 && searchResults.length === 0) {
+                              console.log('Input focused, triggering search');
+                              searchProblems(currentValue, patient.ssn || '800000035');
+                            }
+                          }}
+                          placeholder="Start typing to search problems (min 2 characters)..."
+                          className="flex-1 pr-10"
+                          autoComplete="off"
+                        />
+                        {isSearching ? (
+                          <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                            <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
+                          </div>
+                        ) : problemInputs[dialog.id]?.input ? (
+                          <X 
+                            className="h-4 w-4 absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer text-muted-foreground"
+                            onClick={() => {
+                              console.log('Clear button clicked');
+                              setProblemInputs(prev => ({
+                                ...prev,
+                                [dialog.id]: { ...prev[dialog.id], input: '' }
+                              }));
+                              clearSearch();
+                            }}
+                          />
+                        ) : null}
+                      </div>
+                    </div>
+                    
+                    {/* Debug info - remove in production */}
+                    <div className="text-xs text-gray-500 ml-[120px] mt-1">
+                      Debug: {searchResults.length} results | Searching: {isSearching ? 'Yes' : 'No'} | 
+                      Input: "{problemInputs[dialog.id]?.input || '(empty)'}"
+                    </div>
+                    
+                    {/* Search results dropdown */}
+                    {(searchResults.length > 0 || isSearching) && (
+                      <div className="absolute left-[120px] right-0 z-50 mt-1 border rounded-md bg-white shadow-lg max-h-60 overflow-y-auto">
+                        {isSearching && searchResults.length === 0 ? (
+                          <div className="p-3 text-sm text-muted-foreground">
+                            <div className="flex items-center gap-2">
+                              <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
+                              <span>Searching...</span>
+                            </div>
+                          </div>
+                        ) : searchResults.length === 0 ? (
+                          <div className="p-3 text-sm text-muted-foreground">No matching problems found</div>
+                        ) : (
+                          searchResults.map((result, index) => (
+                            <div
+                              key={`${result.code}-${index}`}
+                              className="p-3 hover:bg-gray-50 cursor-pointer border-b last:border-b-0"
+                              onClick={() => {
+                                console.log('Selected problem:', result.description);
+                                handleSelectProblem(result.description, dialog.id);
+                              }}
+                            >
+                              <div className="font-medium">{result.description}</div>
+                              {result.code && (
+                                <div className="text-xs text-muted-foreground mt-1">Code: {result.code}</div>
+                              )}
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    )}
+                    
+                    {/* Error message */}
+                    {searchError && (
+                      <div className="text-sm text-red-500 mt-1 ml-[120px]">{searchError}</div>
+                    )}
+                  </div>
+                </div>
                 <div className="flex items-center gap-3">
                   <div className="w-1/2 flex items-center gap-3">
-                    <Label htmlFor={`problemStatus-${dialog.id}`} className="w-[120px] min-w-[120px] shrink-0">
-                      Status
-                    </Label>
-                    <Select
-                      value={problemInputs[dialog.id]?.status}
-                      onValueChange={(value) =>
-                        setProblemInputs((prev) => ({
-                          ...prev,
-                          [dialog.id]: { ...prev[dialog.id], status: value as ProblemStatus },
-                        }))
-                      }
-                    >
-                      <SelectTrigger className="flex-1">
-                        <SelectValue placeholder="Select Status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="ACTIVE">Active</SelectItem>
-                        <SelectItem value="RESOLVED">Resolved</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="w-1/2 flex items-center gap-3">
-                    <Label className="w-[120px] min-w-[120px] shrink-0">Immediacy</Label>
+                    <Label className="w-[120px] min-w-[120px]">Immediacy</Label>
                     <RadioGroup
                       value={problemInputs[dialog.id]?.immediacy || ''}
                       onValueChange={(value) =>
@@ -1349,6 +1462,10 @@ export default function DashboardPage({
                       className="flex items-center gap-4"
                     >
                       <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="UNKNOWN" id={`immediacy-unknown-${dialog.id}`} />
+                        <Label htmlFor={`immediacy-unknown-${dialog.id}`} className="text-sm">Unknown</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
                         <RadioGroupItem value="ACUTE" id={`immediacy-acute-${dialog.id}`} />
                         <Label htmlFor={`immediacy-acute-${dialog.id}`} className="text-sm">Acute</Label>
                       </div>
@@ -1358,46 +1475,43 @@ export default function DashboardPage({
                       </div>
                     </RadioGroup>
                   </div>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <Label htmlFor={`dateOnset-${dialog.id}`} className="w-[120px] min-w-[120px] shrink-0">
-                    Date of Onset
-                  </Label>
-                  <Input
-                    id={`dateOnset-${dialog.id}`}
-                    type="date"
-                    value={problemInputs[dialog.id]?.dateOnset || ''}
-                    onChange={(e) =>
-                      setProblemInputs((prev) => ({
-                        ...prev,
-                        [dialog.id]: { ...prev[dialog.id], dateOnset: e.target.value },
-                      }))
-                    }
-                    className="flex-1"
-                  />
-                  <Label htmlFor={`problemService-${dialog.id}`} className="w-[120px] min-w-[120px] shrink-0">
-                    Service
-                  </Label>
-                  <Select
-                    value={problemInputs[dialog.id]?.service}
-                    onValueChange={(value) =>
-                      setProblemInputs((prev) => ({
-                        ...prev,
-                        [dialog.id]: { ...prev[dialog.id], service: value },
-                      }))
-                    }
-                  >
-                    <SelectTrigger className="flex-1">
-                      <SelectValue placeholder="Select Service" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="CARDIOLOGY">Cardiology</SelectItem>
-                      <SelectItem value="NEUROLOGY">Neurology</SelectItem>
-                      <SelectItem value="ORTHOPEDICS">Orthopedics</SelectItem>
-                      <SelectItem value="GENERAL">General</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <div className="w-1/2 flex items-center gap-3">
+                    <Label htmlFor={`problemService-${dialog.id}`} className="w-[120px] min-w-[120px] shrink-0">
+                      Service
+                    </Label>
+                    <Select
+                      value={problemInputs[dialog.id]?.service}
+                      onValueChange={(value) =>
+                        setProblemInputs((prev) => ({
+                          ...prev,
+                          [dialog.id]: { ...prev[dialog.id], service: value },
+                        }))
+                      }
+                    >
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue placeholder="Select Service" />
+                      </SelectTrigger>
+                      <SelectContent className="text-xs max-h-60 overflow-y-auto">
+                        <SelectItem value="CARDIOLOGY" className="text-xs py-1.5">Cardiology</SelectItem>
+                        <SelectItem value="NEUROLOGY" className="text-xs py-1.5">Neurology</SelectItem>
+                        <SelectItem value="ORTHOPEDICS" className="text-xs py-1.5">Orthopedics</SelectItem>
+                        <SelectItem value="PULMONOLOGY" className="text-xs py-1.5">Pulmonology</SelectItem>
+                        <SelectItem value="GASTROENTEROLOGY" className="text-xs py-1.5">Gastroenterology</SelectItem>
+                        <SelectItem value="NEPHROLOGY" className="text-xs py-1.5">Nephrology</SelectItem>
+                        <SelectItem value="ONCOLOGY" className="text-xs py-1.5">Oncology</SelectItem>
+                        <SelectItem value="ENDOCRINOLOGY" className="text-xs py-1.5">Endocrinology</SelectItem>
+                        <SelectItem value="RHEUMATOLOGY" className="text-xs py-1.5">Rheumatology</SelectItem>
+                        <SelectItem value="GENERAL" className="text-xs py-1.5">General Medicine</SelectItem>
+                        <SelectItem value="SURGERY" className="text-xs py-1.5">Surgery</SelectItem>
+                        <SelectItem value="GYNECOLOGY" className="text-xs py-1.5">Gynecology</SelectItem>
+                        <SelectItem value="UROLOGY" className="text-xs py-1.5">Urology</SelectItem>
+                        <SelectItem value="DERMATOLOGY" className="text-xs py-1.5">Dermatology</SelectItem>
+                        <SelectItem value="OPHTHALMOLOGY" className="text-xs py-1.5">Ophthalmology</SelectItem>
+                        <SelectItem value="ENT" className="text-xs py-1.5">ENT</SelectItem>
+                        <SelectItem value="PSYCHIATRY" className="text-xs py-1.5">Psychiatry</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
 
                 <div className="flex flex-col gap-2">
@@ -1419,7 +1533,12 @@ export default function DashboardPage({
                 </div>
 
                 <div className="flex justify-end gap-2 mt-4">
-                  <Button onClick={() => handleAddProblem(dialog.id)}>Create</Button>
+                  <Button 
+                    onClick={() => handleAddProblem(dialog.id)}
+                    disabled={isSavingProblem}
+                  >
+                    {isSavingProblem ? 'Saving...' : 'Create'}
+                  </Button>
                   <Button
                     variant="outline"
                     onClick={() => {
@@ -1429,12 +1548,13 @@ export default function DashboardPage({
                           input: '',
                           category: '',
                           other: false,
-                          preferred: [],
                           status: '',
                           immediacy: '',
                           dateOnset: '',
                           service: '',
                           comment: '',
+                          problemName: '',
+                          problemCode: ''
                         },
                       }));
                     }}
@@ -1775,7 +1895,10 @@ export default function DashboardPage({
                       {['LIVER FUNCTION TEST', 'DSDNA AB', 'THYROID PANEL']
                         .filter((test) => test.toLowerCase().includes((reportInputs[dialog.id]?.search || '').toLowerCase()))
                         .map((test, index) => (
-                          <div key={index} className="flex items-center gap-2">
+                          <div
+                            key={index}
+                            className="flex items-center gap-2"
+                          >
                             <Checkbox
                               checked={reportInputs[dialog.id]?.selected.includes(test)}
                               onCheckedChange={(checked) => {
@@ -1814,7 +1937,10 @@ export default function DashboardPage({
                       {['BLOOD SUGAR', 'CBC', 'ESR']
                         .filter((q) => q.toLowerCase().includes((reportInputs[dialog.id]?.quickSearch || '').toLowerCase()))
                         .map((q, index) => (
-                          <div key={index} className="flex items-center gap-2">
+                          <div
+                            key={index}
+                            className="flex items-center gap-2"
+                          >
                             <Checkbox
                               checked={reportInputs[dialog.id]?.selected.includes(q)}
                               onCheckedChange={(checked) => {

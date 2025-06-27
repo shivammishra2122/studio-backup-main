@@ -171,7 +171,7 @@ export default function SidebarNav() {
                   <span className="font-medium text-blue-200">Ward:</span>
                   <span>{patient.Ward}</span>
                 </div>
-                <div className="flex items-center gap-2 pl-6">
+                <div className="flex items-center gap-2">
                   <span className="font-medium text-blue-200">Bed:</span>
                   <span>{patient.Bed}</span>
                 </div>

@@ -1,92 +1,60 @@
+import axios from 'axios';
+
 export interface ProcedureOrder {
   id: string;
-  orderId: string;
   order: string;
-  service: string;
-  provider: string;
-  location: string;
+  instructions?: string;
   startDate: string;
-  stopDate: string;
+  startTime: string;
   status: string;
-  viewUrl: string;
+  orderedBy: string;
+  location: string;
+  provider: string;
+  procedureDate?: string;
+  procedureTime?: string;
 }
 
-export const fetchProcedureOrders = async (patientSSN: string): Promise<ProcedureOrder[]> => {
-  if (!patientSSN) {
-    throw new Error('Patient SSN is required');
-  }
-
-  const apiUrl = 'http://3.6.230.54:4003/api/apiOrdProcList.sh';
-  const requestBody = {
-    UserName: 'CPRS-UAT',
-    Password: 'UAT@123',
-    PatientSSN: patientSSN,
-    DUZ: '80',
-    ihtLocation: 67,
-    FromDate: '',
-    ToDate: '',
-    rcpAdmDateL: ''
-  };
-
-  console.log('Making API request to:', apiUrl);
-  console.log('Request body:', JSON.stringify(requestBody, null, 2));
-
+export const fetchProcedureOrders = async (ssn: string): Promise<ProcedureOrder[]> => {
+  const API_URL = 'http://192.168.1.53/cgi-bin/apiProcOrd.sh';
+  const USERNAME = 'CPRS-UAT';
+  const PASSWORD = 'UAT@123';
+  
   try {
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
+    const response = await axios.post(
+      API_URL,
+      {
+        SSN: ssn,
+        UserName: USERNAME,
+        Password: PASSWORD,
       },
-      body: JSON.stringify(requestBody),
-    });
+      {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        timeout: 30000, // 30 seconds timeout
+      }
+    );
 
-    console.log('Response status:', response.status, response.statusText);
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('API Error Response:', errorText);
-      throw new Error(`HTTP error! Status: ${response.status} - ${response.statusText}`);
+    if (!response.data || !Array.isArray(response.data)) {
+      throw new Error('Invalid response format from procedure orders API');
     }
 
-    const data = await response.json().catch(async (e) => {
-      const text = await response.text();
-      console.error('Failed to parse JSON response. Response text:', text);
-      throw new Error(`Failed to parse JSON response: ${e.message}`);
-    });
-
-    console.log('API Response:', data);
-    
-    if (!data || typeof data !== 'object') {
-      console.error('Invalid API response format:', data);
-      throw new Error('Invalid API response format');
-    }
-
-    // Transform the API response to match our interface
-    const result = Object.entries(data).map(([key, value]: [string, any]) => {
-      const item = {
-        id: key,
-        orderId: value['Order IEN']?.toString() || key,
-        order: value['Order'] || 'N/A',
-        service: value['Service'] || 'N/A',
-        provider: value['Provider']?.split('/').map((p: string) => p.trim()).join(', ') || 'N/A',
-        location: value['Location'] || 'N/A',
-        startDate: value['Start Date'] || 'N/A',
-        stopDate: value['Stop Date'] || 'N/A',
-        status: value['Status'] || 'UNKNOWN',
-        viewUrl: value['URLView'] || '#',
-      };
-      console.log('Processed item:', item);
-      return item;
-    });
-
-    return result;
+    // Transform API response to our interface
+    return response.data.map((item: any, index: number) => ({
+      id: item.id || `proc-order-${index}`,
+      order: item.orderDescription || 'Procedure Order',
+      instructions: item.instructions,
+      startDate: item.orderDate || new Date().toISOString().split('T')[0],
+      startTime: item.orderTime || new Date().toTimeString().substring(0, 5),
+      status: item.status || 'Pending',
+      orderedBy: item.orderedBy || 'Provider',
+      location: item.location || 'N/A',
+      provider: item.provider || 'N/A',
+      procedureDate: item.procedureDate,
+      procedureTime: item.procedureTime,
+    }));
   } catch (error) {
-    console.error('Error in fetchProcedureOrders:', {
-      error,
-      message: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined,
-    });
-    throw error;
+    console.error('Error fetching procedure orders:', error);
+    throw new Error('Failed to fetch procedure orders. Please try again later.');
   }
 };

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -25,7 +25,10 @@ import {
   X as XIcon,
   Save,
   Pencil,
-  Copy
+  Copy,
+  ChevronLeft,
+  ChevronRight,
+  AlertCircle
 } from 'lucide-react';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { Dialog, DialogContent, DialogHeader, DialogTitle as DialogUITitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
@@ -38,6 +41,7 @@ import type { NextPage } from 'next';
 import { apiService } from '@/services/api'; // Import api
 import { useMedications } from '@/hooks/useMedications'; // Import the useMedications hook
 import { fetchRadiologyOrders } from '@/services/radiology';
+import { fetchNursingOrders } from '@/services/nursing';
 
 // Add OrdersPageProps interface
 interface OrdersPageProps {
@@ -52,7 +56,7 @@ const orderSubNavItems = [
   "Laboratory",
   "Radiology",
   "Visit/ADT",
-  "Procedure Order",
+  "Procedure Orders",
   "Nursing Care"
 ];
 
@@ -73,56 +77,7 @@ type OrderDataType = {
   location: string;
 };
 
-const mockOrderData: OrderDataType[] = [
-  {
-    id: '1',
-    service: 'Inpt. Meds',
-    order: 'AMOXICILLIN 250MG UD CAP 250MG PO BID(08&20HRS) PRN',
-    orderNote: 'First Dose NOW *UNSIGNED*',
-    startDate: '17 MAY, 2025',
-    startTime: '20:00',
-    provider: 'Sansys Doctor',
-    status: 'UNRELEASED',
-    location: 'ICU ONE'
-  },
-  {
-    id: '2',
-    service: 'Inpt. Meds',
-    order: 'AEROCORT ROTACAP 1 ROTACAP INHL BID(08&20HRS)',
-    startDate: '17 MAY, 2025',
-    startTime: '20:00',
-    stopDate: '19 MAY, 2025',
-    stopTime: '20:00',
-    provider: 'Internalmed Doc',
-    status: 'ACTIVE',
-    location: 'ICU ONE'
-  },
-  {
-    id: '3',
-    service: 'Inpt. Meds',
-    order: 'DIGOXIN PAED UD SYRUP 60ML BTL 10ML PO STAT(ONE TIME ONLY) STAT',
-    startDate: '17 MAY, 2025',
-    startTime: '13:00',
-    stopDate: '18 MAY, 2025',
-    stopTime: '13:00',
-    provider: 'Internalmed Doc',
-    status: 'ACTIVE',
-    location: 'ICU ONE'
-  },
-  {
-    id: '4',
-    service: 'Inpt. Meds',
-    order: 'CARMICIDE PAED SYRUP 100ML BTL 10 ML PO BID(08&20HRS)',
-    startDate: '17 MAY, 2025',
-    startTime: '20:00',
-    stopDate: '22 MAY, 2025',
-    stopTime: '20:00',
-    provider: 'Internalmed Doc',
-    status: 'ACTIVE',
-    location: 'ICU ONE'
-  },
-];
-
+// Visit/ADT Data
 type VisitAdtDataType = {
   id: string;
   event: string;
@@ -131,50 +86,6 @@ type VisitAdtDataType = {
   status: "COMPLETED" | "DISCONTINUED";
   location: string;
 };
-
-// Mock Visit/ADT Data
-const mockVisitAdtData: VisitAdtDataType[] = [
-  {
-    id: '1',
-    event: 'ADMISSION TO LAJPATNAGAR',
-    dateTime: '23 NOV, 2024 11:30',
-    provider: 'Ess User',
-    status: 'COMPLETED',
-    location: 'BLK-EMERGENCY WARD'
-  },
-  {
-    id: '2',
-    event: 'TRANSFER TO ICU',
-    dateTime: '16 NOV, 2024 15:34',
-    provider: 'Dr. Sharma',
-    status: 'COMPLETED',
-    location: 'BLK-ICU WARD'
-  },
-  {
-    id: '3',
-    event: 'DISCHARGE',
-    dateTime: '10 JAN, 2025 09:00',
-    provider: 'Dr. Gupta',
-    status: 'DISCONTINUED',
-    location: 'BLK-GENERAL WARD'
-  },
-  {
-    id: '4',
-    event: 'ADMISSION TO OPD',
-    dateTime: '05 MAR, 2025 14:20',
-    provider: 'Ess User',
-    status: 'COMPLETED',
-    location: 'OPD WARD'
-  },
-  {
-    id: '5',
-    event: 'TRANSFER TO GENERAL WARD',
-    dateTime: '15 APR, 2025 10:45',
-    provider: 'Dr. Patel',
-    status: 'COMPLETED',
-    location: 'BLK-GENERAL WARD'
-  },
-];
 
 // IP Medication Data
 interface VisitData {
@@ -214,16 +125,6 @@ interface IpMedicationEntryDataType {
   renewURL?: string;
 }
 
-const mockIpMedicationData: IpMedicationEntryDataType[] = [];
-
-const ALL_AVAILABLE_MEDICATIONS = [
-  "ALBUMIN BOUND PACLITAXEL-100.000-MG",
-  "AGREGATE TAB", "ALLEGRA M TAB", "ALLEGRA UD 120MG", "ALLEGRA UD 180MG",
-  "ALLEGRA UD 30MG", "ALLEGRA UD 30MG SYRUP", "ARGIPREG PLUS SACHET POUCH",
-  "CAPEGARD UD 500MG TAB", "DEGARELIX 80MG UD VIAL INJ", "DILTEGESIC ORGANOGEL UD 2%W/V",
-  "PARACETAMOL 500MG", "IBUPROFEN 200MG", "AMOXICILLIN 250MG", "ASPIRIN 100MG", "METFORMIN 500MG"
-];
-
 // Delay Orders Data
 type DelayOrderDataType = {
   id: string;
@@ -236,10 +137,6 @@ type DelayOrderDataType = {
   status: "UNRELEASED" | "ACTIVE" | "Completed" | "Pending" | "Cancelled";
   orderedBy: string;
 };
-
-const mockDelayOrderData: DelayOrderDataType[] = [
-  // Intentionally empty to match "No Data Found" in the screenshot
-];
 
 // Lab CPOE List Data
 type LabCpoeDataType = {
@@ -254,18 +151,7 @@ type LabCpoeDataType = {
   status: "UNRELEASED" | "ACTIVE" | "Completed" | "Pending" | "Cancelled";
 };
 
-const mockLabCpoeData: LabCpoeDataType[] = [
-  { id: '1', section: 'CHEMISTRY', labTest: 'VITAMIN C - ASCORBIC ACID (SERUM)', sample: 'UNKNOWN', orderDate: '26 MAR, 2025', orderTime: '10:48', startDate: '', startTime: '', status: 'UNRELEASED' },
-  { id: '2', section: 'CHEMISTRY', labTest: 'AFB SENSITIVITY (12 DRUGS PANEL)', sample: 'BRONCHUS AND ALVEOLUS, CS', orderDate: '22 JAN, 2025', orderTime: '15:58', startDate: '', startTime: '', status: 'UNRELEASED' },
-  { id: '3', section: 'CHEMISTRY', labTest: 'VITAMIN C - ASCORBIC ACID (SERUM)', sample: 'UNKNOWN', orderDate: '22 JAN, 2025', orderTime: '15:58', startDate: '', startTime: '', status: 'UNRELEASED' },
-  { id: '4', section: 'CHEMISTRY', labTest: 'HCV IGG', sample: 'SERUM', orderDate: '22 JAN, 2025', orderTime: '15:58', startDate: '', startTime: '', status: 'UNRELEASED' },
-  { id: '5', section: 'MICROBIOLOGY', labTest: 'ALBERT STAIN', sample: 'UNKNOWN', orderDate: '18 JAN, 2025', orderTime: '11:04', startDate: '', startTime: '', status: 'UNRELEASED' },
-  { id: '6', section: 'CHEMISTRY', labTest: '17 HYDROXYPROGESTERONE (17 - OHP)', sample: 'UNKNOWN', orderDate: '18 JAN, 2025', orderTime: '11:00', startDate: '', startTime: '', status: 'UNRELEASED' },
-  { id: '7', section: 'CHEMISTRY', labTest: 'ALLERGY 11 PANEL DRUG PANEL (M)', sample: 'SERUM', orderDate: '17 JAN, 2025', orderTime: '16:47', startDate: '', startTime: '', status: 'UNRELEASED' },
-  { id: '8', section: 'CHEMISTRY', labTest: 'ALLERGY 11 PANEL DRUG PANEL (M)', sample: 'SERUM', orderDate: '17 JAN, 2025', orderTime: '16:47', startDate: '', startTime: '', status: 'UNRELEASED' },
-  { id: '9', section: 'CHEMISTRY', labTest: 'ALLERGEN F13 - PEANUT', sample: 'SERUM', orderDate: '17 JAN, 2025', orderTime: '16:44', startDate: '', startTime: '', status: 'UNRELEASED' },
-];
-
+// Radiology Data
 type RadiologyDataType = {
   id: string;
   testName: string;
@@ -280,63 +166,6 @@ type RadiologyDataType = {
   'Order IEN'?: string;  // Add optional Order IEN field
   'Imaging Procedure'?: string;  // Add optional Imaging Procedure field
 };
-
-// Mock Radiology Data
-const mockRadiologyData: RadiologyDataType[] = [
-  {
-    id: '1',
-    testName: 'X-RAY CHEST PA',
-    orderDate: '16 MAY, 2024',
-    orderTime: '16:22',
-    startDate: '16 MAY, 2024',
-    startTime: '16:30',
-    provider: 'Atul Prasad',
-    status: 'COMPLETED',
-    location: 'BLK-EMERGENCY WARD'
-  },
-  {
-    id: '2',
-    testName: 'CT SCAN BRAIN',
-    orderDate: '09 NOV, 2024',
-    orderTime: '15:43',
-    startDate: '09 NOV, 2024',
-    startTime: '16:00',
-    provider: 'Ess User',
-    status: 'PENDING',
-    location: 'BLK-EMERGENCY WARD'
-  },
-  {
-    id: '3',
-    testName: 'MRI SPINE',
-    orderDate: '20 JAN, 2025',
-    orderTime: '09:15',
-    startDate: '20 JAN, 2025',
-    startTime: '09:30',
-    provider: 'Dr. Sharma',
-    status: 'UNRELEASED',
-    location: 'RADIOLOGY DEPT'
-  },
-  {
-    id: '4',
-    testName: 'ULTRASOUND ABDOMEN',
-    orderDate: '15 MAR, 2025',
-    orderTime: '11:00',
-    startDate: '15 MAR, 2025',
-    startTime: '11:15',
-    provider: 'Dr. Gupta',
-    status: 'COMPLETED',
-    location: 'BLK-EMERGENCY WARD'
-  },
-  {
-    id: '5',
-    testName: 'X-RAY KNEE AP/LAT',
-    orderDate: '10 APR, 2025',
-    orderTime: '14:20',
-    provider: 'Ess User',
-    status: 'PENDING',
-    location: 'OPD RADIOLOGY'
-  },
-];
 
 // Components
 
@@ -891,7 +720,7 @@ const DelayOrdersView = () => {
   const [showEntries, setShowEntries] = useState<string>("10");
   const [searchText, setSearchText] = useState<string>("");
 
-  const filteredDelayOrders = mockDelayOrderData;
+  const filteredDelayOrders = [];
 
   const delayOrderTableHeaders = ["S.No.", "Event", "Order", "Start/Stop Date", "Status", "Ordered By", "Sign", "Discontinue", "Change Event", "Release Order", "Order View"];
 
@@ -1066,9 +895,8 @@ const RadiologyView = ({ patient }: { patient: Patient }) => {
         setRadiologyOrders(orders);
       } catch (error) {
         console.error('Error fetching radiology orders:', error);
-        setError('Failed to load radiology orders. Using mock data instead.');
-        // Fallback to mock data for development
-        setRadiologyOrders(mockRadiologyData);
+        setError('Failed to load radiology orders. Please try again later.');
+        setRadiologyOrders([]);
       } finally {
         setLoading(false);
       }
@@ -1118,7 +946,6 @@ const RadiologyView = ({ patient }: { patient: Patient }) => {
           </div>
         </div>
       </CardHeader>
-      
       <CardContent className="p-4 flex-1 flex flex-col overflow-hidden">
         {/* Filters */}
         <div className="space-y-3 mb-4 pb-3 border-b">
@@ -1276,7 +1103,7 @@ const LabCpoeListViewUpdated = ({ patient }: { patient: Patient }) => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Accept': 'application/json',
+            'Accept': 'application/json'
           },
           body: JSON.stringify({
             UserName: 'CPRS-UAT',
@@ -1623,13 +1450,621 @@ const ProcedureOrderView = () => (
   </Card>
 );
 
-const NursingCareView = () => (
-  <Card className="flex-1 flex items-center justify-center">
-    <CardContent className="text-center">
-      <p className="text-muted-foreground">Nursing Care View</p>
-    </CardContent>
-  </Card>
-);
+const NursingCareView = () => {
+  const [nursingOrders, setNursingOrders] = useState<any[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [showEntries, setShowEntries] = useState<string>('10');
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  
+  // Use hardcoded SSN for testing
+  const patientSSN = '800000035';
+
+  useEffect(() => {
+    const fetchNursingCareOrders = async () => {
+      if (!patientSSN) {
+        setError('No patient SSN available');
+        setLoading(false);
+        return;
+      }
+      
+      setLoading(true);
+      setError(null);
+      
+      try {
+        const data = await fetchNursingOrders(patientSSN);
+        setNursingOrders(data);
+      } catch (err) {
+        console.error('Error fetching nursing orders:', err);
+        setError('Failed to load nursing orders. Please try again later.');
+        setNursingOrders([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchNursingCareOrders();
+  }, [patientSSN]);
+
+  const filteredOrders = nursingOrders.filter(order => 
+    Object.values(order).some(
+      (value: any) => 
+        value && 
+        value.toString().toLowerCase().includes(searchTerm.toLowerCase())
+    )
+  );
+
+  const totalPages = Math.ceil(filteredOrders.length / parseInt(showEntries));
+  const startIndex = (currentPage - 1) * parseInt(showEntries);
+  const paginatedOrders = filteredOrders.slice(startIndex, startIndex + parseInt(showEntries));
+
+  const nursingTableHeaders = [
+    'Order',
+    'Start/Stop Date',
+    'Provider',
+    'Status',
+    'Sign',
+    'Discontinue',
+    'Actions',
+    'Location'
+  ];
+
+  const getStatusBadge = (status: string) => {
+    switch (status.toUpperCase()) {
+      case 'ACTIVE':
+        return <Badge variant="default">Active</Badge>;
+      case 'COMPLETED':
+        return <Badge variant="secondary">Completed</Badge>;
+      case 'DISCONTINUED':
+        return <Badge variant="destructive">Discontinued</Badge>;
+      case 'PENDING':
+        return <Badge variant="outline">Pending</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
+    }
+  };
+
+  const handleRetry = () => {
+    if (patientSSN) {
+      fetchNursingOrders(patientSSN)
+        .then(setNursingOrders)
+        .catch(console.error);
+    }
+  };
+
+  if (loading) {
+    return (
+      <Card className="flex-1 flex items-center justify-center">
+        <CardContent className="text-center">
+          <p className="text-muted-foreground">Loading nursing orders...</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card className="flex-1 flex items-center justify-center">
+        <CardContent className="text-center">
+          <p className="text-destructive">{error}</p>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="mt-2"
+            onClick={handleRetry}
+          >
+            Retry
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="flex-1 flex flex-col shadow overflow-hidden">
+      <CardHeader className="p-2.5 border-b bg-card text-foreground rounded-t-md">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-base font-semibold">Nursing Orders</CardTitle>
+          <div className="flex items-center space-x-1">
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-primary hover:bg-muted/50">
+              <Settings className="h-4 w-4" />
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-7 w-7 text-primary hover:bg-muted/50"
+              onClick={handleRetry}
+            >
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </CardHeader>
+      
+      <CardContent className="p-2.5 flex-1 flex flex-col overflow-hidden">
+        <div className="space-y-2 mb-2 text-xs">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center space-x-2">
+              <Label htmlFor="showEntries" className="whitespace-nowrap">Show</Label>
+              <Select value={showEntries} onValueChange={setShowEntries}>
+                <SelectTrigger id="showEntries" className="h-7 w-16 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="10">10</SelectItem>
+                  <SelectItem value="25">25</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                  <SelectItem value="100">100</SelectItem>
+                </SelectContent>
+              </Select>
+              <Label htmlFor="showEntries" className="whitespace-nowrap">entries</Label>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Label htmlFor="search" className="whitespace-nowrap">Search:</Label>
+              <Input 
+                id="search" 
+                type="text" 
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="h-7 w-40 text-xs"
+                placeholder="Search orders..."
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-auto">
+          <Table>
+            <TableHeader className="bg-muted/50">
+              <TableRow>
+                {nursingTableHeaders.map((header) => (
+                  <TableHead key={header} className="py-1 px-2 text-xs font-medium">
+                    {header}
+                  </TableHead>
+                ))}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {paginatedOrders.length > 0 ? (
+                paginatedOrders.map((order) => (
+                  <TableRow key={order.id} className="hover:bg-muted/50">
+                    <TableCell className="py-1 px-2 text-xs">
+                      <div className="font-medium">{order.order}</div>
+                      {order.instructions && (
+                        <div className="text-muted-foreground text-xs">{order.instructions}</div>
+                      )}
+                    </TableCell>
+                    <TableCell className="py-1 px-2 text-xs">
+                      <div>{order.startDate}</div>
+                      <div className="text-muted-foreground">{order.startTime}</div>
+                    </TableCell>
+                    <TableCell className="py-1 px-2 text-xs">
+                      {order.orderedBy}
+                    </TableCell>
+                    <TableCell className="py-1 px-2">
+                      {getStatusBadge(order.status)}
+                    </TableCell>
+                    <TableCell className="py-1 px-2">
+                      <Button variant="ghost" size="icon" className="h-6 w-6">
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                    </TableCell>
+                    <TableCell className="py-1 px-2">
+                      <Button variant="ghost" size="icon" className="h-6 w-6">
+                        <XIcon className="h-3.5 w-3.5" />
+                      </Button>
+                    </TableCell>
+                    <TableCell className="py-1 px-2">
+                      <div className="flex space-x-1">
+                        <Button variant="ghost" size="icon" className="h-6 w-6">
+                          <FileText className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-6 w-6">
+                          <Printer className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                    <TableCell className="py-1 px-2 text-xs">
+                      {order.location}
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={nursingTableHeaders.length} className="text-center py-4 text-muted-foreground">
+                    {searchTerm ? 'No matching orders found' : 'No nursing orders found'}
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+
+        <div className="mt-2 flex items-center justify-between text-xs">
+          <div className="text-muted-foreground">
+            Showing {filteredOrders.length === 0 ? 0 : startIndex + 1} to{' '}
+            {Math.min(startIndex + parseInt(showEntries), filteredOrders.length)} of {filteredOrders.length} entries
+          </div>
+          
+          <div className="flex items-center space-x-1">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage <= 1}
+              className="h-7 w-7 p-0"
+            >
+              <ChevronLeft className="h-3.5 w-3.5" />
+            </Button>
+            <span className="px-2">
+              Page {currentPage} of {Math.max(1, totalPages)}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              disabled={currentPage >= totalPages}
+              className="h-7 w-7 p-0"
+            >
+              <ChevronRight className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
+interface ProcedureOrdersViewProps {
+  patientSSN: string;
+}
+
+const ProcedureOrdersView = ({ patientSSN }: ProcedureOrdersViewProps) => {
+  const [procedureOrders, setProcedureOrders] = useState<ProcedureOrder[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [showEntries, setShowEntries] = useState<string>('10');
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [orderFromDate, setOrderFromDate] = useState<string>('');
+  const [orderToDate, setOrderToDate] = useState<string>('');
+
+  const fetchProcedureOrdersData = useCallback(async () => {
+    if (!patientSSN) {
+      setError('No patient SSN available');
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const data = await fetchProcedureOrders(patientSSN);
+      setProcedureOrders(data);
+    } catch (err) {
+      console.error('Error fetching procedure orders:', err);
+      setError('Failed to load procedure orders. Please try again later.');
+      setProcedureOrders([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [patientSSN]);
+
+  useEffect(() => {
+    fetchProcedureOrdersData();
+  }, [fetchProcedureOrdersData]);
+
+  const handleRefresh = () => {
+    fetchProcedureOrdersData();
+  };
+
+  const handleRetry = () => {
+    fetchProcedureOrdersData();
+  };
+
+  const filteredOrders = useMemo(() => {
+    return procedureOrders.filter(order => {
+      const matchesSearch = Object.values(order).some(
+        value => value && value.toString().toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      
+      const orderDate = new Date(order.startDate);
+      const fromDate = orderFromDate ? new Date(orderFromDate) : null;
+      const toDate = orderToDate ? new Date(orderToDate) : null;
+      
+      const matchesDate = (!fromDate || orderDate >= fromDate) && 
+                         (!toDate || orderDate <= toDate);
+      
+      return matchesSearch && matchesDate;
+    });
+  }, [procedureOrders, searchTerm, orderFromDate, orderToDate]);
+
+  const totalPages = Math.ceil(filteredOrders.length / parseInt(showEntries));
+  const startIndex = (currentPage - 1) * parseInt(showEntries);
+  const paginatedOrders = filteredOrders.slice(startIndex, startIndex + parseInt(showEntries));
+
+  const procedureTableHeaders = [
+    'Order',
+    'Procedure Date/Time',
+    'Provider',
+    'Status',
+    'Sign',
+    'Discontinue',
+    'Actions',
+    'Location'
+  ];
+
+  const getStatusBadge = (status: string) => {
+    const statusMap: Record<string, { variant: 'default' | 'secondary' | 'destructive' | 'outline' | 'success' | null | undefined; label: string }> = {
+      'COMPLETE': { variant: 'success', label: 'Complete' },
+      'PENDING': { variant: 'secondary', label: 'Pending' },
+      'IN PROGRESS': { variant: 'default', label: 'In Progress' },
+      'DISCONTINUED': { variant: 'destructive', label: 'Discontinued' },
+      'EXPIRED': { variant: 'outline', label: 'Expired' },
+    };
+
+    const statusInfo = statusMap[status.toUpperCase()] || { variant: 'secondary' as const, label: status };
+    
+    return (
+      <Badge variant={statusInfo.variant} className="text-xs">
+        {statusInfo.label}
+      </Badge>
+    );
+  };
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center p-8">
+        <div className="h-8 w-8 rounded-full border-4 border-primary border-t-transparent animate-spin" />
+        <p className="mt-2 text-sm text-muted-foreground">Loading procedure orders...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-md bg-destructive/10 p-4">
+        <div className="flex">
+          <div className="flex-shrink-0">
+            <AlertCircle className="h-5 w-5 text-destructive" />
+          </div>
+          <div className="ml-3">
+            <h3 className="text-sm font-medium text-destructive">Error loading procedure orders</h3>
+            <div className="mt-2 text-sm text-destructive">
+              <p>{error}</p>
+            </div>
+            <div className="mt-4">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRetry}
+                className="border-destructive text-destructive hover:bg-destructive/10"
+              >
+                <RefreshCw className="mr-2 h-3.5 w-3.5" />
+                Retry
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="flex items-center space-x-2">
+          <h3 className="text-lg font-medium">Procedure Orders</h3>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={handleRefresh}>
+                <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Refresh</p>
+            </TooltipContent>
+          </Tooltip>
+        </div>
+        
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="search"
+              placeholder="Search orders..."
+              className="w-full pl-8 sm:w-[200px] lg:w-[300px]"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          
+          <div className="flex items-center space-x-2">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="h-9">
+                  <Filter className="mr-2 h-3.5 w-3.5" />
+                  Filter
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80 p-4" align="end">
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="order-date-from" className="mb-2 block text-sm font-medium">
+                      Order Date Range
+                    </Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <Input
+                          id="order-date-from"
+                          type="date"
+                          value={orderFromDate}
+                          onChange={(e) => setOrderFromDate(e.target.value)}
+                          className="h-9 text-sm"
+                        />
+                      </div>
+                      <div>
+                        <Input
+                          id="order-date-to"
+                          type="date"
+                          value={orderToDate}
+                          onChange={(e) => setOrderToDate(e.target.value)}
+                          className="h-9 text-sm"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
+            
+            <div className="flex items-center space-x-2">
+              <Label htmlFor="show-entries" className="whitespace-nowrap text-sm font-normal">
+                Show
+              </Label>
+              <Select value={showEntries} onValueChange={setShowEntries}>
+                <SelectTrigger id="show-entries" className="h-9 w-[70px]">
+                  <SelectValue placeholder="10" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="5">5</SelectItem>
+                  <SelectItem value="10">10</SelectItem>
+                  <SelectItem value="25">25</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                  <SelectItem value="100">100</SelectItem>
+                </SelectContent>
+              </Select>
+              <span className="whitespace-nowrap text-sm">entries</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader className="bg-muted/50">
+            <TableRow>
+              {procedureTableHeaders.map((header) => (
+                <TableHead key={header} className="py-1 px-2 text-xs font-medium">
+                  {header}
+                </TableHead>
+              ))}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {paginatedOrders.length > 0 ? (
+              paginatedOrders.map((order) => (
+                <TableRow key={order.id} className="hover:bg-muted/50">
+                  <TableCell className="py-1 px-2 text-xs">
+                    <div className="font-medium">{order.order}</div>
+                    {order.instructions && (
+                      <div className="text-muted-foreground text-xs">{order.instructions}</div>
+                    )}
+                  </TableCell>
+                  <TableCell className="py-1 px-2 text-xs">
+                    <div>{order.procedureDate || order.startDate}</div>
+                    <div className="text-muted-foreground">{order.procedureTime || order.startTime}</div>
+                  </TableCell>
+                  <TableCell className="py-1 px-2 text-xs">
+                    {order.provider}
+                  </TableCell>
+                  <TableCell className="py-1 px-2">
+                    {getStatusBadge(order.status)}
+                  </TableCell>
+                  <TableCell className="py-1 px-2">
+                    <Button variant="ghost" size="icon" className="h-6 w-6">
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                  </TableCell>
+                  <TableCell className="py-1 px-2">
+                    <Button variant="ghost" size="icon" className="h-6 w-6">
+                      <XIcon className="h-3.5 w-3.5" />
+                    </Button>
+                  </TableCell>
+                  <TableCell className="py-1 px-2">
+                    <div className="flex space-x-1">
+                      <Button variant="ghost" size="icon" className="h-6 w-6">
+                        <FileText className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-6 w-6">
+                        <Printer className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                  <TableCell className="py-1 px-2 text-xs">
+                    {order.location}
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={procedureTableHeaders.length} className="text-center py-4 text-muted-foreground">
+                  {searchTerm || orderFromDate || orderToDate 
+                    ? 'No matching orders found' 
+                    : 'No procedure orders found'}
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      {paginatedOrders.length > 0 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="text-sm text-muted-foreground">
+            Showing {startIndex + 1} to {Math.min(startIndex + parseInt(showEntries), filteredOrders.length)} of{' '}
+            {filteredOrders.length} entries
+          </div>
+          
+          <div className="flex items-center space-x-1">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(1)}
+              disabled={currentPage === 1}
+              className="h-8 w-8 p-0"
+            >
+              <ChevronsLeft className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="h-8 w-8 p-0"
+            >
+              <ChevronLeft className="h-3.5 w-3.5" />
+            </Button>
+            <div className="flex items-center justify-center text-sm font-medium w-8">
+              {currentPage}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              disabled={currentPage >= totalPages}
+              className="h-8 w-8 p-0"
+            >
+              <ChevronRight className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(totalPages)}
+              disabled={currentPage >= totalPages}
+              className="h-8 w-8 p-0"
+            >
+              <ChevronsRight className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 // Add interface for API response type
 interface ApiPatientResponse {
@@ -1786,7 +2221,7 @@ const OrdersPage: NextPage<OrdersPageProps> = ({ patient: initialPatient }) => {
           {activeSubNav === "Laboratory" && <LabCpoeListViewUpdated patient={patient} />}
           {activeSubNav === "Radiology" && <RadiologyView patient={patient} />}
           {activeSubNav === "Visit/ADT" && <VisitAdtView patient={patient} />}
-          {activeSubNav === "Procedure Order" && <ProcedureOrderView />}
+          {activeSubNav === "Procedure Orders" && <ProcedureOrdersView patientSSN={patient.ssn} />}
           {activeSubNav === "Nursing Care" && <NursingCareView />}
         </div>
       </main>
