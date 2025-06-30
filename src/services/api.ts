@@ -87,40 +87,73 @@ const api = axios.create({
 });
 
 export interface Patient {
-    id: string;
-    name: string;
-    avatarUrl: string;
-    gender: string;
-    age: number;
-    dob: string;
-    wardNo: string;
-    bedDetails: string;
-    admissionDate: string;
-    lengthOfStay: string;
-    mobile: string;
-    primaryConsultant: string;
-    specialty: string;
-    encounterProvider: string;
-    finalDiagnosis: string;
-    posting: string;
-    reasonForVisit: string;
-    ssn: string;
-    // API response fields
-    "Admission Date": string;
-    Age: string | number;
-    Bed: string;
-    DFN: number;
-    DOB: string;
-    Gender: string;
-    "IP No": number;
-    LOS: string;
-    "Mobile No": number;
-    Name: string;
-    "Primary Consultant": string;
-    "Secondary Consultant": string;
-    Specialty: string;
-    "Treating Consultant": string;
-    Ward: string;
+  id: string;
+  name: string;
+  gender: string;
+  dob: string;
+  age: string;
+  aadhaarNo?: string;
+  mobile?: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+  permanentAddress?: string;
+  permanentPhone?: string;
+  permanentMobile?: string;
+  fatherName?: string;
+  motherName?: string;
+  passport?: string;
+  registrationDate?: string;
+  localGuardian?: string;
+  relationship?: string;
+  
+  // IPD Details
+  status?: string;
+  admissionDate?: string;
+  ward?: string;
+  roomBed?: string;
+  primaryConsultant1?: string;
+  primaryConsultant2?: string;
+  admissionType?: string;
+  ipNo?: string;
+  transferred?: string;
+  specialty?: string;
+  chiefComplaints?: string;
+  finalDiagnosis?: string;
+  comorbidity?: string;
+  referredBy?: string;
+  specialPrecautions?: string;
+  remarks?: string;
+  
+  // Insurance Details
+  payerCategory?: string;
+  
+  // eMLC Details
+  emlcId?: string;
+  emlcStatus?: string;
+  facilityIncharge?: string;
+  modeOfInjury?: string;
+  faculty?: string;
+  copdVisit?: string;
+  criticality?: string;
+  attendedBy?: string;
+  broughtBy?: string;
+  refBy?: string;
+  emlcReportLink?: string;
+  
+  // Autopsy Details
+  dateOfDeath?: string;
+  deathCertificate?: string;
+  deathCard?: string;
+  sourceOfNotification?: string;
+  deathReport?: string;
+  policeApplication?: string;
+  
+  // Additional Fields
+  encounterProvider?: string;
+  lengthOfStay?: string;
+  bedDetails?: string;
+  wardNo?: string;
 }
 
 interface PatientSearchParams {
