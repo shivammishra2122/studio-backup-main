@@ -128,6 +128,16 @@ export function TopNav() {
         })}
       </div>
 
+      {/* Logout Button - Moved from dropdown */}
+      <LogoutButton 
+        variant="ghost" 
+        size="sm" 
+        className="text-xs px-2 py-1 h-7 whitespace-nowrap hover:bg-accent hover:text-foreground mr-1"
+      >
+        <LogOut className="h-4 w-4 mr-1" />
+        Logout
+      </LogoutButton>
+
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" size="icon" className="h-7 w-7">
@@ -170,10 +180,7 @@ export function TopNav() {
             <PenLine className="h-4 w-4 mr-2.5 text-muted-foreground" />
             SIGNATURE BLOCK
           </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <div className="p-1">
-            <LogoutButton className="w-full justify-start h-8 text-xs" variant="ghost" />
-          </div>
+          {/* Removed LogoutButton from here */}
         </DropdownMenuContent>
       </DropdownMenu>
     </div>

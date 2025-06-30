@@ -2175,7 +2175,7 @@ const OrdersPage: NextPage<OrdersPageProps> = ({ patient: initialPatient }) => {
 
   if (loadingLabOrders) {
     return (
-      <div className="flex flex-col h-[calc(100vh-var(--top-nav-height,40px))] bg-background text-sm p-3">
+      <div className="flex flex-col h-[calc(100vh-var(--top-nav-height,40px))] bg-white text-sm p-3">
         <div className="flex items-center justify-center h-full">
           <p className="text-muted-foreground">Loading patient data...</p>
         </div>
@@ -2185,7 +2185,7 @@ const OrdersPage: NextPage<OrdersPageProps> = ({ patient: initialPatient }) => {
 
   if (!patient) {
     return (
-      <div className="flex flex-col h-[calc(100vh-var(--top-nav-height,40px))] bg-background text-sm p-3">
+      <div className="flex flex-col h-[calc(100vh-var(--top-nav-height,40px))] bg-white text-sm p-3">
         <div className="flex items-center justify-center h-full">
           <p className="text-muted-foreground">Unable to load patient data</p>
         </div>
@@ -2194,7 +2194,7 @@ const OrdersPage: NextPage<OrdersPageProps> = ({ patient: initialPatient }) => {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-var(--top-nav-height,40px))] bg-background text-sm">
+    <div className="flex flex-col h-[calc(100vh-var(--top-nav-height,40px))] bg-white text-sm">
       {/* Horizontal Sub-Navigation Bar */}
       <div className="flex items-end space-x-1 px-4 pt-0 pb-0 overflow-x-auto no-scrollbar border-b border-border">
         {orderSubNavItems.map((item) => (
