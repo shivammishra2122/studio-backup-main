@@ -154,23 +154,41 @@ export const apiService = {
                 SearchType: searchParams.SearchType || "2"
             };
 
+            console.log('Fetching patients with params:', { ...params, Password: '***' });
             const response = await api.post(API_ENDPOINTS.PATIENTS, params);
+            console.log('Patients API response:', response.data);
 
-            if (response.data && typeof response.data === 'object') {
+            if (!response.data) {
+                console.warn('Empty response from patients API');
+                return [];
+            }
+
+            // Handle case where response is already an array
+            if (Array.isArray(response.data)) {
+                return response.data;
+            }
+
+            // Handle case where response is an object with patient data
+            if (typeof response.data === 'object') {
                 // Convert the object of patients to an array
                 const patients = Object.values(response.data);
                 
+                // If searching by SSN, filter the results
                 if (searchParams.searchSSN) {
-                    return patients.filter((p: any) => 
-                        (p.SSN || p['SSN No'] || '') === searchParams.searchSSN
-                    );
+                    return patients.filter((p: any) => {
+                        const ssn = p.SSN || p['SSN No'] || '';
+                        return String(ssn) === String(searchParams.searchSSN);
+                    });
                 }
                 return patients;
             }
+
+            console.warn('Unexpected response format from patients API:', response.data);
             return [];
         } catch (error) {
             console.error('Error in getPatients:', error);
-            throw error;
+            // Return empty array instead of throwing to prevent unhandled promise rejections
+            return [];
         }
     },
 
