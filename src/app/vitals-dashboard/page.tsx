@@ -405,12 +405,12 @@ const VitalsView = React.FC<{ patient?: Patient }> = ({ patient }) => {
             <ScrollArea className="flex-1 min-h-0 flex flex-col">
               <Table className="text-xs">
                 <TableHeader className="sticky top-0 z-0">
-                  <VitalsTableRow className="bg-blue-900">
-                    <TableHead className="text-white py-2 px-3 h-8 border-r border-blue-800">Vitals</TableHead>
-                    <TableHead className="text-white py-2 px-3 h-8 border-r border-blue-800">Not Recordable</TableHead>
-                    <TableHead className="text-white py-2 px-3 h-8 border-r border-blue-800">Value</TableHead>
-                    <TableHead className="text-white py-2 px-3 h-8 border-r border-blue-800">Unit</TableHead>
-                    <TableHead className="text-white py-2 px-3 h-8">Qualifiers</TableHead>
+                  <VitalsTableRow className="bg-accent/50 hover:bg-accent transition-colors">
+                    <TableHead className="py-2 px-3 text-xs h-8 whitespace-nowrap text-foreground font-medium">Vitals</TableHead>
+                    <TableHead className="py-2 px-3 text-xs h-8 whitespace-nowrap text-foreground font-medium">Not Recordable</TableHead>
+                    <TableHead className="py-2 px-3 text-xs h-8 whitespace-nowrap text-foreground font-medium">Value</TableHead>
+                    <TableHead className="py-2 px-3 text-xs h-8 whitespace-nowrap text-foreground font-medium">Unit</TableHead>
+                    <TableHead className="py-2 px-3 text-xs h-8 whitespace-nowrap text-foreground font-medium">Qualifiers</TableHead>
                   </VitalsTableRow>
                 </TableHeader>
                 <TableBody>
@@ -681,9 +681,9 @@ const VitalsView = React.FC<{ patient?: Patient }> = ({ patient }) => {
                 <Table className="text-xs w-full">
                   <TableHeader className="bg-accent sticky top-0 z-10">
                     <TableRow>
-                      <TableHead className="py-1 px-3 text-xs h-auto w-1/2">Vital Type</TableHead>
-                      <TableHead className="py-1 px-3 text-xs h-auto w-1/4 text-right">Date</TableHead>
-                      <TableHead className="py-1 px-3 text-xs h-auto w-1/4 text-right">Value</TableHead>
+                      <TableHead className="py-2 px-3 text-xs h-8 whitespace-nowrap text-foreground font-medium bg-accent/50 hover:bg-accent transition-colors">Vital Type</TableHead>
+                      <TableHead className="py-2 px-3 text-xs h-8 whitespace-nowrap text-foreground font-medium bg-accent/50 hover:bg-accent transition-colors">Date</TableHead>
+                      <TableHead className="py-2 px-3 text-xs h-8 whitespace-nowrap text-foreground font-medium bg-accent/50 hover:bg-accent transition-colors">Value</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -1542,7 +1542,7 @@ const ProblemsView = ({ patient }: { patient?: Patient }) => {
               <TableHeader className="bg-accent text-foreground sticky top-0 z-10">
                 <TableRow>
                   {tableHeaders.map((header) => (
-                    <TableHead key={header} className="py-2 px-3 text-xs h-8 whitespace-nowrap text-foreground">
+                    <TableHead key={header} className="py-2 px-3 text-xs h-8 whitespace-nowrap text-foreground font-medium bg-accent/50 hover:bg-accent transition-colors">
                       <div className="flex items-center justify-between">
                         {header}
                         <ArrowUpDown className="h-3 w-3 ml-1 text-muted-foreground hover:text-foreground cursor-pointer" />
@@ -1785,7 +1785,7 @@ const FinalDiagnosisView = ({ patient }: { patient?: Patient }) => {
               <TableHeader className="bg-accent text-foreground sticky top-0 z-10">
                 <TableRow>
                   {tableHeaders.map(header => (
-                    <TableHead key={header} className="py-2 px-3 text-xs h-8 whitespace-nowrap text-foreground">
+                    <TableHead key={header} className="py-2 px-3 text-xs h-8 whitespace-nowrap text-foreground font-medium bg-accent/50 hover:bg-accent transition-colors">
                       <div className="flex items-center justify-between">
                         {header}
                         <ArrowUpDown className="h-3 w-3 ml-1 text-muted-foreground hover:text-foreground cursor-pointer" />
@@ -1952,12 +1952,12 @@ const ChiefComplaintsView = ({ patient }: { patient?: Patient }) => {
               <TableHeader className="bg-accent text-foreground sticky top-0 z-10">
                 <TableRow>
                   {tableHeaders.map(header => (
-                    <TableHead key={header} className="py-2 px-3 text-xs h-8 whitespace-nowrap text-foreground">
-                  <div className="flex items-center justify-between">
-                    {header}
-                    <ArrowUpDown className="h-3 w-3 ml-1 text-muted-foreground hover:text-foreground cursor-pointer" />
-                  </div>
-                  </TableHead>
+                    <TableHead key={header} className="py-2 px-3 text-xs h-8 whitespace-nowrap text-foreground font-medium bg-accent/50 hover:bg-accent transition-colors">
+                      <div className="flex items-center justify-between">
+                        {header}
+                        <ArrowUpDown className="h-3 w-3 ml-1 text-muted-foreground hover:text-foreground cursor-pointer" />
+                      </div>
+                    </TableHead>
                   ))}
                 </TableRow>
               </TableHeader>
@@ -2142,7 +2142,7 @@ const AllergiesView = ({ patient }: { patient?: Patient }) => {
                   {tableHeaders.map(header => (
                     <TableHead 
                       key={header} 
-                      className={`py-2 px-3 text-xs h-8 whitespace-nowrap text-foreground ${
+                      className={`py-2 px-3 text-xs h-8 whitespace-nowrap text-foreground font-medium bg-accent/50 hover:bg-accent transition-colors ${
                         header === 'Actions' ? 'text-center' : ''
                       }`}
                     >
@@ -2290,7 +2290,7 @@ const OpdIpdDetailsView = ({ patient }: { patient?: Patient }) => {
               <TableHeader className="bg-accent text-foreground sticky top-0 z-10">
                 <TableRow>
                   {tableHeaders.map(header => (
-                    <TableHead key={header} className="py-2 px-3 text-xs h-8 whitespace-nowrap text-foreground">
+                    <TableHead key={header} className="py-2 px-3 text-xs h-8 whitespace-nowrap text-foreground font-medium bg-accent/50 hover:bg-accent transition-colors">
                       <div className="flex items-center justify-between">
                         {header}
                         <ArrowUpDown className="h-3 w-3 ml-1 text-muted-foreground hover:text-foreground cursor-pointer" />

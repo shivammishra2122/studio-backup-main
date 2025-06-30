@@ -23,6 +23,8 @@ import { useSidebar } from "@/components/ui/sidebar";
 import { PatientDetailsModal } from "@/components/patient-details-modal";
 import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
+import { usePatientAllergies } from "@/hooks/usePatientAllergies";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const navItems: { name: string; icon: any; href: string }[] = [];
 
@@ -33,6 +35,13 @@ export default function SidebarNav() {
   const [isPatientDetailsOpen, setIsPatientDetailsOpen] = useState(false);
   const { state: sidebarState } = useSidebar();
   const isCollapsed = sidebarState === 'collapsed';
+
+  // Fetch allergies for the current patient
+  const { allergies: patientAllergies, loading: allergiesLoading } = usePatientAllergies(patient?.SSN || '');
+
+  // Get the first allergy for display
+  const firstAllergy = Object.values(patientAllergies)[0];
+  const hasAllergies = Object.keys(patientAllergies).length > 0;
 
   useEffect(() => {
     const fetchPatient = async () => {
@@ -181,7 +190,7 @@ export default function SidebarNav() {
                 <span className="truncate">{patient["Admission Date"]}</span>
               </div>
               <div className="mb-1 px-4">
-                <span className="font-semibold text-blue-200">LOS:</span> {patient.LOS}
+                <span className="font-semibold text-blue-200">LOS:</span> {patient.LOS ? patient.LOS.split('^')[0] : ''} 
               </div>
               <div className="mb-1 px-4">
                 <span className="font-semibold text-blue-200">Primary Consultant:</span> {patient["Primary Consultant"]}
@@ -196,6 +205,43 @@ export default function SidebarNav() {
               <div className="mb-1 px-4"><span className="font-semibold text-blue-200">Final Diagnosis:</span> {patient.finalDiagnosis}</div>
               <div className="mb-1 px-4"><span className="font-semibold text-blue-200">Posting:</span> {patient.posting}</div>
               <div className="mb-1 px-4"><span className="font-semibold text-blue-200">Reason For Visit:</span> {patient.reasonForVisit}</div>
+              <div className="mb-1 px-4">
+                <span className="font-semibold text-blue-200">Allergies: </span>
+                {allergiesLoading ? (
+                  <span className="text-blue-200">Loading...</span>
+                ) : hasAllergies ? (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button className="text-left hover:underline focus:outline-none">
+                          {firstAllergy?.Allergies || 'No allergies'}
+                          {Object.keys(patientAllergies).length > 1 && ' +' + (Object.keys(patientAllergies).length - 1) + ' more'}
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="max-w-xs bg-gray-800 text-white border-gray-600">
+                        <div className="space-y-1">
+                          {Object.values(patientAllergies).map((allergy, index) => (
+                            <div key={index} className="py-1">
+                              <div className="font-medium">{allergy.Allergies}</div>
+                              {allergy.Symptoms && (
+                                <div className="text-sm text-gray-300">Symptoms: {allergy.Symptoms}</div>
+                              )}
+                              {allergy["Nature of Reaction"] && (
+                                <div className="text-sm text-gray-300">Reaction: {allergy["Nature of Reaction"]}</div>
+                              )}
+                              {index < Object.keys(patientAllergies).length - 1 && (
+                                <hr className="my-1 border-gray-600" />
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                ) : (
+                  <span>No known allergies</span>
+                )}
+              </div>
             </div>
           </>
         )}

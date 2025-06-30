@@ -570,131 +570,129 @@ const IpMedicationView = ({ patient }: { patient: Patient }) => {
             <p className="text-destructive">{medicationError}</p>
           </div>
         ) : (
-          <div className="flex-1 overflow-auto">
-            <Table>
-              <TableHeader className="bg-accent sticky top-0 z-10">
-                <TableRow>
-                  <TableHead className="py-1 px-2 text-xs">Services</TableHead>
-                  <TableHead className="py-1 px-2 text-xs">Medication Name</TableHead>
-                  <TableHead className="py-1 px-2 text-xs">Start/Stop Date</TableHead>
-                  <TableHead className="py-1 px-2 text-xs">Status</TableHead>
-                  <TableHead className="py-1 px-2 text-xs">Ordered By</TableHead>
-                  <TableHead className="py-1 px-2 text-xs">Sign</TableHead>
-                  <TableHead className="py-1 px-2 text-xs">Discontinue</TableHead>
-                  <TableHead className="py-1 px-2 text-xs">Actions</TableHead>
-                  <TableHead className="py-1 px-2 text-xs">Medication Day</TableHead>
-                  <TableHead className="py-1 px-2 text-xs">Schedule</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {ipMedicationList.length > 0 ? (
-                  ipMedicationList.map((med, index) => (
-                    <TableRow key={med.id} className={`text-xs ${index % 2 === 0 ? 'bg-muted/30' : ''}`}>
-                      <TableCell className="py-1 px-2 font-normal">
-                        {med.services}
-                      </TableCell>
-                      <TableCell className="py-1 px-2 font-normal">
-                        <a href={med.orderURL} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                          {med.medicationName}
-                        </a>
-                      </TableCell>
-                      <TableCell className="py-1 px-2 font-normal">
-                        {med.startDate && `Start: ${med.startDate} ${med.startTime || ''}`}
-                        {med.stopDate && (
-                          <>
-                            <br />
-                            {`Stop: ${med.stopDate} ${med.stopTime || ''}`}
-                          </>
-                        )}
-                      </TableCell>
-                      <TableCell className="py-1 px-2">
-                        <Badge 
-                          variant={
-                            med.status?.toUpperCase() === 'UNRELEASED' ? 'secondary' : 
-                            med.status?.toUpperCase() === 'ACTIVE' ? 'default' :
-                            med.status?.toUpperCase() === 'DISCONTINUED' ? 'destructive' : 'outline'
-                          }
-                          className="text-[11px] font-normal capitalize"
-                        >
-                          {med.status?.toLowerCase()}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="py-1 px-2 font-normal">
-                        {med.orderedBy}
-                      </TableCell>
-                      <TableCell className="py-1 px-2 font-normal">
-                        {med.signURL && (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-6 w-6 p-0" asChild>
-                                <a href={med.signURL} target="_blank" rel="noopener noreferrer" title="Sign">
-                                  <PenLine className="h-3 w-3" />
-                                </a>
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent className="text-xs">Sign Order</TooltipContent>
-                          </Tooltip>
-                        )}
-                      </TableCell>
-                      <TableCell className="py-1 px-2 font-normal">
-                        {med.discontinueURL && (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-6 w-6 p-0" asChild>
-                                <a href={med.discontinueURL} target="_blank" rel="noopener noreferrer" title="Discontinue">
-                                  <Ban className="h-3 w-3 text-red-500" />
-                                </a>
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent className="text-xs">Discontinue</TooltipContent>
-                          </Tooltip>
-                        )}
-                      </TableCell>
-                      <TableCell className="py-1 px-2 font-normal">
-                        <div className="flex gap-1">
-                          {med.changeURL && (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-6 w-6 p-0" asChild>
-                                  <a href={med.changeURL} target="_blank" rel="noopener noreferrer" title="Change">
-                                    <Pencil className="h-3 w-3" />
-                                  </a>
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent className="text-xs">Change Order</TooltipContent>
-                            </Tooltip>
-                          )}
-                          {med.copyURL && (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-6 w-6 p-0" asChild>
-                                  <a href={med.copyURL} target="_blank" rel="noopener noreferrer" title="Copy">
-                                    <Copy className="h-3 w-3" />
-                                  </a>
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent className="text-xs">Copy Order</TooltipContent>
-                            </Tooltip>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="py-1 px-2 font-normal">
-                        {med.medicationDay || 'N/A'}
-                      </TableCell>
-                      <TableCell className="py-1 px-2 font-normal">
-                        {med.schedule || 'N/A'}
-                      </TableCell>
+          <div className="flex-1 flex flex-col overflow-hidden">
+            <div className="overflow-hidden rounded-md border">
+              <div className="relative h-full max-h-[calc(100vh-250px)] overflow-auto">
+                <Table>
+                  <TableHeader className="sticky top-0 z-10 bg-background">
+                    <TableRow className="border-b">
+                      <TableHead className="py-1 px-2 text-xs h-8 bg-muted/50">Services</TableHead>
+                      <TableHead className="py-1 px-2 text-xs h-8 bg-muted/50">Medication Name</TableHead>
+                      <TableHead className="py-1 px-2 text-xs h-8 bg-muted/50">Start/Stop Date</TableHead>
+                      <TableHead className="py-1 px-2 text-xs h-8 bg-muted/50">Status</TableHead>
+                      <TableHead className="py-1 px-2 text-xs h-8 bg-muted/50">Ordered By</TableHead>
+                      <TableHead className="py-1 px-2 text-xs h-8 bg-muted/50">Sign</TableHead>
+                      <TableHead className="py-1 px-2 text-xs h-8 bg-muted/50">Discontinue</TableHead>
+                      <TableHead className="py-1 px-2 text-xs h-8 bg-muted/50">Actions</TableHead>
+                      <TableHead className="py-1 px-2 text-xs h-8 bg-muted/50">Medication Day</TableHead>
+                      <TableHead className="py-1 px-2 text-xs h-8 bg-muted/50">Schedule</TableHead>
                     </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={10} className="text-center py-10 text-muted-foreground">
-                      No medication orders found
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
+                  </TableHeader>
+                  <TableBody className="[&>tr:last-child]:border-0">
+                    {ipMedicationList.length > 0 ? ipMedicationList.map((med, index) => (
+                      <TableRow key={med.id} className={`text-xs hover:bg-muted/50 ${index % 2 === 0 ? 'bg-muted/10' : 'bg-background'}`}>
+                        <TableCell className="py-1 px-2">{med.services}</TableCell>
+                        <TableCell className="py-1 px-2">
+                          <a href={med.orderURL} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                            {med.medicationName}
+                          </a>
+                        </TableCell>
+                        <TableCell className="py-1 px-2">
+                          {med.startDate && `Start: ${med.startDate} ${med.startTime || ''}`}
+                          {med.stopDate && (
+                            <>
+                              <br />
+                              {`Stop: ${med.stopDate} ${med.stopTime || ''}`}
+                            </>
+                          )}
+                        </TableCell>
+                        <TableCell className="py-1 px-2">
+                          <Badge 
+                            variant={
+                              med.status?.toUpperCase() === 'UNRELEASED' ? 'secondary' : 
+                              med.status?.toUpperCase() === 'ACTIVE' ? 'default' :
+                              med.status?.toUpperCase() === 'DISCONTINUED' ? 'destructive' : 'outline'
+                            }
+                            className="text-[11px] font-normal capitalize"
+                          >
+                            {med.status?.toLowerCase()}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="py-1 px-2">{med.orderedBy}</TableCell>
+                        <TableCell className="py-1 px-2">
+                          {med.signURL && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-6 w-6 p-0" asChild>
+                                  <a href={med.signURL} target="_blank" rel="noopener noreferrer" title="Sign">
+                                    <PenLine className="h-3 w-3" />
+                                  </a>
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent className="text-xs">Sign Order</TooltipContent>
+                            </Tooltip>
+                          )}
+                        </TableCell>
+                        <TableCell className="py-1 px-2">
+                          {med.discontinueURL && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-6 w-6 p-0" asChild>
+                                  <a href={med.discontinueURL} target="_blank" rel="noopener noreferrer" title="Discontinue">
+                                    <Ban className="h-3 w-3 text-red-500" />
+                                  </a>
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent className="text-xs">Discontinue</TooltipContent>
+                            </Tooltip>
+                          )}
+                        </TableCell>
+                        <TableCell className="py-1 px-2">
+                          <div className="flex gap-1">
+                            {med.changeURL && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-6 w-6 p-0" asChild>
+                                    <a href={med.changeURL} target="_blank" rel="noopener noreferrer" title="Change">
+                                      <Pencil className="h-3 w-3" />
+                                    </a>
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent className="text-xs">Change Order</TooltipContent>
+                              </Tooltip>
+                            )}
+                            {med.copyURL && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-6 w-6 p-0" asChild>
+                                    <a href={med.copyURL} target="_blank" rel="noopener noreferrer" title="Copy">
+                                      <Copy className="h-3 w-3" />
+                                    </a>
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent className="text-xs">Copy Order</TooltipContent>
+                              </Tooltip>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="py-1 px-2">
+                          {med.medicationDay || 'N/A'}
+                        </TableCell>
+                        <TableCell className="py-1 px-2">
+                          {med.schedule || 'N/A'}
+                        </TableCell>
+                      </TableRow>
+                    )) : (
+                      <TableRow>
+                        <TableCell colSpan={10} className="h-24 text-center text-muted-foreground">
+                          No medications found.
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
           </div>
         )}
 
