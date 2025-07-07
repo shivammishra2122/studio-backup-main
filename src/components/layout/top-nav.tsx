@@ -15,6 +15,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { LogoutButton } from '@/components/auth/logout-button';
+import { PatientSelectionDefaultsModal } from '../patient-selection-defaults-modal';
+import { useState } from 'react';
 
 const navButtonLabels = [
   "Cover Sheet", "Dashboard", "Orders", "Clinical Notes", "Discharge Summary",
@@ -50,6 +52,7 @@ const PowerIcon = (props: React.SVGProps<SVGSVGElement>) => (
 
 export function TopNav() {
   const pathname = usePathname();
+  const [showPatientSelectionModal, setShowPatientSelectionModal] = useState(false);
 
   // Detect if on a patient-specific route: /patients/[id] or /patients/[id]/something
   const patientMatch = pathname.match(/^\/patients\/(\w+)(?:\/|$)/);
@@ -143,8 +146,13 @@ export function TopNav() {
           <DropdownMenuContent align="end" className="w-64 max-h-96 overflow-y-auto">
             <DropdownMenuLabel className="font-semibold">Helpdesk Options</DropdownMenuLabel>
             <DropdownMenuSeparator />
+            <DropdownMenuItem 
+              className="text-xs p-2 cursor-pointer hover:bg-accent"
+              onClick={() => setShowPatientSelectionModal(true)}
+            >
+              Patient Selection Defaults
+            </DropdownMenuItem>
             {[
-              'Patient Selection Defaults',
               'Source Combinations',
               'Personal Lists',
               'Personal Diagnosis Lists',
@@ -182,6 +190,12 @@ export function TopNav() {
           <LogOut className="h-4 w-4" />
         </LogoutButton>
       </div>
+
+      {/* Patient Selection Defaults Modal */}
+      <PatientSelectionDefaultsModal 
+        open={showPatientSelectionModal}
+        onOpenChange={setShowPatientSelectionModal}
+      />
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
