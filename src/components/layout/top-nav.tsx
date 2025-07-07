@@ -16,6 +16,7 @@ import {
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { LogoutButton } from '@/components/auth/logout-button';
 import { PatientSelectionDefaultsModal } from '../patient-selection-defaults-modal';
+import { SourceCombinationsModal } from '../source-combinations-modal';
 import { useState } from 'react';
 
 const navButtonLabels = [
@@ -53,6 +54,7 @@ const PowerIcon = (props: React.SVGProps<SVGSVGElement>) => (
 export function TopNav() {
   const pathname = usePathname();
   const [showPatientSelectionModal, setShowPatientSelectionModal] = useState(false);
+  const [showSourceCombinationsModal, setShowSourceCombinationsModal] = useState(false);
 
   // Detect if on a patient-specific route: /patients/[id] or /patients/[id]/something
   const patientMatch = pathname.match(/^\/patients\/(\w+)(?:\/|$)/);
@@ -152,8 +154,13 @@ export function TopNav() {
             >
               Patient Selection Defaults
             </DropdownMenuItem>
+            <DropdownMenuItem 
+              className="text-xs p-2 cursor-pointer hover:bg-accent"
+              onClick={() => setShowSourceCombinationsModal(true)}
+            >
+              Source Combinations
+            </DropdownMenuItem>
             {[
-              'Source Combinations',
               'Personal Lists',
               'Personal Diagnosis Lists',
               'Team Information',
@@ -195,6 +202,10 @@ export function TopNav() {
       <PatientSelectionDefaultsModal 
         open={showPatientSelectionModal}
         onOpenChange={setShowPatientSelectionModal}
+      />
+      <SourceCombinationsModal 
+        open={showSourceCombinationsModal}
+        onOpenChange={setShowSourceCombinationsModal}
       />
 
       <DropdownMenu>
