@@ -11,6 +11,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { LogoutButton } from '@/components/auth/logout-button';
@@ -126,17 +127,61 @@ export function TopNav() {
             </Link>
           );
         })}
-      </div>
 
-      {/* Logout Button - Moved from dropdown */}
-      <LogoutButton 
-        variant="ghost" 
-        size="sm" 
-        className="text-xs px-2 py-1 h-7 whitespace-nowrap hover:bg-accent hover:text-foreground mr-1"
-      >
-        <LogOut className="h-4 w-4 mr-1" />
-        Logout
-      </LogoutButton>
+        {/* Helpdesk Dropdown */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 ml-1"
+              title="Helpdesk"
+            >
+              <HeadsetIcon className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-64 max-h-96 overflow-y-auto">
+            <DropdownMenuLabel className="font-semibold">Helpdesk Options</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {[
+              'Patient Selection Defaults',
+              'Source Combinations',
+              'Personal Lists',
+              'Personal Diagnosis Lists',
+              'Team Information',
+              'Custom Widgets',
+              'Change Author',
+              'Patient Credential',
+              'Patient Location',
+              'Ward Bed - Occupancy',
+              "Doctor's Availability",
+              'Lab Result Alert',
+              'Order Check',
+              'Chief-Complaints Master',
+              'BCMA',
+              'Blood Bank',
+              'NDRS',
+              'Medclick',
+              'AMI Prediction',
+              'Emergency Configuration'
+            ].map((item) => (
+              <DropdownMenuItem key={item} className="text-xs p-2 cursor-pointer hover:bg-accent">
+                {item}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        {/* Logout Button */}
+        <LogoutButton 
+          variant="ghost" 
+          size="icon"
+          className="h-7 w-7 ml-1"
+          title="Logout"
+        >
+          <LogOut className="h-4 w-4" />
+        </LogoutButton>
+      </div>
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -180,7 +225,6 @@ export function TopNav() {
             <PenLine className="h-4 w-4 mr-2.5 text-muted-foreground" />
             SIGNATURE BLOCK
           </DropdownMenuItem>
-          {/* Removed LogoutButton from here */}
         </DropdownMenuContent>
       </DropdownMenu>
     </div>
