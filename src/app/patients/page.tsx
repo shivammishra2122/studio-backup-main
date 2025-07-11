@@ -21,7 +21,8 @@ import {
   AlertTriangle,
   RefreshCw as RefreshCwIcon,
   Search as SearchIcon,
-  Bell
+  Bell,
+  X
  } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePatients } from "@/context/patient-context";
@@ -31,6 +32,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { LogoutButton } from '@/components/auth/logout-button';
 
 type SortDirection = 'asc' | 'desc';
 
@@ -86,6 +88,15 @@ export default function PatientsPage() {
   const [advPhone, setAdvPhone] = useState('');
   const [advIp, setAdvIp] = useState('');
 
+  // Advanced search state
+  const [isAdvSearchActive, setIsAdvSearchActive] = useState(false);
+  const [currentAdvSearch, setCurrentAdvSearch] = useState({
+    name: '',
+    dob: '',
+    phone: '',
+    ip: ''
+  });
+
   // Fetch patients on initial load
   useEffect(() => {
     const loadPatients = async () => {
@@ -112,30 +123,25 @@ export default function PatientsPage() {
     }
   };
 
-  const handleAdvancedSearch = async (e: React.FormEvent) => {
+  const handleAdvancedSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    const params: Record<string, string> = {
-      SearchType: "2" // 2 for advanced search
-    };
-    
-    if (advName) params.lname = advName.trim();
-    if (advDob) params.cpDOB = advDob.trim();
-    if (advPhone) params.mno = advPhone.trim();
-    if (advIp) params.cpIPNo = advIp.trim();
-    
-    try {
-      await fetchPatients(params);
-      // Clear form and close dialog only on success
-      setAdvName('');
-      setAdvDob('');
-      setAdvPhone('');
-      setAdvIp('');
-      setIsAdvOpen(false);
-    } catch (error) {
-      console.error('Advanced search failed:', error);
-      // Error is already handled in the context
-    }
+    setCurrentAdvSearch({
+      name: advName.trim(),
+      dob: advDob.trim(),
+      phone: advPhone.trim(),
+      ip: advIp.trim()
+    });
+    setIsAdvSearchActive(true);
+    setIsAdvOpen(false);
+  };
+
+  const clearAdvancedSearch = () => {
+    setAdvName('');
+    setAdvDob('');
+    setAdvPhone('');
+    setAdvIp('');
+    setCurrentAdvSearch({ name: '', dob: '', phone: '', ip: '' });
+    setIsAdvSearchActive(false);
   };
 
   const handleSearch = () => {
@@ -155,16 +161,53 @@ export default function PatientsPage() {
     }
   }, [sortKey]);
 
+  // Apply advanced search filters to the patients
   const filteredPatients = useMemo(() => {
-    if (!searchQuery) return patients;
+    let result = [...patients];
     
-    const query = searchQuery.toLowerCase();
-    return patients.filter(patient => 
-      Object.values(patient).some(
-        val => val && String(val).toLowerCase().includes(query)
-      )
-    );
-  }, [patients, searchQuery]);
+    // Apply simple search if active
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(patient => 
+        Object.values(patient).some(
+          val => val && String(val).toLowerCase().includes(query)
+        )
+      );
+    }
+    
+    // Apply advanced search filters if active
+    if (isAdvSearchActive) {
+      const { name, dob, phone, ip } = currentAdvSearch;
+      
+      if (name) {
+        result = result.filter(patient => 
+          patient.Name?.toLowerCase().includes(name.toLowerCase())
+        );
+      }
+      
+      if (dob) {
+        result = result.filter(patient => 
+          patient.DOB?.toLowerCase().includes(dob.toLowerCase())
+        );
+      }
+      
+      if (phone) {
+        result = result.filter(patient => 
+          patient.Phone?.includes(phone) || 
+          patient.Mobile?.includes(phone)
+        );
+      }
+      
+      if (ip) {
+        result = result.filter(patient => 
+          patient.IPNo?.includes(ip) || 
+          patient.AdmissionNo?.includes(ip)
+        );
+      }
+    }
+    
+    return result;
+  }, [patients, searchQuery, isAdvSearchActive, currentAdvSearch]);
 
   const sortedPatients = useMemo(() => {
     if (!sortKey) return filteredPatients;
@@ -214,44 +257,40 @@ export default function PatientsPage() {
   }
 
   return (
-    <div className="w-full px-4 py-6 space-y-6">
+    <div className="w-full px-4 py-2 space-y-4">
       {/* Header */}
-      <div className="flex flex-col">
-        <div className="flex items-center justify-between">
-          <h1 className="text-xl font-bold text-[#2d3748]">Patient List</h1>
-          <div className="flex items-center gap-2">
-            <Button 
-              variant="outline" 
-              size="icon"
-              className="h-8 w-8 p-0"
-              aria-label="Notifications"
-            >
-              <Bell className="h-4 w-4" />
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handleRefresh}
-              disabled={isRefreshing}
-              className="flex items-center gap-1.5 text-xs h-8"
-            >
-              {isRefreshing ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <RefreshCwIcon className="h-3.5 w-3.5" />
-              )}
-              Refresh
-            </Button>
-          </div>
+      <div className="flex items-center justify-between">
+        <h1 className="text-xl font-bold text-[#2d3748]">Patient List</h1>
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="outline" 
+            size="icon"
+            className="h-8 w-8 p-0"
+            aria-label="Notifications"
+          >
+            <Bell className="h-4 w-4" />
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="flex items-center gap-1.5 text-xs h-8"
+          >
+            {isRefreshing ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <RefreshCwIcon className="h-3.5 w-3.5" />
+            )}
+            Refresh
+          </Button>
+          <LogoutButton variant="outline" size="sm" className="h-8" />
         </div>
-        <p className="text-xs text-gray-600">
-          {filteredPatients.length} {filteredPatients.length === 1 ? 'patient' : 'patients'} found
-          {searchQuery && ` matching "${searchQuery}"`}
-        </p>
       </div>
       
       {/* Category section (left) + Search section (right) */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+        {/* Category filter */}
         <RadioGroup
           value={filterCategory}
           onValueChange={setFilterCategory}
@@ -269,38 +308,43 @@ export default function PatientsPage() {
           </div>
         </RadioGroup>
 
-        {/* Client-side search filter */}
-        <div className="relative max-w-md md:max-w-xs md:flex-shrink-0">
-          <SearchIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <input
-            type="search"
-            placeholder="Filter patients..."
-            className="pl-9 h-9 text-sm border rounded-md w-full px-3 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
-
-        {/* Search Buttons */}
+        {/* Search section */}
         <div className="flex items-center gap-2">
-          <Button 
-            size="sm" 
-            variant="default" 
-            onClick={handleSearch} 
-            className="h-8 text-xs"
-          >
-            Search
-          </Button>
+          {/* Simple search */}
+          <div className="relative">
+            <SearchIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <input
+              type="search"
+              placeholder="Search patients..."
+              className="pl-9 h-9 text-sm border rounded-md w-full md:w-64 px-3 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
 
+          {/* Clear filters button - only show when advanced search is active */}
+          {isAdvSearchActive && (
+            <Button 
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={clearAdvancedSearch}
+              className="h-9 text-xs flex items-center gap-1.5 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+            >
+              <X className="h-3.5 w-3.5" />
+              Clear Filters
+            </Button>
+          )}
+
+          {/* Advanced search button */}
           <Dialog open={isAdvOpen} onOpenChange={setIsAdvOpen}>
             <DialogTrigger asChild>
               <Button 
                 size="sm" 
-                variant="outline" 
+                variant={isAdvSearchActive ? "default" : "outline"}
                 className="h-8 text-xs"
-                onClick={() => setIsAdvOpen(true)}
               >
-                Advanced
+                {isAdvSearchActive ? 'Edit Search' : 'Advanced'}
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-md">
@@ -310,22 +354,72 @@ export default function PatientsPage() {
               <form onSubmit={handleAdvancedSearch} className="space-y-3 mt-2">
                 <div className="space-y-1">
                   <Label htmlFor="adv-name">Name</Label>
-                  <Input id="adv-name" value={advName} onChange={(e) => setAdvName(e.target.value)} placeholder="Last Name, First Name" />
+                  <Input 
+                    id="adv-name" 
+                    value={advName} 
+                    onChange={(e) => setAdvName(e.target.value)} 
+                    placeholder="Last Name, First Name" 
+                  />
                 </div>
                 <div className="space-y-1">
                   <Label htmlFor="adv-dob">Date of Birth</Label>
-                  <Input id="adv-dob" value={advDob} onChange={(e) => setAdvDob(e.target.value)} placeholder="DD/MM/YYYY" />
+                  <Input 
+                    id="adv-dob" 
+                    value={advDob} 
+                    onChange={(e) => setAdvDob(e.target.value)} 
+                    placeholder="DD/MM/YYYY" 
+                  />
                 </div>
                 <div className="space-y-1">
                   <Label htmlFor="adv-phone">Phone No.</Label>
-                  <Input id="adv-phone" value={advPhone} onChange={(e) => setAdvPhone(e.target.value)} placeholder="Phone Number" />
+                  <Input 
+                    id="adv-phone" 
+                    value={advPhone} 
+                    onChange={(e) => setAdvPhone(e.target.value)} 
+                    placeholder="Phone Number" 
+                  />
                 </div>
                 <div className="space-y-1">
                   <Label htmlFor="adv-ip">IP No.</Label>
-                  <Input id="adv-ip" value={advIp} onChange={(e) => setAdvIp(e.target.value)} placeholder="IP Number" />
+                  <Input 
+                    id="adv-ip" 
+                    value={advIp} 
+                    onChange={(e) => setAdvIp(e.target.value)} 
+                    placeholder="IP Number" 
+                  />
                 </div>
                 <DialogFooter className="mt-4">
-                  <Button type="submit" size="sm">Search</Button>
+                  <div className="flex justify-between w-full">
+                    <Button 
+                      type="button"
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => {
+                        clearAdvancedSearch();
+                        setIsAdvOpen(false);
+                      }}
+                      className="text-red-600 hover:bg-red-50"
+                    >
+                      Clear
+                    </Button>
+                    <div className="flex gap-2">
+                      <Button 
+                        type="button"
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setIsAdvOpen(false)}
+                      >
+                        Cancel
+                      </Button>
+                      <Button 
+                        type="submit" 
+                        size="sm"
+                        className="flex items-center gap-1.5"
+                      >
+                        Search
+                      </Button>
+                    </div>
+                  </div>
                 </DialogFooter>
               </form>
             </DialogContent>
@@ -333,90 +427,100 @@ export default function PatientsPage() {
         </div>
       </div>
         
-        {/* Patient Table */}
+      {/* Patient Table */}
       <div className="bg-white rounded shadow-sm border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th scope="col" className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider bg-[#2c5282]">
-                  #
-                </th>
-                {TABLE_FIELDS.map((field) => {
-                  const Icon = field.icon;
-                  return (
-                    <th
-                      key={field.key}
-                      scope="col"
-                      className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider bg-[#2c5282]"
-                      onClick={() => handleSort(field.key)}
-                    >
-                      <div className="flex items-center">
-                        <Icon className="h-4 w-4 mr-1.5 text-blue-300" />
-                        <span className="flex items-center">
-                          {field.label}
-                          {sortKey === field.key && (
-                            sortDir === 'asc' ? (
-                              <ChevronUp className="ml-1 h-3.5 w-3.5" />
-                            ) : (
-                              <ChevronDown className="ml-1 h-3.5 w-3.5" />
-                            )
-                          )}
-                        </span>
-                      </div>
-                    </th>
-                  );
-                })}
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {loading && !isRefreshing ? (
+          <div className="h-[400px] overflow-y-auto text-xs">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50 sticky top-0 z-10">
                 <tr>
-                  <td colSpan={TABLE_FIELDS.length + 1} className="px-6 py-12 text-center">
-                    <div className="flex flex-col items-center justify-center space-y-2">
-                      <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-                      <p className="text-sm text-gray-500">Loading patients...</p>
-                    </div>
-                  </td>
-                </tr>
-              ) : sortedPatients.length === 0 ? (
-                <tr>
-                  <td colSpan={TABLE_FIELDS.length + 1} className="px-6 py-12 text-center">
-                    <p className="text-sm text-gray-500">
-                      {searchQuery ? 'No patients match your search. Try a different term.' : 'No patients found.'}
-                    </p>
-                  </td>
-                </tr>
-              ) : (
-                sortedPatients.map((patient, index) => (
-                  <tr 
-                    key={patient.DFN || index} 
-                    className="bg-blue-50 hover:bg-blue-100 transition-colors cursor-pointer"
-                    onClick={(e) => handleRowClick(e, patient)}
-                  >
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                      {index + 1}
-                    </td>
-                    {TABLE_FIELDS.map(field => (
-                      <td 
-                        key={`${patient.DFN}-${field.key}`} 
-                        className="px-4 py-3 whitespace-nowrap text-sm text-gray-900"
+                  <th scope="col" className="px-2 py-1 text-left text-[11px] font-medium text-white uppercase tracking-wider bg-[#2c5282] sticky top-0">
+                    #
+                  </th>
+                  {TABLE_FIELDS.map((field) => {
+                    const Icon = field.icon;
+                    return (
+                      <th
+                        key={field.key}
+                        scope="col"
+                        className="px-2 py-1 text-left text-[11px] font-medium text-white uppercase tracking-wider bg-[#2c5282] sticky top-0"
+                        onClick={() => handleSort(field.key)}
                       >
-                        {getStringValue(patient[field.key as keyof typeof patient], field.key)}
-                      </td>
-                    ))}
+                        <div className="flex items-center">
+                          <Icon className="h-3 w-3 mr-1 text-blue-300" />
+                          <span className="flex items-center">
+                            {field.label}
+                            {sortKey === field.key && (
+                              sortDir === 'asc' ? (
+                                <ChevronUp className="ml-0.5 h-2.5 w-2.5" />
+                              ) : (
+                                <ChevronDown className="ml-0.5 h-2.5 w-2.5" />
+                              )
+                            )}
+                          </span>
+                        </div>
+                      </th>
+                    );
+                  })}
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {loading && !isRefreshing ? (
+                  <tr>
+                    <td colSpan={TABLE_FIELDS.length + 1} className="px-6 py-6 text-center">
+                      <div className="flex flex-col items-center justify-center space-y-1">
+                        <Loader2 className="h-5 w-5 animate-spin text-blue-500" />
+                        <p className="text-xs text-gray-500">Loading patients...</p>
+                      </div>
+                    </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : sortedPatients.length === 0 ? (
+                  <tr>
+                    <td colSpan={TABLE_FIELDS.length + 1} className="px-6 py-6 text-center">
+                      <p className="text-xs text-gray-500">
+                        {searchQuery ? 'No patients match your search. Try a different term.' : 'No patients found.'}
+                      </p>
+                    </td>
+                  </tr>
+                ) : (
+                  sortedPatients.map((patient, index) => (
+                    <tr 
+                      key={patient.DFN || index} 
+                      className="bg-blue-50 hover:bg-blue-100 transition-colors cursor-pointer"
+                      onClick={(e) => handleRowClick(e, patient)}
+                    >
+                      <td className="px-2 py-1 whitespace-nowrap text-gray-700">
+                        {index + 1}
+                      </td>
+                      {TABLE_FIELDS.map((field) => (
+                        <td key={field.key} className="px-2 py-1 whitespace-nowrap text-gray-700">
+                          {getStringValue(patient[field.key], field.key)}
+                        </td>
+                      ))}
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
       
       {/* Footer */}
-      <div className="flex items-center justify-between text-xs text-gray-500">
-        <p>Showing {sortedPatients.length} of {patients.length} patients</p>
-        <p>Last updated: {lastUpdated.toLocaleString()}</p>
+      <div className="flex items-center justify-between text-xs text-gray-500 border-t border-gray-200 pt-2 mt-2">
+        <div className="flex items-center gap-4">
+          <span>Total Patients: {patients.length}</span>
+          {searchQuery && (
+            <span className="text-blue-600">
+              Filtered: {filteredPatients.length}
+            </span>
+          )}
+        </div>
+        <div className="text-right">
+          <div className="text-[10px] opacity-75">
+            Last updated: {new Date().toLocaleTimeString()}
+          </div>
+        </div>
       </div>
     </div>
   );
