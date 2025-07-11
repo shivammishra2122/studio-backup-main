@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader as ShadcnTableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle as DialogUITitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
-import { Settings, RefreshCw, CalendarDays, ArrowUpDown, Trash2, Edit2, CheckCircle2, ImageUp, X, FileSignature, Droplets, Loader2 } from 'lucide-react';
+import { Settings, RefreshCw, CalendarDays, ArrowUpDown, Trash2, Edit2, CheckCircle2, ImageUp, X, FileSignature, Droplets, Loader2, Search, ArrowLeft, Printer, PlusCircle } from 'lucide-react';
 import { DigitalSignatureDialog } from '@/components/DigitalSignatureDialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Patient } from '@/lib/constants';
@@ -99,13 +99,13 @@ const DEFAULT_SSN = '800000035';
 const ClinicalNotesPage = ({ patient }: ClinicalNotesPageProps) => {
   const [activeSubNav, setActiveSubNav] = useState<string>(clinicalNotesSubNavItems[0]);
   const [viewMode, setViewMode] = useState<'table' | 'detail'>('table');
-  const [selectedPatient, setSelectedPatient] = useState<string>(patient?.id || "");
+  const [selectedPatient, setSelectedPatient] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [fromDate, setFromDate] = useState<string>("");
   const [toDateValue, setToDateValue] = useState<string>("");
   const [searchText, setSearchText] = useState<string>("");
+  const [selectedNote, setSelectedNote] = useState<PatientClinicalNoteType | null>(null);
   const [selectedNoteContent, setSelectedNoteContent] = useState<string>("");
-  const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
   const [isNoteDetailDialogOpen, setIsNoteDetailDialogOpen] = useState(false);
   const [isSigning, setIsSigning] = useState(false);
   const [isSignatureDialogOpen, setIsSignatureDialogOpen] = useState(false);
@@ -121,17 +121,13 @@ const ClinicalNotesPage = ({ patient }: ClinicalNotesPageProps) => {
   };
 
   const handleDeleteNote = async (noteId: string) => {
-    if (!noteId) return;
-
+    if (!window.confirm('Are you sure you want to delete this note?')) return;
+    
     try {
       setIsDeleting(true);
-      const response = await apiService.delete('/api/clinical-notes/delete', {
+      await apiService.post('/api/clinical-notes/delete', {
         data: { noteId },
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to delete note');
-      }
 
       // Refresh the notes list after successful deletion
       const ssn = patient?.ssn || DEFAULT_SSN;
@@ -152,9 +148,7 @@ const ClinicalNotesPage = ({ patient }: ClinicalNotesPageProps) => {
           status: note["Status"] || note.status || "UNKNOWN",
           author: note.Author || note.author || "Unknown Author",
           location: note.Location || note.location || "Unknown Location",
-          // Include other fields from API response if needed, e.g., cosigner, etc.
           cosigner: note.Cosigner || note.cosigner || "-",
-          // Assuming 'department' and 'visitType' are not in this API response, keeping mock data structure for now
           department: note.department || "Unknown Department",
           visitType: note.visitType || "Unknown Visit Type",
         }));
@@ -176,7 +170,7 @@ const ClinicalNotesPage = ({ patient }: ClinicalNotesPageProps) => {
     
     try {
       setIsSigning(true);
-      const response = await apiService.post('/api/clinical-notes/sign', {
+      await apiService.post('/api/clinical-notes/sign', {
         data: { 
           noteId: currentNoteId,
           signatureData
@@ -205,20 +199,16 @@ const ClinicalNotesPage = ({ patient }: ClinicalNotesPageProps) => {
     }
   };
 
-  // Format dates to YYYY-MM-DD or use empty strings if not set
   const formatDate = (dateStr: string): string => {
     if (!dateStr) return '';
     try {
-      // Parse the date string to handle different formats
       const date = new Date(dateStr);
       if (isNaN(date.getTime())) return '';
       
-      // Ensure we have valid date components
       const year = date.getFullYear();
       const month = String(date.getMonth() + 1).padStart(2, '0');
       const day = String(date.getDate()).padStart(2, '0');
       
-      // Return in YYYY-MM-DD format as required by the API
       return `${year}-${month}-${day}`;
     } catch (e) {
       console.error('Error formatting date:', e);
@@ -243,19 +233,16 @@ const ClinicalNotesPage = ({ patient }: ClinicalNotesPageProps) => {
       .then((data: any[]) => {
         console.log("API Data:", data);
 
-        // Convert object with numeric keys into array and normalize
         const notesArray = Array.isArray(data) ? data : Object.values(data || {});
 
         const normalizedNotes = notesArray.map((note: any, index) => ({
-          id: note.NoteIEN || `${note["Notes Title"]}-${index}`, // Use NoteIEN as id or fallback
+          id: note.NoteIEN || `${note["Notes Title"]}-${index}`,
           notesTitle: note["Notes Title"] || note.notesTitle || "No Title",
           dateOfEntry: note["Date of Entry"] || note.dateOfEntry || "No Date",
           status: note["Status"] || note.status || "UNKNOWN",
           author: note.Author || note.author || "Unknown Author",
           location: note.Location || note.location || "Unknown Location",
-          // Include other fields from API response if needed, e.g., cosigner, etc.
           cosigner: note.Cosigner || note.cosigner || "-",
-          // Assuming 'department' and 'visitType' are not in this API response, keeping mock data structure for now
           department: note.department || "Unknown Department",
           visitType: note.visitType || "Unknown Visit Type",
         }));
@@ -269,14 +256,12 @@ const ClinicalNotesPage = ({ patient }: ClinicalNotesPageProps) => {
       .finally(() => setLoading(false));
   }, [patient?.ssn, fromDate, toDateValue, statusFilter]);
 
-  // Filter notes based on search and status
   const filteredNotes = (notes || []).filter(note => {
     if (statusFilter !== "ALL" && note.status !== statusFilter) return false;
     if (searchText && !note.notesTitle?.toLowerCase().includes(searchText.toLowerCase())) return false;
     return true;
   });
 
-  // Get unique patients from mock data
   const uniquePatients = Array.from(new Set(mockPatientClinicalNotes.map(note => note.patientId)))
     .map(id => {
       const note = mockPatientClinicalNotes.find(n => n.patientId === id);
@@ -286,9 +271,14 @@ const ClinicalNotesPage = ({ patient }: ClinicalNotesPageProps) => {
       };
     });
 
-  const handleNoteClick = (fullNoteContent: string) => {
-    setSelectedNoteContent(fullNoteContent);
-    setIsNoteDetailDialogOpen(true);
+  const handleNoteClick = (note: PatientClinicalNoteType) => {
+    setSelectedNote(note);
+    setViewMode('detail');
+  };
+
+  const handleBackToList = () => {
+    setViewMode('table');
+    setSelectedNote(null);
   };
 
   const truncateText = (text: string, maxLength: number = 40) => {
@@ -298,13 +288,14 @@ const ClinicalNotesPage = ({ patient }: ClinicalNotesPageProps) => {
 
   return (
     <div className="flex flex-col h-[calc(100vh-var(--top-nav-height,40px))] bg-background text-sm px-1 pb-1 pt-0">
+      {/* Sub-navigation */}
       <div className="flex items-end space-x-1 px-1 pb-0 overflow-x-auto no-scrollbar">
         {clinicalNotesSubNavItems.map((item) => (
           <Button
             key={item}
             onClick={() => {
               setActiveSubNav(item);
-              setViewMode('table');
+              setSelectedNote(null);
             }}
             className={`text-xs px-3 py-1.5 h-auto rounded-b-none rounded-t-md whitespace-nowrap focus-visible:ring-0 focus-visible:ring-offset-0
               ${activeSubNav === item
@@ -317,204 +308,458 @@ const ClinicalNotesPage = ({ patient }: ClinicalNotesPageProps) => {
         ))}
       </div>
 
-      <main className="flex-1 flex flex-col gap-3 overflow-hidden">
-        {activeSubNav === "Notes View" && (
-          <Card className="flex-1 flex flex-col shadow overflow-hidden">
-            <CardContent className="p-2.5 flex-grow flex flex-col overflow-hidden">
-              {viewMode === 'table' ? (
-                <>
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs mb-2">
-                    {!patient && (
-                      <>
-                        <Label htmlFor="patientSelect" className="shrink-0 text-xs">Patient</Label>
-                        <Select value={selectedPatient} onValueChange={setSelectedPatient}>
-                          <SelectTrigger id="patientSelect" className="h-6 w-40 text-xs">
-                            <SelectValue placeholder="Select Patient" className="text-xs" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="" className="text-xs">All Patients</SelectItem>
-                            {uniquePatients.map(patient => (
-                              <SelectItem key={patient.id} value={patient.id} className="text-xs">
-                                {patient.name} ({patient.id})
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </>
-                    )}
-
-                    <Label htmlFor="statusFilter" className="shrink-0 text-xs">Status</Label>
+      {/* Main content area */}
+      <div className="flex-1 overflow-hidden">
+        {activeSubNav === "Notes View" ? (
+          viewMode === 'table' ? (
+            // Table View
+            <Card className="h-full flex flex-col shadow">
+              <CardContent className="p-2.5 flex-grow overflow-auto">
+                {/* Filters and search UI */}
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs mb-2">
+                  {/* Existing filter components */}
+                  {!patient && (
+                    <div className="flex items-center space-x-2">
+                      <Label htmlFor="patient-filter">Patient</Label>
+                      <Select value={selectedPatient} onValueChange={setSelectedPatient}>
+                        <SelectTrigger id="patient-filter" className="h-8 w-[180px]">
+                          <SelectValue placeholder="Select patient" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">All Patients</SelectItem>
+                          {uniquePatients.map(patient => (
+                            <SelectItem key={patient.id} value={patient.id}>
+                              {patient.name} ({patient.id})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                  
+                  {/* Status filter */}
+                  <div className="flex items-center space-x-2">
+                    <Label htmlFor="status-filter">Status</Label>
                     <Select value={statusFilter} onValueChange={setStatusFilter}>
-                      <SelectTrigger id="statusFilter" className="h-6 w-24 text-xs">
-                        <SelectValue placeholder="ALL" className="text-xs" />
+                      <SelectTrigger id="status-filter" className="h-8 w-[120px]">
+                        <SelectValue placeholder="Status" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="ALL" className="text-xs">ALL</SelectItem>
-                        <SelectItem value="COMPLETED" className="text-xs">COMPLETED</SelectItem>
-                        <SelectItem value="PENDING" className="text-xs">PENDING</SelectItem>
-                        <SelectItem value="DRAFT" className="text-xs">DRAFT</SelectItem>
-                        <SelectItem value="UNSIGNED" className="text-xs">UNSIGNED</SelectItem>
+                        <SelectItem value="ALL">All Status</SelectItem>
+                        <SelectItem value="COMPLETED">Completed</SelectItem>
+                        <SelectItem value="PENDING">Pending</SelectItem>
                       </SelectContent>
                     </Select>
-
-                    <Label htmlFor="fromDate" className="shrink-0 text-xs">From Date</Label>
-                    <div className="relative">
-                      <Input id="fromDate" type="text" value={fromDate} onChange={e => setFromDate(e.target.value)} className="h-6 w-24 text-xs pr-7" />
-                      <CalendarDays className="h-3 w-3 absolute right-1.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                    </div>
-
-                    <Label htmlFor="toDate" className="shrink-0 text-xs">To</Label>
-                    <div className="relative">
-                      <Input id="toDate" type="text" value={toDateValue} onChange={e => setToDateValue(e.target.value)} className="h-6 w-24 text-xs pr-7" />
-                      <CalendarDays className="h-3 w-3 absolute right-1.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                    </div>
-
-                    <Label htmlFor="notesSearch" className="shrink-0 text-xs">Search:</Label>
-                    <Input id="notesSearch" type="text" value={searchText} onChange={e => setSearchText(e.target.value)} className="h-6 w-28 text-xs" />
                   </div>
 
-                  <div className="flex-1 overflow-auto min-h-0">
-                    <Table className="text-xs w-full">
-                      <ShadcnTableHeader className="bg-accent sticky top-0 z-10">
-                        <TableRow>
-                          {[
-                            { name: "Notes Title", className: "min-w-[6rem]" },
-                            { name: "Date of Entry", className: "min-w-[4rem]" },
-                            { name: "Status", className: "min-w-[4rem]" },
-                            { name: "Department", className: "min-w-[4.5rem]" },
-                            { name: "Visit Type", className: "min-w-[4rem]" },
-                            { name: "Sign", className: "min-w-[3rem] text-center" },
-                            { name: "Edit", className: "min-w-[3rem] text-center" },
-                            { name: "Delete", className: "min-w-[3rem] text-center" },
-                            { name: "Author", className: "min-w-[4.5rem]" },
-                            { name: "Location", className: "min-w-[4.5rem]" },
-                            { name: "Cosigner", className: "min-w-[4.5rem]" },
-                            { name: "Image Upload", className: "min-w-[3rem] text-center" }
-                          ].map(header => (
-                            <TableHead key={header.name} className={`py-2 px-1.5 text-foreground font-semibold h-auto ${header.className || ''}`}>
-                              <div className="flex items-center justify-between">
-                                <span className="break-words text-xs">{header.name}</span>
-                                <ArrowUpDown className="h-3 w-3 ml-1 shrink-0 text-muted-foreground hover:text-foreground cursor-pointer" />
-                              </div>
-                            </TableHead>
+                  {/* Date range filters */}
+                  <div className="flex items-center space-x-2">
+                    <Label htmlFor="from-date">From</Label>
+                    <div className="relative">
+                      <Input
+                        id="from-date"
+                        type="date"
+                        className="h-8 w-[120px]"
+                        value={fromDate}
+                        onChange={(e) => setFromDate(e.target.value)}
+                      />
+                      <CalendarDays className="h-3.5 w-3.5 absolute right-2.5 top-2 text-muted-foreground" />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Label htmlFor="to-date">To</Label>
+                    <div className="relative">
+                      <Input
+                        id="to-date"
+                        type="date"
+                        className="h-8 w-[120px]"
+                        value={toDateValue}
+                        onChange={(e) => setToDateValue(e.target.value)}
+                      />
+                      <CalendarDays className="h-3.5 w-3.5 absolute right-2.5 top-2 text-muted-foreground" />
+                    </div>
+                  </div>
+
+                  {/* Search */}
+                  <div className="flex-1 flex justify-end">
+                    <div className="relative w-full max-w-xs">
+                      <Search className="h-3.5 w-3.5 absolute left-2.5 top-2 text-muted-foreground" />
+                      <Input
+                        type="search"
+                        placeholder="Search notes..."
+                        className="h-8 pl-8"
+                        value={searchText}
+                        onChange={(e) => setSearchText(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Notes Table */}
+                <Table>
+                  <ShadcnTableHeader>
+                    <TableRow>
+                      {[
+                        { name: "Notes Title", className: "min-w-[6rem]" },
+                        { name: "Date of Entry", className: "min-w-[4rem]" },
+                        { name: "Status", className: "min-w-[4rem]" },
+                        { name: "Department", className: "min-w-[4.5rem]" },
+                        { name: "Visit Type", className: "min-w-[4rem]" },
+                        { name: "Sign", className: "min-w-[3rem] text-center" },
+                        { name: "Edit", className: "min-w-[3rem] text-center" },
+                        { name: "Delete", className: "min-w-[3rem] text-center" },
+                        { name: "Author", className: "min-w-[4.5rem]" },
+                        { name: "Location", className: "min-w-[4.5rem]" },
+                        { name: "Cosigner", className: "min-w-[4.5rem]" },
+                        { name: "Image Upload", className: "min-w-[3rem] text-center" }
+                      ].map(header => (
+                        <TableHead key={header.name} className={`py-2 px-1.5 text-foreground font-semibold h-auto ${header.className || ''}`}>
+                          <div className="flex items-center justify-between">
+                            <span className="break-words text-xs">{header.name}</span>
+                            <ArrowUpDown className="h-3 w-3 ml-1 shrink-0 text-muted-foreground hover:text-foreground cursor-pointer" />
+                          </div>
+                        </TableHead>
+                      ))}
+                    </TableRow>
+                  </ShadcnTableHeader>
+                  <TableBody>
+                    {loading ? (
+                      <TableRow>
+                        <TableCell colSpan={12} className="text-center py-10 text-muted-foreground">
+                          Loading...
+                        </TableCell>
+                      </TableRow>
+                    ) : filteredNotes && Array.isArray(filteredNotes) && filteredNotes.length > 0 ? filteredNotes.map((note) => (
+                      <TableRow 
+                        key={note.id} 
+                        className="hover:bg-muted/50 cursor-pointer"
+                        onClick={() => handleNoteClick(note)}
+                      >
+                        <TableCell className="py-1.5 px-1.5 min-w-[6rem]">{truncateText(note.notesTitle, 40)}</TableCell>
+                        <TableCell className="py-1.5 px-1.5 min-w-[4rem]">{note.dateOfEntry}</TableCell>
+                        <TableCell className="py-1.5 px-1.5 min-w-[4rem]">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            note.status === 'COMPLETED' 
+                              ? 'bg-green-100 text-green-800' 
+                              : note.status === 'PENDING' 
+                                ? 'bg-yellow-100 text-yellow-800' 
+                                : 'bg-gray-100 text-gray-800'
+                          }`}>
+                            {note.status}
+                          </span>
+                        </TableCell>
+                        <TableCell className="py-1.5 px-1.5 min-w-[4.5rem]">{note.department}</TableCell>
+                        <TableCell className="py-1.5 px-1.5 min-w-[4rem]">{note.visitType}</TableCell>
+                        <TableCell className="py-1.5 px-1.5 text-center min-w-[3rem]">
+                          {note.status === 'UNSIGNED' ? (
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-6 w-6 hover:text-green-600"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleSignClick(note.id);
+                              }}
+                              disabled={isSigning}
+                            >
+                              <FileSignature className="h-3.5 w-3.5" />
+                            </Button>
+                          ) : (
+                            <span className="text-green-600 text-xs flex items-center justify-center">
+                              <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
+                              Signed
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell className="py-1.5 px-1.5 text-center min-w-[3rem]">
+                          <Button variant="ghost" size="icon" className="h-6 w-6">
+                            <Edit2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </TableCell>
+                        <TableCell className="py-1.5 px-1.5 text-center min-w-[3rem]">
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className={`h-6 w-6 ${
+                              note.status === 'SIGNED' || note.status === 'COMPLETED' 
+                                ? 'text-muted-foreground cursor-not-allowed' 
+                                : 'hover:text-destructive'
+                            }`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteNote(note.id);
+                            }}
+                            disabled={isDeleting || note.status === 'SIGNED' || note.status === 'COMPLETED'}
+                            title={
+                              note.status === 'SIGNED' || note.status === 'COMPLETED' 
+                                ? 'Cannot delete signed or completed notes' 
+                                : 'Delete note'
+                            }
+                          >
+                            {isDeleting ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-3.5 w-3.5" />
+                            )}
+                          </Button>
+                        </TableCell>
+                        <TableCell className="py-1.5 px-1.5 min-w-[4.5rem]">{note.author}</TableCell>
+                        <TableCell className="py-1.5 px-1.5 min-w-[4.5rem]">{note.location}</TableCell>
+                        <TableCell className="py-1.5 px-1.5 min-w-[4.5rem]">{note.cosigner || '-'}</TableCell>
+                        <TableCell className="py-1.5 px-1.5 text-center min-w-[3rem]">
+                          <Button variant="ghost" size="icon" className="h-6 w-6">
+                            <ImageUp className="h-3.5 w-3.5" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    )) : (
+                      <TableRow>
+                        <TableCell colSpan={12} className="text-center py-10 text-muted-foreground">
+                          No clinical notes found
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          ) : (
+            // Detail View
+            <div className="h-full flex flex-col bg-white rounded-lg shadow overflow-hidden">
+              {/* Detail view header */}
+              <div className="bg-gray-50 px-4 py-3 border-b flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-muted-foreground hover:text-foreground"
+                    onClick={handleBackToList}
+                  >
+                    <ArrowLeft className="h-4 w-4 mr-1" />
+                    Back to List
+                  </Button>
+                  <h2 className="text-lg font-medium">Note Details</h2>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Button variant="outline" size="sm" className="h-8">
+                    <Edit2 className="h-3.5 w-3.5 mr-1.5" />
+                    Edit
+                  </Button>
+                  <Button variant="outline" size="sm" className="h-8">
+                    <Printer className="h-3.5 w-3.5 mr-1.5" />
+                    Print
+                  </Button>
+                </div>
+              </div>
+              
+              {/* Note content */}
+              <div className="flex-1 overflow-auto p-6">
+                {selectedNote && (
+                  <div className="space-y-6">
+                    {/* Header */}
+                    <div className="border-b pb-4">
+                      <h1 className="text-2xl font-bold text-gray-900">{selectedNote.notesTitle}</h1>
+                      <div className="mt-1 flex items-center text-sm text-muted-foreground">
+                        <span>Created on {selectedNote.dateOfEntry}</span>
+                        <span className="mx-2">•</span>
+                        <span>Status: </span>
+                        <span className={`ml-1 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          selectedNote.status === 'COMPLETED' 
+                            ? 'bg-green-100 text-green-800' 
+                            : selectedNote.status === 'PENDING' 
+                              ? 'bg-yellow-100 text-yellow-800' 
+                              : 'bg-gray-100 text-gray-800'
+                        }`}>
+                          {selectedNote.status}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    {/* Metadata */}
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div className="space-y-2">
+                        <div className="text-muted-foreground">Patient</div>
+                        <div className="font-medium">{selectedNote.patientName}</div>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="text-muted-foreground">Author</div>
+                        <div className="font-medium">{selectedNote.author}</div>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="text-muted-foreground">Department</div>
+                        <div className="font-medium">{selectedNote.department}</div>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="text-muted-foreground">Visit Type</div>
+                        <div className="font-medium">{selectedNote.visitType}</div>
+                      </div>
+                      {selectedNote.cosigner && (
+                        <div className="space-y-2">
+                          <div className="text-muted-foreground">Co-signed by</div>
+                          <div className="font-medium">{selectedNote.cosigner}</div>
+                        </div>
+                      )}
+                      <div className="space-y-2">
+                        <div className="text-muted-foreground">Location</div>
+                        <div className="font-medium">{selectedNote.location}</div>
+                      </div>
+                    </div>
+                    
+                    {/* Recent Templates */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label>Recent Templates</Label>
+                        <Button variant="ghost" size="sm" className="h-7 text-xs">
+                          View All
+                        </Button>
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                        {mockNewNoteTemplates.slice(0, 4).map((template) => (
+                          <div 
+                            key={`recent-${template.id}`}
+                            className="border rounded-md p-2 text-xs cursor-pointer hover:bg-accent/50 transition-colors"
+                          >
+                            <div className="font-medium text-xs">{template.templateName}</div>
+                            <div className="text-muted-foreground text-xs">{template.department}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    {/* Note content */}
+                    <div className="pt-4">
+                      <div className="text-muted-foreground text-sm mb-2">Note Content</div>
+                      <div className="bg-gray-50 p-4 rounded-md border border-gray-200 min-h-[200px]">
+                        {selectedNoteContent || 'No content available for this note.'}
+                      </div>
+                    </div>
+                    
+                    {/* Actions */}
+                    <div className="flex justify-end space-x-3 pt-4 border-t">
+                      <Button variant="outline">
+                        Back to List
+                      </Button>
+                      {selectedNote.status === 'UNSIGNED' && (
+                        <Button 
+                          variant="default" 
+                          size="sm"
+                          onClick={() => handleSignClick(selectedNote.id)}
+                          disabled={isSigning}
+                        >
+                          {isSigning ? (
+                            <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                          ) : (
+                            <FileSignature className="h-3.5 w-3.5" />
+                          )}
+                          Sign Note
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )
+        ) : (
+          // Other sub-nav views
+          <div className="h-full">
+            {activeSubNav === "New Notes" && (
+              <div className="p-3 space-y-4">
+                <div className="space-y-4">
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    <div className="flex-1 space-y-2">
+                      <Label htmlFor="note-title">Title</Label>
+                      <Input id="note-title" placeholder="Enter title..." className="w-full" />
+                    </div>
+                    <div className="flex-1 space-y-2">
+                      <Label htmlFor="specialty">Specialty</Label>
+                      <Select>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select specialty..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {mockSpecialties.map((specialty) => (
+                            <SelectItem key={specialty.id} value={specialty.id}>
+                              {specialty.name}
+                            </SelectItem>
                           ))}
-                        </TableRow>
-                      </ShadcnTableHeader>
-                      <TableBody>
-                        {loading ? (
-                          <TableRow>
-                            <TableCell colSpan={12} className="text-center py-10 text-muted-foreground">
-                              Loading...
-                            </TableCell>
-                          </TableRow>
-                        ) : filteredNotes && Array.isArray(filteredNotes) && filteredNotes.length > 0 ? filteredNotes.map((note, index) => (
-                          <TableRow key={note.id || `${note.notesTitle}-${index}`} onClick={() => handleNoteClick(note.notesTitle)} className={`cursor-pointer hover:bg-muted/50 ${index % 2 === 0 ? 'bg-muted/30' : ''}`}>
-                            <TableCell className="py-1.5 px-1.5 min-w-[6rem]">{truncateText(note.notesTitle, 40)}</TableCell>
-                            <TableCell className="py-1.5 px-1.5 min-w-[4rem]">{note.dateOfEntry}</TableCell>
-                            <TableCell className="py-1.5 px-1.5 min-w-[4rem]">{note.status}</TableCell>
-                            <TableCell className="py-1.5 px-1.5 min-w-[4.5rem]">{note.department}</TableCell>
-                            <TableCell className="py-1.5 px-1.5 min-w-[4rem]">{note.visitType}</TableCell>
-                            <TableCell className="py-1.5 px-1.5 text-center min-w-[3rem]">
-                              {note.status === 'UNSIGNED' ? (
-                                <Button 
-                                  variant="ghost" 
-                                  size="icon" 
-                                  className="h-6 w-6 hover:text-green-600"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleSignClick(note.id);
-                                  }}
-                                  disabled={isSigning}
-                                >
-                                  <FileSignature className="h-3.5 w-3.5" />
-                                </Button>
-                              ) : (
-                                <span className="text-green-600 text-xs flex items-center justify-center">
-                                  <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
-                                  Signed
-                                </span>
-                              )}
-                            </TableCell>
-                            <TableCell className="py-1.5 px-1.5 text-center min-w-[3rem]">
-                              <Button variant="ghost" size="icon" className="h-6 w-6"><Edit2 className="h-3.5 w-3.5" /></Button>
-                            </TableCell>
-                            <TableCell className="py-1.5 px-1.5 text-center min-w-[3rem]">
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className={`h-6 w-6 ${
-                                  note.status === 'SIGNED' || note.status === 'COMPLETED' 
-                                    ? 'text-muted-foreground cursor-not-allowed' 
-                                    : 'hover:text-destructive'
-                                }`}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDeleteNote(note.id);
-                                }}
-                                disabled={isDeleting || note.status === 'SIGNED' || note.status === 'COMPLETED'}
-                                title={
-                                  note.status === 'SIGNED' || note.status === 'COMPLETED' 
-                                    ? 'Cannot delete signed or completed notes' 
-                                    : 'Delete note'
-                                }
-                              >
-                                {isDeleting ? (
-                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                ) : (
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                )}
-                              </Button>
-                            </TableCell>
-                            <TableCell className="py-1.5 px-1.5 min-w-[4.5rem]">{note.author}</TableCell>
-                            <TableCell className="py-1.5 px-1.5 min-w-[4.5rem]">{note.location}</TableCell>
-                            <TableCell className="py-1.5 px-1.5 min-w-[4.5rem]">{note.cosigner || '-'}</TableCell>
-                            <TableCell className="py-1.5 px-1.5 text-center min-w-[3rem]">
-                              <Button variant="ghost" size="icon" className="h-6 w-6"><ImageUp className="h-3.5 w-3.5" /></Button>
-                            </TableCell>
-                          </TableRow>
-                        )) : (
-                          <TableRow>
-                            <TableCell colSpan={12} className="text-center py-10 text-muted-foreground">
-                              No clinical notes found
-                            </TableCell>
-                          </TableRow>
-                        )}
-                      </TableBody>
-                    </Table>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="flex-1 space-y-2">
+                      <Label htmlFor="template">Template</Label>
+                      <Select>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select a template..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {mockNewNoteTemplates.map((template) => (
+                            <SelectItem key={template.id} value={template.id}>
+                              {template.templateName}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
-                </>
-              ) : null}
-            </CardContent>
-          </Card>
-        )}
-
-        {activeSubNav === "New Notes" && <NewNotesView />}
-        {activeSubNav === "Scanned Notes" && <ScannedNotesView />}
-        {activeSubNav === "Clinical Report" && <ClinicalReportView />}
-        {activeSubNav === "Clinical Reminder" && <ClinicalReminderView />}
-        {activeSubNav === "Clinical Reminder Analysis" && <ClinicalReminderAnalysisView />}
-        {activeSubNav === "Clinical Template" && <ClinicalTemplateView />}
-      </main>
-
-      <Dialog open={isNoteDetailDialogOpen} onOpenChange={setIsNoteDetailDialogOpen}>
-        <DialogContent className="max-w-3xl">
-          <DialogHeader>
-            <DialogUITitle>Clinical Note Details</DialogUITitle>
-          </DialogHeader>
-          <div className="mt-4">
-            <p className="text-sm whitespace-pre-wrap">{selectedNoteContent}</p>
+                  
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* Recent Templates */}
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-sm font-medium">Recent Templates</h3>
+                        <Button variant="ghost" size="sm" className="h-7 text-xs">View All</Button>
+                      </div>
+                      <div className="space-y-2">
+                        {mockNewNoteTemplates.slice(0, 5).map((template) => (
+                          <div 
+                            key={`recent-${template.id}`}
+                            className="p-3 border rounded-md hover:bg-accent/50 transition-colors cursor-pointer"
+                          >
+                            <div className="text-xs font-medium">{template.templateName}</div>
+                            <div className="text-xs text-muted-foreground">{template.department}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    {/* Note Editor */}
+                    <div className="lg:col-span-2 flex flex-col h-[calc(100vh-250px)]">
+                      <div className="space-y-2 flex-1 flex flex-col">
+                        <Label htmlFor="note-content">Note Content</Label>
+                        <div className="rounded-md border border-input flex-1 flex flex-col">
+                          <textarea
+                            id="note-content"
+                            className="flex-1 w-full p-4 focus-visible:outline-none resize-none overflow-y-auto"
+                            placeholder="Enter your clinical notes here..."
+                            style={{ minHeight: '200px' }}
+                          />
+                        </div>
+                      </div>
+                      
+                      <div className="flex justify-end space-x-3 pt-4 border-t mt-4">
+                        <Button variant="outline">Save as Draft</Button>
+                        <Button>Save & Sign</Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            {activeSubNav === "Scanned Notes" && <ScannedNotesView />}
+            {activeSubNav === "Clinical Report" && <ClinicalReportView />}
+            {activeSubNav === "Clinical Reminder" && <ClinicalReminderView />}
+            {activeSubNav === "Clinical Reminder Analysis" && <ClinicalReminderAnalysisView />}
+            {activeSubNav === "Clinical Template" && <ClinicalTemplateView />}
           </div>
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button variant="outline">Close</Button>
-            </DialogClose>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        )}
+      </div>
 
+      {/* Signature Dialog */}
       <DigitalSignatureDialog
-        open={isSignatureDialogOpen}
-        onOpenChange={setIsSignatureDialogOpen}
+        open={!!signatureNoteId}
+        onOpenChange={(open) => !open && setSignatureNoteId(null)}
         onSave={handleSaveSignature}
       />
     </div>
@@ -532,47 +777,70 @@ type NewNoteTemplateType = {
 const mockNewNoteTemplates: NewNoteTemplateType[] = [
   {
     id: '1',
-    templateName: 'Progress Note - General Medicine',
-    department: 'General Medicine',
-    lastUpdated: '20 MAY, 2025 14:00'
+    templateName: 'Standard Note',
+    department: 'General',
+    lastUpdated: '2023-05-15'
   },
   {
     id: '2',
-    templateName: 'Post-Operative Note - Surgery',
-    department: 'Surgery',
-    lastUpdated: '21 MAY, 2025 09:30'
+    templateName: 'Progress Note',
+    department: 'General',
+    lastUpdated: '2023-06-20'
   },
   {
     id: '3',
-    templateName: 'Psychiatric Assessment',
-    department: 'Psychiatry',
-    lastUpdated: '22 MAY, 2025 11:15'
+    templateName: 'Consult Note',
+    department: 'Specialty',
+    lastUpdated: '2023-07-01'
   },
   {
     id: '4',
-    templateName: 'Physical Therapy Session Note',
-    department: 'Rehabilitation',
-    lastUpdated: '23 MAY, 2025 13:45'
-  },
-  {
-    id: '5',
-    templateName: 'Pediatric Discharge Summary',
-    department: 'Pediatrics',
-    lastUpdated: '24 MAY, 2025 08:00'
-  },
+    templateName: 'Procedure Note',
+    department: 'Surgery',
+    lastUpdated: '2023-07-10'
+  }
 ];
 
-import { NewNotesView } from './NewNotesView';
-
-type ScannedNoteDataType = {
-  id: string;
-  documentName: string;
-  scanDate: string;
-  scanTime: string;
-  uploadedBy: string;
-  status: "VERIFIED" | "PENDING";
-  location: string;
-};
+// Mock Medical Specialties
+const mockSpecialties = [
+  // Primary Care
+  { id: 'fm', name: 'Family Medicine' },
+  { id: 'im', name: 'Internal Medicine' },
+  { id: 'peds', name: 'Pediatrics' },
+  { id: 'obgyn', name: 'OB/GYN' },
+  
+  // Medical Specialties
+  { id: 'cardio', name: 'Cardiology' },
+  { id: 'derm', name: 'Dermatology' },
+  { id: 'endo', name: 'Endocrinology' },
+  { id: 'gastro', name: 'Gastroenterology' },
+  { id: 'heme', name: 'Hematology' },
+  { id: 'id', name: 'Infectious Disease' },
+  { id: 'nephro', name: 'Nephrology' },
+  { id: 'neuro', name: 'Neurology' },
+  { id: 'onc', name: 'Oncology' },
+  { id: 'pulm', name: 'Pulmonology' },
+  { id: 'rheum', name: 'Rheumatology' },
+  
+  // Surgical Specialties
+  { id: 'gensurg', name: 'General Surgery' },
+  { id: 'cardio', name: 'Cardiothoracic Surgery' },
+  { id: 'ent', name: 'Otolaryngology (ENT)' },
+  { id: 'nsgy', name: 'Neurosurgery' },
+  { id: 'ortho', name: 'Orthopedic Surgery' },
+  { id: 'plastics', name: 'Plastic Surgery' },
+  { id: 'urol', name: 'Urology' },
+  { id: 'vasc', name: 'Vascular Surgery' },
+  
+  // Other Specialties
+  { id: 'anes', name: 'Anesthesiology' },
+  { id: 'derm', name: 'Dermatology' },
+  { id: 'em', name: 'Emergency Medicine' },
+  { id: 'path', name: 'Pathology' },
+  { id: 'pmr', name: 'Physical Medicine & Rehab' },
+  { id: 'psych', name: 'Psychiatry' },
+  { id: 'rads', name: 'Radiology' }
+];
 
 // Mock Scanned Notes Data
 const mockScannedNotes: ScannedNoteDataType[] = [
@@ -1538,5 +1806,4 @@ const ClinicalTemplateView = () => {
   );
 };
 
-export { NewNotesView };
 export default ClinicalNotesPage;

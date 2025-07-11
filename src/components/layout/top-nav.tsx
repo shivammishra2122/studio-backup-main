@@ -17,6 +17,9 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { LogoutButton } from '@/components/auth/logout-button';
 import { PatientSelectionDefaultsModal } from '../patient-selection-defaults-modal';
 import { SourceCombinationsModal } from '../source-combinations-modal';
+import { PersonalListsModal } from '../personal-lists-modal';
+import { PersonalDiagnosisListsModal } from '../personal-diagnosis-lists-modal';
+import { TeamInformationModal } from '../team-information-modal';
 import { useState } from 'react';
 
 const navButtonLabels = [
@@ -55,6 +58,9 @@ export function TopNav() {
   const pathname = usePathname();
   const [showPatientSelectionModal, setShowPatientSelectionModal] = useState(false);
   const [showSourceCombinationsModal, setShowSourceCombinationsModal] = useState(false);
+  const [showPersonalListsModal, setShowPersonalListsModal] = useState(false);
+  const [showPersonalDiagnosisListsModal, setShowPersonalDiagnosisListsModal] = useState(false);
+  const [showTeamInformationModal, setShowTeamInformationModal] = useState(false);
 
   // Detect if on a patient-specific route: /patients/[id] or /patients/[id]/something
   const patientMatch = pathname.match(/^\/patients\/(\w+)(?:\/|$)/);
@@ -160,10 +166,25 @@ export function TopNav() {
             >
               Source Combinations
             </DropdownMenuItem>
+            <DropdownMenuItem 
+              className="text-xs p-2 cursor-pointer hover:bg-accent"
+              onClick={() => setShowPersonalListsModal(true)}
+            >
+              Personal Lists
+            </DropdownMenuItem>
+            <DropdownMenuItem 
+              className="text-xs p-2 cursor-pointer hover:bg-accent"
+              onClick={() => setShowPersonalDiagnosisListsModal(true)}
+            >
+              Personal Diagnosis Lists
+            </DropdownMenuItem>
+            <DropdownMenuItem 
+              className="text-xs p-2 cursor-pointer hover:bg-accent"
+              onClick={() => setShowTeamInformationModal(true)}
+            >
+              Team Information
+            </DropdownMenuItem>
             {[
-              'Personal Lists',
-              'Personal Diagnosis Lists',
-              'Team Information',
               'Custom Widgets',
               'Change Author',
               'Patient Credential',
@@ -198,7 +219,7 @@ export function TopNav() {
         </LogoutButton>
       </div>
 
-      {/* Patient Selection Defaults Modal */}
+      {/* Modals */}
       <PatientSelectionDefaultsModal 
         open={showPatientSelectionModal}
         onOpenChange={setShowPatientSelectionModal}
@@ -206,6 +227,18 @@ export function TopNav() {
       <SourceCombinationsModal 
         open={showSourceCombinationsModal}
         onOpenChange={setShowSourceCombinationsModal}
+      />
+      <PersonalListsModal 
+        open={showPersonalListsModal}
+        onOpenChange={setShowPersonalListsModal}
+      />
+      <PersonalDiagnosisListsModal
+        open={showPersonalDiagnosisListsModal}
+        onOpenChange={setShowPersonalDiagnosisListsModal}
+      />
+      <TeamInformationModal
+        open={showTeamInformationModal}
+        onOpenChange={setShowTeamInformationModal}
       />
 
       <DropdownMenu>
