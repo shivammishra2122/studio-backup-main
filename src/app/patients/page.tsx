@@ -109,7 +109,7 @@ export default function PatientsPage() {
     };
 
     loadPatients();
-  }, [fetchPatients]);
+  }, []);
 
   const handleRefresh = async () => {
     try {

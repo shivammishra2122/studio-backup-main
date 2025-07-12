@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from "react";
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -37,6 +38,7 @@ export default function LoginPage() {
   const [isLoadingLocations, setIsLoadingLocations] = React.useState(false);
   const [locations, setLocations] = React.useState<Location[]>([]);
   const [accessCode, setAccessCode] = React.useState("");
+  const [isMounted, setIsMounted] = React.useState(false);
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -46,6 +48,28 @@ export default function LoginPage() {
       locationId: "",
     },
   });
+
+  // Clear any autofilled values on mount
+  useEffect(() => {
+    setIsMounted(true);
+    
+    // Clear any autofilled values after a short delay
+    const timer = setTimeout(() => {
+      // Clear all input values
+      const inputs = document.querySelectorAll('input');
+      inputs.forEach(input => {
+        input.value = '';
+        input.autocomplete = 'off';
+        input.setAttribute('autocomplete', 'off');
+      });
+      
+      // Reset form values
+      form.reset();
+      setAccessCode('');
+    }, 100);
+    
+    return () => clearTimeout(timer);
+  }, [form]);
 
   // Fetch locations when access code changes
   React.useEffect(() => {
@@ -183,18 +207,37 @@ export default function LoginPage() {
       <div className="w-full lg:w-1/2 flex items-center justify-center p-8">
         <Card className="w-full max-w-md p-6 shadow-lg">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-bold">Login </CardTitle>
+            <CardTitle className="text-2xl font-bold">Login</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <form 
+              onSubmit={form.handleSubmit(onSubmit)} 
+              className="space-y-4"
+              autoComplete="off"
+              id="loginForm"
+            >
+              {/* Hidden inputs to trick password managers */}
+              <input type="text" name="username" autoComplete="username" style={{ display: 'none' }} />
+              <input type="password" name="password" autoComplete="new-password" style={{ display: 'none' }} />
+              
               <div className="space-y-2">
                 <Label htmlFor="accessCode">Access Code</Label>
                 <Input 
-                  id="accessCode" 
+                  id="accessCode"
+                  name="access_code"
+                  type="text"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck="false"
+                  inputMode="numeric"
                   placeholder="Enter your access code" 
                   {...form.register("accessCode")}
                   onChange={(e) => setAccessCode(e.target.value)}
                   value={accessCode}
+                  className="[&::-webkit-contacts-auto-fill-button]:hidden [&::-webkit-credentials-auto-fill-button]:hidden"
+                  data-lpignore="true"
+                  data-form-type="other"
                 />
                 {form.formState.errors.accessCode && (
                   <p className="text-red-500 text-xs">{form.formState.errors.accessCode.message}</p>
@@ -206,10 +249,15 @@ export default function LoginPage() {
                   <div className="space-y-2">
                     <Label htmlFor="verificationCode">Verification Code</Label>
                     <Input 
-                      id="verificationCode" 
-                      placeholder="Enter your verification code" 
+                      id="verificationCode"
+                      name="verification_code"
                       type="password"
+                      autoComplete="new-password"
+                      placeholder="Enter your verification code" 
                       {...form.register("verificationCode")}
+                      className="[&::-webkit-contacts-auto-fill-button]:hidden [&::-webkit-credentials-auto-fill-button]:hidden"
+                      data-lpignore="true"
+                      data-form-type="other"
                     />
                     {form.formState.errors.verificationCode && (
                       <p className="text-red-500 text-xs">{form.formState.errors.verificationCode.message}</p>

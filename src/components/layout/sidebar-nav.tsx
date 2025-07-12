@@ -17,7 +17,8 @@ import {
   Activity,
   Pill,
   AlertTriangle,
-  HeartPulse
+  HeartPulse,
+  Search
 } from 'lucide-react';
 import { useSidebar } from "@/components/ui/sidebar";
 import { PatientDetailsModal } from "@/components/patient-details-modal";
@@ -137,6 +138,12 @@ export default function SidebarNav() {
       }`}
     >
       <div className="flex flex-col items-center">
+        {/* Patient Search Button */}
+        <Link href="/patients" className="flex items-center gap-2 p-2 mb-2 rounded-md hover:bg-[#2c5282] text-white w-full justify-center">
+          <Search className="h-4 w-4" />
+          {!isCollapsed && <span className="text-sm font-medium">Patient Search</span>}
+        </Link>
+
         {!isCollapsed && patient && (
           <>
             {/* Avatar Placeholder */}
