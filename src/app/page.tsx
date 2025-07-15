@@ -116,6 +116,9 @@ export default function DashboardPage({
 }): JSX.Element {
   // State for allergy dialog
   const [showAllergyDialog, setShowAllergyDialog] = useState(false);
+  const [ssnSearch, setSSNSearch] = useState('');
+  const [ssnSearchResults, setSSNSearchResults] = useState<any[]>([]);
+  const [isSearchingSSN, setIsSearchingSSN] = useState(false);
   
   // Use the useMedications hook to fetch medications
   const { data: medications = initialMedications, loading: medicationsLoading, error: medicationsError } = useMedications();
@@ -279,6 +282,64 @@ export default function DashboardPage({
     }
   }, 300), []);
 
+  // Debounced SSN search function
+  const searchSSN = useCallback(debounce(async (searchTerm: string) => {
+    if (!searchTerm.trim()) {
+      setSSNSearchResults([]);
+      return;
+    }
+
+    setIsSearchingSSN(true);
+    try {
+      const response = await fetch('http://192.168.1.53/cgi-bin/apiAllergySrh.sh', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          UserName: 'CPRS-UAT',
+          Password: 'UAT@123',
+          PatientSSN: searchTerm,
+          DUZ: '80'
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const responseText = await response.text();
+      let data;
+      
+      try {
+        data = responseText ? JSON.parse(responseText) : [];
+      } catch (e) {
+        console.warn('Response is not valid JSON, treating as text:', responseText);
+        data = responseText.split('\n').filter(Boolean).map((item, index) => ({
+          id: index,
+          name: item.trim()
+        }));
+      }
+
+      // Handle different response formats
+      if (Array.isArray(data)) {
+        setSSNSearchResults(data);
+      } else if (data && typeof data === 'object') {
+        const results = Object.entries(data).map(([id, name]) => ({
+          id,
+          name: String(name)
+        }));
+        setSSNSearchResults(results);
+      }
+    } catch (error) {
+      console.error('Error searching SSN:', error);
+      toast.error('Failed to search for SSN. Please try again.');
+      setSSNSearchResults([]);
+    } finally {
+      setIsSearchingSSN(false);
+    }
+  }, 300), []);
+
   // Update search term and trigger search
   const handleAllergySearchChange = (value: string) => {
     setAllergySearchTerm(value);
@@ -287,6 +348,14 @@ export default function DashboardPage({
       setShowAllergyDropdown(true);
     } else {
       setShowAllergyDropdown(false);
+    }
+  };
+
+  // Update search term and trigger search
+  const handleSSNSearchChange = (value: string) => {
+    setSSNSearch(value);
+    if (value.trim()) {
+      searchSSN(value);
     }
   };
 

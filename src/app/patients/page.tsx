@@ -33,6 +33,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { LogoutButton } from '@/components/auth/logout-button';
+import { debounce } from 'lodash';
 
 type SortDirection = 'asc' | 'desc';
 
@@ -80,6 +81,81 @@ export default function PatientsPage() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCategory, setFilterCategory] = useState('Default');
+
+  // SSN search state
+  const [ssnSearch, setSSNSearch] = useState('');
+  const [ssnSearchResults, setSSNSearchResults] = useState<any[]>([]);
+  const [isSearchingSSN, setIsSearchingSSN] = useState(false);
+  const [duz, setDuz] = useState('');
+  const [ihtLocation, setIhtLocation] = useState('');
+
+  // Get DUZ and ihtLocation from context or session
+  useEffect(() => {
+    // You'll need to implement this based on your authentication context
+    // This is just a placeholder
+    const storedDuz = localStorage.getItem('user_duz') || '115'; // Default value
+    const storedLocation = localStorage.getItem('user_location') || '102'; // Default value
+    setDuz(storedDuz);
+    setIhtLocation(storedLocation);
+  }, []);
+
+  // Debounced SSN search function
+  const searchSSN = useCallback(debounce(async (searchTerm: string) => {
+    if (!searchTerm.trim()) {
+      setSSNSearchResults([]);
+      return;
+    }
+
+    setIsSearchingSSN(true);
+    try {
+      const response = await fetch('http://192.168.1.53/cgi-bin/apiPatDetail.sh', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          UserName: 'CPRS-UAT',
+          Password: 'UAT@123',
+          DUZ: duz,
+          ihtLocation: ihtLocation,
+          PatientSSN: searchTerm,
+          SearchType: ""
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const responseText = await response.text();
+      let data;
+      
+      try {
+        data = responseText ? JSON.parse(responseText) : [];
+      } catch (e) {
+        console.warn('Response is not valid JSON, treating as text:', responseText);
+        data = responseText.split('\n').filter(Boolean).map((item, index) => ({
+          id: index,
+          name: item.trim()
+        }));
+      }
+
+      if (Array.isArray(data)) {
+        setSSNSearchResults(data);
+      } else if (data && typeof data === 'object') {
+        const results = Object.entries(data).map(([id, name]) => ({
+          id,
+          name: String(name)
+        }));
+        setSSNSearchResults(results);
+      }
+    } catch (error) {
+      console.error('Error searching SSN:', error);
+      setSSNSearchResults([]);
+    } finally {
+      setIsSearchingSSN(false);
+    }
+  }, 300), [duz, ihtLocation]);
 
   // Advanced search dialog state
   const [isAdvOpen, setIsAdvOpen] = useState(false);
@@ -161,6 +237,11 @@ export default function PatientsPage() {
     }
   }, [sortKey]);
 
+  // Handle SSN search input change
+  const handleSSNSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setSSNSearch(e.target.value);
+  }, []);
+
   // Apply advanced search filters to the patients
   const filteredPatients = useMemo(() => {
     let result = [...patients];
@@ -172,6 +253,13 @@ export default function PatientsPage() {
         Object.values(patient).some(
           val => val && String(val).toLowerCase().includes(query)
         )
+      );
+    }
+    
+    // Apply SSN search if active
+    if (ssnSearch) {
+      result = result.filter(patient => 
+        patient.SSN?.toLowerCase().includes(ssnSearch.toLowerCase())
       );
     }
     
@@ -207,7 +295,7 @@ export default function PatientsPage() {
     }
     
     return result;
-  }, [patients, searchQuery, isAdvSearchActive, currentAdvSearch]);
+  }, [patients, searchQuery, isAdvSearchActive, currentAdvSearch, ssnSearch]);
 
   const sortedPatients = useMemo(() => {
     if (!sortKey) return filteredPatients;
@@ -262,6 +350,27 @@ export default function PatientsPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold text-[#2d3748]">Patient List</h1>
         <div className="flex items-center gap-2">
+          {/* SSN Search */}
+          <div className="relative">
+            <SearchIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <input
+              type="search"
+              placeholder="Search by SSN..."
+              className="pl-9 h-8 text-sm border rounded-md w-64 px-3 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+              value={ssnSearch}
+              onChange={handleSSNSearchChange}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  searchSSN(ssnSearch);
+                }
+              }}
+              disabled={isSearchingSSN}
+            />
+            {isSearchingSSN && (
+              <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin" />
+            )}
+          </div>
+          
           <Button 
             variant="outline" 
             size="icon"
