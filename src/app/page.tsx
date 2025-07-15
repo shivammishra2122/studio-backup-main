@@ -26,6 +26,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 import toast from 'react-hot-toast';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
@@ -193,8 +194,21 @@ export default function DashboardPage({
 
   // Dialog input states
   const [medicationInputs, setMedicationInputs] = useState<
-    Record<string, { name: string; reason: string; amount: string; timing: string }>
+    Record<string, { 
+      medicationName: string; 
+      quickOrder: string; 
+      dosage: string; 
+      route: string; 
+      schedule: string; 
+      prn: boolean; 
+      duration: string; 
+      durationUnit: string; 
+      priority: string; 
+      additionalDoseNow: boolean; 
+      comment: string; 
+    }>
   >({});
+
   const [infoItemInputs, setInfoItemInputs] = useState<
     Record<string, { title: string; item: string }>
   >({});
@@ -467,7 +481,19 @@ export default function DashboardPage({
     } else if (type === 'medication') {
       setMedicationInputs((prev) => ({
         ...prev,
-        [id]: { name: '', reason: '', amount: '', timing: '' },
+        [id]: { 
+          medicationName: '', 
+          quickOrder: '', 
+          dosage: '', 
+          route: '', 
+          schedule: '', 
+          prn: false, 
+          duration: '', 
+          durationUnit: '', 
+          priority: '', 
+          additionalDoseNow: false, 
+          comment: '' 
+        },
       }));
     } else if (type === 'info-item') {
       setInfoItemInputs((prev) => ({
@@ -710,17 +736,17 @@ export default function DashboardPage({
 
   const handleAddMedication = (dialogId: string) => {
     const input = medicationInputs[dialogId];
-    if (!input?.name.trim()) {
+    if (!input?.medicationName.trim()) {
       toast.error('Medication name is required');
       return;
     }
 
     const newMed: Medication = {
       id: Date.now().toString(),
-      name: input.name,
-      reason: input.reason || 'General',
-      amount: input.amount || 'N/A',
-      timing: input.timing || 'N/A',
+      name: input.medicationName,
+      reason: input.comment || 'General',
+      amount: input.dosage || 'N/A',
+      timing: input.schedule || 'N/A',
       status: 'Active',
     };
     toast.success('Medication added successfully!');
@@ -1373,7 +1399,7 @@ export default function DashboardPage({
         <div
           key={dialog.id}
           ref={(el) => { dialogRefs.current[dialog.id] = el; }}
-          className="fixed bg-background border rounded-lg shadow-xl max-h-[90vh] overflow-y-auto w-[80%] max-w-[1200px] z-50"
+          className="fixed bg-background border rounded-lg shadow-md max-h-[90vh] overflow-y-auto w-[80%] max-w-[1200px] z-50"
           style={{
             left: '50%',
             top: '50%',
@@ -1387,610 +1413,547 @@ export default function DashboardPage({
             onMouseDown={(e) => handleMouseDown(dialog.id, e)}
           >
             <h2 className="text-base font-semibold">{dialog.title}</h2>
-            <div className="flex items-center gap-4">
-              <div className="text-xs text-muted-foreground flex items-center gap-x-4">
-                <span>Patient ID: 148</span>
-                <span>Name: Anonymous One</span>
-                <span>Age: 65</span>
-                <span>Sex: FEMALE</span>
-                <span>Patient Type: In Patient</span>
-              </div>
-              <Button variant="ghost" size="icon" onClick={() => closeFloatingDialog(dialog.id)}>
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
+            <Button variant="ghost" size="icon" onClick={() => closeFloatingDialog(dialog.id)}>
+              <X className="h-4 w-4" />
+            </Button>
           </div>
           <div className="p-4">
             {dialog.type === 'problem' ? (
-              <div className="flex flex-col gap-3 text-sm">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="w-1/2">
-                    <Label className="font-medium mb-1 block">Categories</Label>
-                    <Select
-                      value={problemInputs[dialog.id]?.category}
-                      onValueChange={(value) =>
-                        setProblemInputs((prev) => ({
-                          ...prev,
-                          [dialog.id]: { ...prev[dialog.id], category: value as ProblemCategory },
-                        }))
-                      }
-                    >
-                      <SelectTrigger className="h-8 text-xs">
-                        <SelectValue placeholder="Select Category" />
-                      </SelectTrigger>
-                      <SelectContent className="text-xs">
-                        <SelectItem value="Common Problems" className="text-xs py-1.5">Common Problems</SelectItem>
-                        <SelectItem value="Other" className="text-xs py-1.5">Other</SelectItem>
-                      </SelectContent>
-                    </Select>
+              <div className="flex flex-col gap-4 text-sm">
+                {/* Main Row: Preferred Problem on left, other fields on right */}
+                <div className="flex flex-col md:flex-row gap-4">
+                  {/* Left Column: Preferred Problem */}
+                  <div className="w-full md:w-1/3 flex flex-col">
+                    <div className="bg-white rounded-lg shadow-md p-2 border flex-1">
+                      <div className="space-y-2">
+                        <Label className="block mb-1 text-xs font-semibold text-gray-700">Preferred Problem</Label>
+                        <div className="h-full overflow-y-auto space-y-2">
+                          <div className="flex flex-col gap-2">
+                            {[{ name: "Anemia", code: "D64.9" },
+                              { name: "Diabetes", code: "E11.9" },
+                              { name: "Dehydration", code: "E86.0" },
+                              { name: "Burns", code: "T30.0" },
+                              { name: "Post operative discharge", code: "T81.4XXA" }].map((prob, idx) => (
+                              <button
+                                key={idx}
+                                onClick={() => {
+                                  const [name, code] = `${prob.name} (${prob.code})`.split(' (');
+                                  setProblemInputs(prev => ({
+                                    ...prev,
+                                    [dialog.id]: {
+                                      ...prev[dialog.id],
+                                      problemName: name,
+                                      problemCode: code.replace(')', ''),
+                                      input: `${prob.name} (${prob.code})`,
+                                      other: false,
+                                    }
+                                  }));
+                                }}
+                                className={`w-full p-2 text-left text-xs rounded-lg transition-colors duration-200 ${
+                                  problemInputs[dialog.id]?.problemName === prob.name 
+                                    ? 'bg-blue-100 text-blue-700' 
+                                    : 'bg-white hover:bg-blue-50 text-gray-700 hover:text-gray-900'
+                                }`}
+                              >
+                                {prob.name} <span className="text-[10px] text-gray-500">({prob.code})</span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 mt-6">
-                    <Checkbox
-                      id={`otherProblems-${dialog.id}`}
-                      checked={problemInputs[dialog.id]?.other || false}
-                      onCheckedChange={(checked) =>
-                        setProblemInputs((prev) => ({
-                          ...prev,
-                          [dialog.id]: { ...prev[dialog.id], other: checked as boolean },
-                        }))
-                      }
-                      className="h-4 w-4"
-                    />
-                    <Label htmlFor={`otherProblems-${dialog.id}`} className="text-sm">
-                      Other Problems
-                    </Label>
-                  </div>
-                </div>
 
-                {/* Preferred Problems List */}
-                {!problemInputs[dialog.id]?.other && (
-                  <div className="mt-2">
-                    <h4 className="text-sm font-medium text-muted-foreground mb-1">Preferred Problems</h4>
-                    <div className="text-xs text-muted-foreground grid grid-cols-2 gap-1 max-h-40 overflow-y-auto p-2 border rounded bg-muted/50">
-                      {[
-                        { name: "Anemia", code: "D64.9" },
-                        { name: "Diabetes", code: "E11.9" },
-                        { name: "Dehydration", code: "E86.0" },
-                        { name: "Burns", code: "T30.0" },
-                        { name: "Post operative discharge", code: "T81.4XXA" }
-                      ].map((problem, index) => {
-                        const problemText = `${problem.name} (${problem.code})`;
-                        const isSelected = problemInputs[dialog.id]?.problemName === problem.name && 
-                                         problemInputs[dialog.id]?.problemCode === problem.code;
-                        
-                        return (
-                          <div 
-                            key={index}
-                            className="flex items-center gap-2 p-1 hover:bg-accent hover:text-accent-foreground rounded cursor-pointer"
-                            onClick={() => {
-                              // Toggle selection
-                              if (isSelected) {
-                                // Clear selection if clicking on already selected item
-                                setProblemInputs(prev => ({
-                                  ...prev,
-                                  [dialog.id]: {
-                                    ...prev[dialog.id],
-                                    input: '',
-                                    problemName: '',
-                                    problemCode: ''
-                                  },
-                                }));
-                              } else {
-                                // Set the problem without showing the search field
-                                setProblemInputs(prev => ({
-                                  ...prev,
-                                  [dialog.id]: {
-                                    ...prev[dialog.id],
-                                    input: problemText,
-                                    other: false,
-                                    problemName: problem.name,
-                                    problemCode: problem.code
-                                  },
-                                }));
-                                // Clear any existing search results
-                                clearSearch();
+                  {/* Right Column: Category, Other Problem, Service, Immediacy */}
+                  <div className="w-full md:w-2/3 flex flex-col gap-4">
+                    {/* First Row: Category and Other Problem */}
+                    <div className="flex flex-col md:flex-row gap-2">
+                      <div className="flex-1 bg-white rounded-lg shadow-md p-2 border">
+                        <Label className="block mb-1 text-xs font-semibold text-gray-700">Category</Label>
+                        <Select
+                          value={problemInputs[dialog.id]?.category || ''}
+                          onValueChange={value => setProblemInputs(prev => ({
+                            ...prev,
+                            [dialog.id]: { ...prev[dialog.id], category: value as string }
+                          }))}
+                        >
+                          <SelectTrigger className="w-full h-8 text-xs border rounded shadow-sm bg-gray-50">
+                            <SelectValue placeholder="Select Category" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Medical">Medical</SelectItem>
+                            <SelectItem value="Surgical">Surgical</SelectItem>
+                            <SelectItem value="Pediatric">Pediatric</SelectItem>
+                            <SelectItem value="Obstetric">Obstetric</SelectItem>
+                            <SelectItem value="Other">Other</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex-1 bg-white rounded-lg shadow-md p-2 border">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Checkbox
+                            id={`otherProblems-${dialog.id}`}
+                            checked={problemInputs[dialog.id]?.other || false}
+                            onCheckedChange={checked => setProblemInputs(prev => ({
+                              ...prev,
+                              [dialog.id]: { ...prev[dialog.id], other: checked as boolean, problemName: '', problemCode: '', input: '' }
+                            }))}
+                            className="h-4 w-4"
+                          />
+                          <Label htmlFor={`otherProblems-${dialog.id}`} className="text-xs font-semibold text-gray-700">Other Problem</Label>
+                        </div>
+                        {problemInputs[dialog.id]?.other && (
+                          <Input
+                            id={`problemInput-${dialog.id}`}
+                            value={problemInputs[dialog.id]?.input || ''}
+                            onChange={e => handleInputChange(e, dialog.id)}
+                            onFocus={() => {
+                              const currentValue = problemInputs[dialog.id]?.input || '';
+                              if (currentValue.trim().length >= 2 && searchResults.length === 0) {
+                                searchProblems(currentValue, patient.ssn || '800000035');
                               }
                             }}
-                          >
-                            <input 
-                              type="checkbox" 
-                              checked={isSelected}
-                              onChange={() => {}} // Empty handler to prevent React warning
-                              className="h-3 w-3 rounded border-gray-300 text-primary focus:ring-primary"
-                              onClick={(e) => e.stopPropagation()} // Prevent double trigger with parent div
-                            />
-                            <span>{problemText}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                {/* Problem description input */}
-                <div className="relative w-full mt-3">
-                  <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-3">
-                      <Label htmlFor={`problemInput-${dialog.id}`} className="w-[120px] min-w-[120px] shrink-0">
-                        {problemInputs[dialog.id]?.other ? 'Search Problem' : 'Problem'}
-                      </Label>
-                      <div className="relative flex-1">
-                        <Input
-                          id={`problemInput-${dialog.id}`}
-                          value={problemInputs[dialog.id]?.input || ''}
-                          onChange={(e) => handleInputChange(e, dialog.id)}
-                          onFocus={() => {
-                            // Trigger search if we have a value but no results yet
-                            const currentValue = problemInputs[dialog.id]?.input || '';
-                            if (currentValue.trim().length >= 2 && searchResults.length === 0) {
-                              console.log('Input focused, triggering search');
-                              searchProblems(currentValue, patient.ssn || '800000035');
-                            }
-                          }}
-                          placeholder="Start typing to search problems (min 2 characters)..."
-                          className="flex-1 pr-10"
-                          autoComplete="off"
-                        />
-                        {isSearching ? (
-                          <div className="absolute right-2 top-1/2 -translate-y-1/2">
-                            <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
-                          </div>
-                        ) : problemInputs[dialog.id]?.input ? (
-                          <X 
-                            className="h-4 w-4 absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer text-muted-foreground"
-                            onClick={() => {
-                              console.log('Clear button clicked');
-                              setProblemInputs(prev => ({
-                                ...prev,
-                                [dialog.id]: { ...prev[dialog.id], input: '' }
-                              }));
-                              clearSearch();
-                            }}
+                            placeholder="Search or enter a problem..."
+                            className="w-full h-8 text-xs border rounded shadow-sm bg-gray-50"
+                            autoComplete="off"
                           />
-                        ) : null}
-                      </div>
-                    </div>
-                    
-                    {/* Debug info - remove in production */}
-                    <div className="text-xs text-gray-500 ml-[120px] mt-1">
-                      Debug: {searchResults.length} results | Searching: {isSearching ? 'Yes' : 'No'} | 
-                      Input: "{problemInputs[dialog.id]?.input || '(empty)'}"
-                    </div>
-                    
-                    {/* Search results dropdown */}
-                    {(searchResults.length > 0 || isSearching) && (
-                      <div className="absolute left-[120px] right-0 z-50 mt-1 border rounded-md bg-white shadow-lg max-h-60 overflow-y-auto">
-                        {isSearching && searchResults.length === 0 ? (
-                          <div className="p-3 text-sm text-muted-foreground">
-                            <div className="flex items-center gap-2">
-                              <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
-                              <span>Searching...</span>
-                            </div>
-                          </div>
-                        ) : searchResults.length === 0 ? (
-                          <div className="p-3 text-sm text-muted-foreground">No matching problems found</div>
-                        ) : (
-                          searchResults.map((result, index) => (
-                            <div
-                              key={`${result.code}-${index}`}
-                              className="p-3 hover:bg-gray-50 cursor-pointer border-b last:border-b-0"
-                              onClick={() => {
-                                console.log('Selected problem:', result.description);
-                                handleSelectProblem(result.description, dialog.id);
-                              }}
-                            >
-                              <div className="font-medium">{result.description}</div>
-                              {result.code && (
-                                <div className="text-xs text-muted-foreground mt-1">Code: {result.code}</div>
-                              )}
-                            </div>
-                          ))
                         )}
                       </div>
-                    )}
-                    
-                    {/* Error message */}
-                    {searchError && (
-                      <div className="text-sm text-red-500 mt-1 ml-[120px]">{searchError}</div>
-                    )}
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-1/2 flex items-center gap-3">
-                    <Label className="w-[120px] min-w-[120px]">Immediacy</Label>
-                    <RadioGroup
-                      value={problemInputs[dialog.id]?.immediacy || ''}
-                      onValueChange={(value) =>
-                        setProblemInputs((prev) => ({
-                          ...prev,
-                          [dialog.id]: { ...prev[dialog.id], immediacy: value as ProblemImmediacy },
-                        }))
-                      }
-                      className="flex items-center gap-4"
-                    >
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="UNKNOWN" id={`immediacy-unknown-${dialog.id}`} />
-                        <Label htmlFor={`immediacy-unknown-${dialog.id}`} className="text-xs">Unknown</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="ACUTE" id={`immediacy-acute-${dialog.id}`} />
-                        <Label htmlFor={`immediacy-acute-${dialog.id}`} className="text-xs">Acute</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="CHRONIC" id={`immediacy-chronic-${dialog.id}`} />
-                        <Label htmlFor={`immediacy-chronic-${dialog.id}`} className="text-xs">Chronic</Label>
-                      </div>
-                    </RadioGroup>
-                  </div>
-                  <div className="w-1/2 flex items-center gap-3">
-                    <Label htmlFor={`problemService-${dialog.id}`} className="w-[120px] min-w-[120px] shrink-0">
-                      Service
-                    </Label>
-                    <Select
-                      value={problemInputs[dialog.id]?.service}
-                      onValueChange={(value) =>
-                        setProblemInputs((prev) => ({
-                          ...prev,
-                          [dialog.id]: { ...prev[dialog.id], service: value },
-                        }))
-                      }
-                    >
-                      <SelectTrigger className="h-8 text-xs">
-                        <SelectValue placeholder="Select Service" />
-                      </SelectTrigger>
-                      <SelectContent className="text-xs max-h-60 overflow-y-auto">
-                        <SelectItem value="CARDIOLOGY" className="text-xs py-1.5">Cardiology</SelectItem>
-                        <SelectItem value="NEUROLOGY" className="text-xs py-1.5">Neurology</SelectItem>
-                        <SelectItem value="ORTHOPEDICS" className="text-xs py-1.5">Orthopedics</SelectItem>
-                        <SelectItem value="PULMONOLOGY" className="text-xs py-1.5">Pulmonology</SelectItem>
-                        <SelectItem value="GASTROENTEROLOGY" className="text-xs py-1.5">Gastroenterology</SelectItem>
-                        <SelectItem value="NEPHROLOGY" className="text-xs py-1.5">Nephrology</SelectItem>
-                        <SelectItem value="ONCOLOGY" className="text-xs py-1.5">Oncology</SelectItem>
-                        <SelectItem value="ENDOCRINOLOGY" className="text-xs py-1.5">Endocrinology</SelectItem>
-                        <SelectItem value="RHEUMATOLOGY" className="text-xs py-1.5">Rheumatology</SelectItem>
-                        <SelectItem value="GENERAL" className="text-xs py-1.5">General Medicine</SelectItem>
-                        <SelectItem value="SURGERY" className="text-xs py-1.5">Surgery</SelectItem>
-                        <SelectItem value="GYNECOLOGY" className="text-xs py-1.5">Gynecology</SelectItem>
-                        <SelectItem value="UROLOGY" className="text-xs py-1.5">Urology</SelectItem>
-                        <SelectItem value="DERMATOLOGY" className="text-xs py-1.5">Dermatology</SelectItem>
-                        <SelectItem value="OPHTHALMOLOGY" className="text-xs py-1.5">Ophthalmology</SelectItem>
-                        <SelectItem value="ENT" className="text-xs py-1.5">ENT</SelectItem>
-                        <SelectItem value="PSYCHIATRY" className="text-xs py-1.5">Psychiatry</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
+                    </div>
 
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor={`problemComment-${dialog.id}`} className="w-full">
-                    Comment
-                  </Label>
-                  <Textarea
-                    id={`problemComment-${dialog.id}`}
-                    value={problemInputs[dialog.id]?.comment || ''}
-                    onChange={(e) =>
-                      setProblemInputs((prev) => ({
-                        ...prev,
-                        [dialog.id]: { ...prev[dialog.id], comment: e.target.value },
-                      }))
-                    }
-                    placeholder="Add any additional comments..."
-                    className="w-full min-h-[80px]"
-                  />
-                </div>
+                    {/* Second Row: Service and Immediacy */}
+                    <div className="flex flex-col md:flex-row gap-2">
+                      <div className="flex-1 bg-white rounded-lg shadow-md p-2 border">
+                        <Label className="block mb-1 text-xs font-semibold text-gray-700">Service</Label>
+                        <Select
+                          value={problemInputs[dialog.id]?.service || ''}
+                          onValueChange={value => setProblemInputs(prev => ({
+                            ...prev,
+                            [dialog.id]: { ...prev[dialog.id], service: value as string }
+                          }))}
+                        >
+                          <SelectTrigger className="w-full h-8 text-xs border rounded shadow-sm bg-gray-50">
+                            <SelectValue placeholder="Select Service" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="CARDIOLOGY">Cardiology</SelectItem>
+                            <SelectItem value="NEUROLOGY">Neurology</SelectItem>
+                            <SelectItem value="ORTHOPEDICS">Orthopedics</SelectItem>
+                            <SelectItem value="PULMONOLOGY">Pulmonology</SelectItem>
+                            <SelectItem value="GASTROENTEROLOGY">Gastroenterology</SelectItem>
+                            <SelectItem value="NEPHROLOGY">Nephrology</SelectItem>
+                            <SelectItem value="ONCOLOGY">Oncology</SelectItem>
+                            <SelectItem value="ENDOCRINOLOGY">Endocrinology</SelectItem>
+                            <SelectItem value="RHEUMATOLOGY">Rheumatology</SelectItem>
+                            <SelectItem value="GENERAL">General Medicine</SelectItem>
+                            <SelectItem value="SURGERY">Surgery</SelectItem>
+                            <SelectItem value="GYNECOLOGY">Gynecology</SelectItem>
+                            <SelectItem value="UROLOGY">Urology</SelectItem>
+                            <SelectItem value="DERMATOLOGY">Dermatology</SelectItem>
+                            <SelectItem value="OPHTHALMOLOGY">Ophthalmology</SelectItem>
+                            <SelectItem value="ENT">ENT</SelectItem>
+                            <SelectItem value="PSYCHIATRY">Psychiatry</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex-1 bg-white rounded-lg shadow-md p-2 border">
+                        <div className="space-y-2">
+                          <Label className="block mb-1 text-xs font-semibold text-gray-700">Immediacy</Label>
+                          <div className="flex gap-4">
+                            <RadioGroup
+                              value={problemInputs[dialog.id]?.immediacy}
+                              onValueChange={(value) => setProblemInputs(prev => ({
+                                ...prev,
+                                [dialog.id]: { ...prev[dialog.id], immediacy: value as string }
+                              }))}
+                            >
+                              <div className="flex items-center">
+                                <RadioGroupItem value="ROUTINE" id="routine" className="h-4 w-4" />
+                                <Label htmlFor="routine" className="ml-2 text-xs">Routine</Label>
+                              </div>
+                              <div className="flex items-center">
+                                <RadioGroupItem value="URGENT" id="urgent" className="h-4 w-4" />
+                                <Label htmlFor="urgent" className="ml-2 text-xs">Urgent</Label>
+                              </div>
+                              <div className="flex items-center">
+                                <RadioGroupItem value="STAT" id="stat" className="h-4 w-4" />
+                                <Label htmlFor="stat" className="ml-2 text-xs">Stat</Label>
+                              </div>
+                            </RadioGroup>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
 
-                <div className="flex justify-end gap-2 mt-4">
-                  <Button 
-                    onClick={() => handleAddProblem(dialog.id)}
-                    disabled={isSavingProblem}
-                  >
-                    {isSavingProblem ? 'Saving...' : 'Create'}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setProblemInputs((prev) => ({
-                        ...prev,
-                        [dialog.id]: {
-                          input: '',
-                          category: '',
-                          other: false,
-                          status: '',
-                          immediacy: '',
-                          dateOnset: '',
-                          service: '',
-                          comment: '',
-                          problemName: '',
-                          problemCode: ''
-                        },
-                      }));
-                    }}
-                  >
-                    Reset
-                  </Button>
-                  <Button variant="outline" onClick={() => closeFloatingDialog(dialog.id)}>
-                    Cancel
-                  </Button>
+                    {/* Third Row: Comment Card */}
+                    <div className="bg-white rounded-lg shadow-md p-2 border">
+                      <Label className="block mb-1 text-xs font-semibold text-gray-700">Comment</Label>
+                      <Textarea
+                        id={`problemComment-${dialog.id}`}
+                        value={problemInputs[dialog.id]?.comment || ''}
+                        onChange={e => setProblemInputs(prev => ({
+                          ...prev,
+                          [dialog.id]: { ...prev[dialog.id], comment: e.target.value }
+                        }))}
+                        placeholder="Add any additional comments..."
+                        className="w-full h-16 text-xs border rounded shadow-sm bg-gray-50"
+                      />
+                    </div>
+
+                    {/* Action Buttons Row */}
+                    <div className="flex justify-end gap-2 mt-2">
+                      <Button 
+                        onClick={() => handleAddProblem(dialog.id)}
+                        disabled={isSavingProblem}
+                        className="px-4 text-xs h-8"
+                      >
+                        {isSavingProblem ? 'Saving...' : 'Save'}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setProblemInputs((prev) => ({
+                            ...prev,
+                            [dialog.id]: {
+                              input: '',
+                              category: '',
+                              other: false,
+                              status: '',
+                              immediacy: '',
+                              dateOnset: '',
+                              service: '',
+                              comment: '',
+                              problemName: '',
+                              problemCode: ''
+                            },
+                          }));
+                        }}
+                        className="px-4 text-xs h-8"
+                      >
+                        Reset
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               </div>
             ) : dialog.type === 'medication' ? (
               <div className="flex flex-col gap-4 text-sm">
                 <div className="grid grid-cols-2 gap-4">
-                  <div><span className="font-semibold">Patient ID:</span> 800000035</div>
-                  <div><span className="font-semibold">Name:</span> Anonymous Two</div>
-                  <div><span className="font-semibold">Age:</span> 69 Years</div>
-                  <div><span className="font-semibold">Sex:</span> MALE</div>
-                  <div className="md:col-span-2"><span className="font-semibold">Patient Type:</span> In Patient</div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="flex flex-col gap-2">
-                    <Label className="font-medium">Medication Name</Label>
-                    <Input
-                      value={medSearch}
-                      onChange={(e) => {
-                        setMedSearch(e.target.value);
-                        setDropdownOpen(true);
-                        setFilteredMeds(
-                          MEDICATIONS.filter((med) =>
-                            med.toLowerCase().includes(e.target.value.toLowerCase())
-                          )
-                        );
-                      }}
-                      onFocus={() => setDropdownOpen(true)}
-                      onBlur={() => setTimeout(() => setDropdownOpen(false), 120)}
-                      className="w-full"
-                      placeholder="Type to search..."
-                      autoComplete="off"
-                    />
-                    {dropdownOpen && medSearch && (
-                      <div className="border rounded bg-white max-h-48 overflow-y-auto absolute z-20 w-full">
-                        {filteredMeds.length === 0 ? (
-                          <div className="p-2 text-muted-foreground">No medication found.</div>
-                        ) : (
-                          filteredMeds.map((med) => (
-                            <div
-                              key={med}
-                              className="p-2 hover:bg-sky-100 cursor-pointer"
-                              onMouseDown={() => handleSelectMed(med)}
-                            >
-                              {med}
-                            </div>
-                          ))
-                        )}
+                  {/* Medication Name Card */}
+                  <Card className="flex flex-col bg-white border border-gray-200 shadow-md rounded-lg p-2">
+                    <div className="text-sm font-normal mb-1">Medication Name</div>
+                    <div className="flex flex-row items-center gap-2 w-full">
+                      <Input
+                        id={`medication-name-${dialog.id}`}
+                        value={medicationInputs[dialog.id]?.medicationName || ''}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setMedicationInputs(prev => ({
+                            ...prev,
+                            [dialog.id]: { ...(prev[dialog.id] || {}), medicationName: value }
+                          }));
+                        }}
+                        className="flex-1 border border-gray-200 rounded-md px-3 py-2 bg-[#f5f5f5]"
+                        placeholder="Enter medication name..."
+                      />
+                    </div>
+                  </Card>
+
+                  {/* Quick Order Card */}
+                  <Card className="flex flex-col bg-white border border-gray-200 shadow-md rounded-lg p-2">
+                    <div className="text-sm font-normal mb-1">Quick Order</div>
+                    <div className="flex flex-col gap-2">
+                      <div className="flex flex-row items-center gap-2 w-full">
+                        <Select
+                          value={medicationInputs[dialog.id]?.quickOrder || ''}
+                          onValueChange={(value) => setMedicationInputs(prev => ({
+                            ...prev,
+                            [dialog.id]: { ...prev[dialog.id], quickOrder: value }
+                          }))}
+                          className="bg-[#f5f5f5]"
+                        >
+                          <SelectTrigger className="w-full border border-gray-200 rounded-md px-3 py-2 bg-[#f5f5f5]">
+                            <SelectValue placeholder="Select quick order" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Morning">Morning</SelectItem>
+                            <SelectItem value="Evening">Evening</SelectItem>
+                            <SelectItem value="Night">Night</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
-                    )}
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <Label className="font-medium">Quick Order</Label>
-                    <Input
-                      value={quickOrder}
-                      onChange={(e) => setQuickOrder(e.target.value)}
-                      className="w-full"
-                      placeholder=""
-                    />
-                  </div>
-                  <Button type="button" className="bg-yellow-500 hover:bg-yellow-600 text-white h-9 text-xs">
-                    Edit Quick List
-                  </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full text-xs"
+                        onClick={() => setShowQuickListDialog(dialog.id)}
+                      >
+                        Edit Quick List
+                      </Button>
+                    </div>
+                  </Card>
                 </div>
-                {selectedRows.length > 0 && (
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full mt-2 border">
-                      <tbody>
-                        {selectedRows.map((row, idx) => (
-                          <tr key={row.medicationName}>
-                            <td className="px-2 py-1">{row.medicationName}</td>
-                            <td className="px-2 py-1">
-                              <Input
-                                value={row.dosage}
-                                onChange={(e) => handleRowChange(idx, 'dosage', e.target.value)}
-                                className="w-20"
-                              />
-                            </td>
-                            <td className="px-2 py-1">
-                              <Select
-                                value={row.route}
-                                onValueChange={(val) => handleRowChange(idx, 'route', val)}
-                              >
-                                <SelectTrigger className="w-24 h-8">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {ROUTES.map((route) => (
-                                    <SelectItem value={route} key={route}>
-                                      {route}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </td>
-                            <td className="px-2 py-1">
-                              <Select
-                                value={row.schedule}
-                                onValueChange={(val) => handleRowChange(idx, 'schedule', val)}
-                              >
-                                <SelectTrigger className="w-24 h-8">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {SCHEDULES.map((schedule) => (
-                                    <SelectItem value={schedule} key={schedule}>
-                                      {schedule}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </td>
-                            <td className="px-2 py-1 text-center">
-                              <Checkbox
-                                checked={row.prn}
-                                onCheckedChange={(val) => handleRowChange(idx, 'prn', val)}
-                              />
-                            </td>
-                            <td className="px-2 py-1 flex items-center">
-                              <Input
-                                type="number"
-                                value={row.duration}
-                                onChange={(e) => handleRowChange(idx, 'duration', e.target.value)}
-                                className="w-12"
-                              />
-                              <Select
-                                value={row.durationUnit}
-                                onValueChange={(val) => handleRowChange(idx, 'durationUnit', val)}
-                              >
-                                <SelectTrigger className="w-16 h-8 ml-1">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="days">days</SelectItem>
-                                  <SelectItem value="weeks">weeks</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </td>
-                            <td className="px-2 py-1">
-                              <Select
-                                value={row.priority}
-                                onValueChange={(val) => handleRowChange(idx, 'priority', val)}
-                              >
-                                <SelectTrigger className="w-24 h-8">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {PRIORITIES.map((priority) => (
-                                    <SelectItem value={priority} key={priority}>
-                                      {priority}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </td>
-                            <td className="px-2 py-1 text-center">
-                              <Checkbox
-                                checked={row.additionalDoseNow}
-                                onCheckedChange={(val) => handleRowChange(idx, 'additionalDoseNow', val)}
-                              />
-                            </td>
-                            <td className="px-2 py-1">
-                              <Input
-                                value={row.comment}
-                                onChange={(e) => handleRowChange(idx, 'comment', e.target.value)}
-                                className="w-28"
-                              />
-                            </td>
-                            <td className="px-2 py-1 text-center">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleRemoveRow(idx)}
-                              >
-                                ❌
-                              </Button>
-                            </td>
-                            <td className="px-2 py-1 text-center">
-                              <Button variant="ghost" size="icon">
-                                💾
-                              </Button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-                <div className="flex justify-end gap-2 p-4">
-                  <Button
-                    onClick={() => {
-                      selectedRows.forEach((row) => {
-                        const newMed: Medication = {
-                          id: Date.now().toString(),
-                          name: row.medicationName,
-                          reason: row.comment || 'General',
-                          amount: row.dosage || 'N/A',
-                          timing: row.schedule || 'N/A',
-                          status: 'Active',
-                        };
-                        // Update local medications state
-                        // setLocalMedications((prev: Medication[]) => [newMed, ...prev]);
-                      });
-                      toast.success('Medications added successfully!');
-                      closeFloatingDialog(dialog.id);
-                    }}
-                  >
-                    Confirm Order
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    onClick={() => setSelectedRows([])}
-                  >
+
+                {/* Dosage */}
+                <div className="grid grid-cols-2 gap-4">
+                  <Card className="flex flex-col bg-white border border-gray-200 shadow-md rounded-lg p-2">
+                    <div className="text-sm font-normal mb-1">Dosage</div>
+                    <div className="flex flex-row items-center gap-2 w-full">
+                      <Input
+                        id={`dosage-${dialog.id}`}
+                        value={medicationInputs[dialog.id]?.dosage || ''}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setMedicationInputs(prev => ({
+                            ...prev,
+                            [dialog.id]: { ...prev[dialog.id], dosage: value }
+                          }));
+                        }}
+                        className="flex-1 border border-gray-200 rounded-md px-3 py-2 bg-[#f5f5f5]"
+                        placeholder="Enter dosage..."
+                      />
+                    </div>
+                  </Card>
+
+                  {/* Route */}
+                  <Card className="flex flex-col bg-white border border-gray-200 shadow-md rounded-lg p-2">
+                    <div className="text-sm font-normal mb-1">Route</div>
+                    <div className="flex flex-row items-center gap-2 w-full">
+                      <Select
+                        value={medicationInputs[dialog.id]?.route || ''}
+                        onValueChange={(value) => setMedicationInputs(prev => ({
+                          ...prev,
+                          [dialog.id]: { ...prev[dialog.id], route: value }
+                        }))}
+                        className="bg-[#f5f5f5]"
+                      >
+                        <SelectTrigger className="w-full border border-gray-200 rounded-md px-3 py-2 bg-[#f5f5f5]">
+                          <SelectValue placeholder="Select route" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="PO">PO</SelectItem>
+                          <SelectItem value="IV">IV</SelectItem>
+                          <SelectItem value="IM">IM</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </Card>
+                </div>
+
+                {/* Schedule & PRN */}
+                <div className="grid grid-cols-2 gap-4">
+                  <Card className="flex flex-col bg-white border border-gray-200 shadow-md rounded-lg p-2">
+                    <div className="text-sm font-normal mb-1">Schedule</div>
+                    <div className="flex flex-row items-center gap-2 w-full">
+                      <Input
+                        id={`schedule-${dialog.id}`}
+                        value={medicationInputs[dialog.id]?.schedule || ''}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setMedicationInputs(prev => ({
+                            ...prev,
+                            [dialog.id]: { ...prev[dialog.id], schedule: value }
+                          }));
+                        }}
+                        className="flex-1 border border-gray-200 rounded-md px-3 py-2 bg-[#f5f5f5]"
+                        placeholder="Enter schedule..."
+                      />
+                    </div>
+                  </Card>
+
+                  <Card className="flex flex-col bg-white border border-gray-200 shadow-md rounded-lg p-2">
+                    <div className="text-sm font-normal mb-1">PRN</div>
+                    <div className="flex flex-row items-center gap-2 w-full">
+                      <Switch
+                        id={`prn-${dialog.id}`}
+                        checked={medicationInputs[dialog.id]?.prn || false}
+                        onCheckedChange={(checked) => setMedicationInputs(prev => ({
+                          ...prev,
+                          [dialog.id]: { ...prev[dialog.id], prn: checked }
+                        }))}
+                        className="bg-[#f5f5f5]"
+                      />
+                    </div>
+                  </Card>
+                </div>
+
+                {/* Duration & Priority */}
+                <div className="grid grid-cols-2 gap-4">
+                  <Card className="flex flex-col bg-white border border-gray-200 shadow-md rounded-lg p-2">
+                    <div className="text-sm font-normal mb-1">Duration</div>
+                    <div className="flex flex-row items-center gap-2 w-full">
+                      <Input
+                        id={`duration-${dialog.id}`}
+                        value={medicationInputs[dialog.id]?.duration || ''}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setMedicationInputs(prev => ({
+                            ...prev,
+                            [dialog.id]: { ...prev[dialog.id], duration: value }
+                          }));
+                        }}
+                        className="flex-1 border border-gray-200 rounded-md px-3 py-2 bg-[#f5f5f5]"
+                        placeholder="Enter duration..."
+                      />
+                      <Select
+                        value={medicationInputs[dialog.id]?.durationUnit || ''}
+                        onValueChange={(value) => setMedicationInputs(prev => ({
+                          ...prev,
+                          [dialog.id]: { ...prev[dialog.id], durationUnit: value }
+                        }))}
+                        className="bg-[#f5f5f5]"
+                      >
+                        <SelectTrigger className="w-full border border-gray-200 rounded-md px-3 py-2 bg-[#f5f5f5]">
+                          <SelectValue placeholder="Select unit" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="days">Days</SelectItem>
+                          <SelectItem value="weeks">Weeks</SelectItem>
+                          <SelectItem value="months">Months</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </Card>
+
+                  <Card className="flex flex-col bg-white border border-gray-200 shadow-md rounded-lg p-2">
+                    <div className="text-sm font-normal mb-1">Priority</div>
+                    <div className="flex flex-row items-center gap-2 w-full">
+                      <Select
+                        value={medicationInputs[dialog.id]?.priority || ''}
+                        onValueChange={(value) => setMedicationInputs(prev => ({
+                          ...prev,
+                          [dialog.id]: { ...prev[dialog.id], priority: value }
+                        }))}
+                        className="bg-[#f5f5f5]"
+                      >
+                        <SelectTrigger className="w-full border border-gray-200 rounded-md px-3 py-2 bg-[#f5f5f5]">
+                          <SelectValue placeholder="Select priority" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="High">High</SelectItem>
+                          <SelectItem value="Medium">Medium</SelectItem>
+                          <SelectItem value="Low">Low</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </Card>
+                </div>
+
+                {/* Additional Dose Now & Comment */}
+                <div className="grid grid-cols-2 gap-4">
+                  <Card className="flex flex-col bg-white border border-gray-200 shadow-md rounded-lg p-2">
+                    <div className="text-sm font-normal mb-1">Additional Dose Now</div>
+                    <div className="flex flex-row items-center gap-2 w-full">
+                      <Switch
+                        id={`additional-dose-${dialog.id}`}
+                        checked={medicationInputs[dialog.id]?.additionalDoseNow || false}
+                        onCheckedChange={(checked) => setMedicationInputs(prev => ({
+                          ...prev,
+                          [dialog.id]: { ...prev[dialog.id], additionalDoseNow: checked }
+                        }))}
+                        className="bg-[#f5f5f5]"
+                      />
+                    </div>
+                  </Card>
+
+                  <Card className="flex flex-col bg-white border border-gray-200 shadow-md rounded-lg p-2">
+                    <div className="text-sm font-normal mb-1">Comment</div>
+                    <div className="flex flex-row items-center gap-2 w-full">
+                      <Textarea
+                        id={`comment-${dialog.id}`}
+                        value={medicationInputs[dialog.id]?.comment || ''}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setMedicationInputs(prev => ({
+                            ...prev,
+                            [dialog.id]: { ...prev[dialog.id], comment: value }
+                          }));
+                        }}
+                        className="w-full border border-gray-200 rounded-md px-3 py-2 bg-[#f5f5f5]"
+                        placeholder="Add any comments..."
+                      />
+                    </div>
+                  </Card>
+                </div>
+
+                {/* Save/Reset/Close buttons */}
+                <div className="flex justify-end gap-2 mt-4">
+                  <Button variant="outline" onClick={() => resetMedicationForm(dialog.id)}>
                     Reset
                   </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => closeFloatingDialog(dialog.id)}
-                  >
-                    Cancel
+                  <Button onClick={() => saveMedication(dialog.id)}>
+                    Save
                   </Button>
                 </div>
               </div>
             ) : dialog.type === 'radiology' ? (
               <div className="flex flex-col gap-4 text-sm">
                 <div className="grid grid-cols-2 gap-4">
-                  <div><span className="font-semibold">Patient ID:</span> 800000035</div>
-                  <div><span className="font-semibold">Name:</span> Anonymous Two</div>
-                  <div><span className="font-semibold">Age:</span> 69 Years</div>
-                  <div><span className="font-semibold">Sex:</span> MALE</div>
-                  <div className="md:col-span-2"><span className="font-semibold">Patient Type:</span> In Patient</div>
+                  {/* Imaging Type */}
+                  <Card className="flex flex-col bg-white border border-gray-200 shadow-md rounded-lg p-2">
+                    <div className="text-sm font-normal mb-1">Imaging Type</div>
+                    <div className="flex flex-row items-center gap-2 w-full">
+                      <Select
+                        value={radiologyInputs[dialog.id]?.type || ''}
+                        onValueChange={(value) =>
+                          setRadiologyInputs((prev) => ({
+                            ...prev,
+                            [dialog.id]: { ...prev[dialog.id], type: value },
+                          }))
+                        }
+                        className="bg-[#f5f5f5]"
+                      >
+                        <SelectTrigger className="w-full border border-gray-200 rounded-md px-3 py-2 bg-[#f5f5f5]">
+                          <SelectValue placeholder="Select test" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="X-Ray">X-Ray</SelectItem>
+                          <SelectItem value="MRI">MRI</SelectItem>
+                          <SelectItem value="CT Scan">CT Scan</SelectItem>
+                          <SelectItem value="Ultrasound">Ultrasound</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </Card>
+
+                  {/* Body Part */}
+                  <Card className="flex flex-col bg-white border border-gray-200 shadow-md rounded-lg p-2">
+                    <div className="text-sm font-normal mb-1">Body Part</div>
+                    <div className="flex flex-row items-center gap-2 w-full">
+                      <Input
+                        id={`body-part-${dialog.id}`}
+                        value={radiologyInputs[dialog.id]?.bodyPart || ''}
+                        onChange={(e) =>
+                          setRadiologyInputs((prev) => ({
+                            ...prev,
+                            [dialog.id]: { ...prev[dialog.id], bodyPart: e.target.value },
+                          }))
+                        }
+                        className="w-full border border-gray-200 rounded-md px-3 py-2 bg-[#f5f5f5]"
+                      />
+                    </div>
+                  </Card>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="flex items-center gap-2">
-                    <Label className="w-[120px] min-w-[120px]">Imaging Type</Label>
-                    <Select
-                      value={radiologyInputs[dialog.id]?.type || ''}
-                      onValueChange={(value) =>
-                        setRadiologyInputs((prev) => ({
-                          ...prev,
-                          [dialog.id]: { ...prev[dialog.id], type: value },
-                        }))
-                      }
-                    >
-                      <SelectTrigger className="flex-1">
-                        <SelectValue placeholder="Select test" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="X-Ray">X-Ray</SelectItem>
-                        <SelectItem value="MRI">MRI</SelectItem>
-                        <SelectItem value="CT Scan">CT Scan</SelectItem>
-                        <SelectItem value="Ultrasound">Ultrasound</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Label className="w-[120px] min-w-[120px]">Body Part</Label>
-                    <Input
-                      value={radiologyInputs[dialog.id]?.bodyPart || ''}
+
+                {/* Notes */}
+                <Card className="flex flex-col bg-white border border-gray-200 shadow-md rounded-lg p-2">
+                  <div className="text-sm font-normal mb-1">Notes</div>
+                  <div className="flex flex-row items-center gap-2 w-full">
+                    <Textarea
+                      id={`notes-${dialog.id}`}
+                      value={radiologyInputs[dialog.id]?.notes || ''}
                       onChange={(e) =>
                         setRadiologyInputs((prev) => ({
                           ...prev,
-                          [dialog.id]: { ...prev[dialog.id], bodyPart: e.target.value },
+                          [dialog.id]: { ...prev[dialog.id], notes: e.target.value },
                         }))
                       }
-                      className="flex-1"
+                      className="w-full border border-gray-200 rounded-md px-3 py-2 bg-[#f5f5f5]"
                     />
                   </div>
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label>Notes</Label>
-                  <Textarea
-                    value={radiologyInputs[dialog.id]?.notes || ''}
-                    onChange={(e) =>
-                      setRadiologyInputs((prev) => ({
-                        ...prev,
-                        [dialog.id]: { ...prev[dialog.id], notes: e.target.value },
-                      }))
-                    }
-                    className="flex-1 min-h-[80px]"
-                  />
-                </div>
+                </Card>
+
+                {/* Save/Reset/Close buttons */}
                 <div className="flex justify-end gap-2 mt-4">
                   <Button
                     onClick={() => {
@@ -2022,25 +1985,50 @@ export default function DashboardPage({
             ) : dialog.type === 'report' ? (
               <div className="flex flex-col gap-4 text-sm">
                 <div className="grid grid-cols-2 gap-4">
-                  <div><span className="font-semibold">Report Search</span></div>
-                  <div><span className="font-semibold">Quick Orders</span></div>
+                  {/* Report Search */}
+                  <Card className="flex flex-col bg-white border border-gray-200 shadow-md rounded-lg p-2">
+                    <div className="text-sm font-normal mb-1">Report Search</div>
+                    <div className="flex flex-row items-center gap-2 w-full">
+                      <Input
+                        id={`report-search-${dialog.id}`}
+                        value={reportInputs[dialog.id]?.search || ''}
+                        onChange={(e) =>
+                          setReportInputs((prev) => ({
+                            ...prev,
+                            [dialog.id]: { ...prev[dialog.id], search: e.target.value },
+                          }))
+                        }
+                        className="w-full border border-gray-200 rounded-md px-3 py-2 bg-[#f5f5f5]"
+                      />
+                    </div>
+                  </Card>
+
+                  {/* Quick Search */}
+                  <Card className="flex flex-col bg-white border border-gray-200 shadow-md rounded-lg p-2">
+                    <div className="text-sm font-normal mb-1">Quick Search</div>
+                    <div className="flex flex-row items-center gap-2 w-full">
+                      <Input
+                        id={`quick-search-${dialog.id}`}
+                        value={reportInputs[dialog.id]?.quickSearch || ''}
+                        onChange={(e) =>
+                          setReportInputs((prev) => ({
+                            ...prev,
+                            [dialog.id]: { ...prev[dialog.id], quickSearch: e.target.value },
+                          }))
+                        }
+                        className="w-full border border-gray-200 rounded-md px-3 py-2 bg-[#f5f5f5]"
+                      />
+                    </div>
+                  </Card>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="flex flex-col gap-2">
-                    <Label>Search</Label>
-                    <Input
-                      value={reportInputs[dialog.id]?.search || ''}
-                      onChange={(e) =>
-                        setReportInputs((prev) => ({
-                          ...prev,
-                          [dialog.id]: { ...prev[dialog.id], search: e.target.value },
-                        }))
-                      }
-                      className="flex-1"
-                    />
-                    <div className="mt-2 border p-2 h-32 overflow-y-auto text-sm">
+
+                {/* Selected Reports */}
+                <Card className="flex flex-col bg-white border border-gray-200 shadow-md rounded-lg p-2">
+                  <div className="text-sm font-normal mb-1">Selected Reports</div>
+                  <div className="flex flex-row items-center gap-2 w-full">
+                    <div className="flex flex-col gap-2">
                       {['LIVER FUNCTION TEST', 'DSDNA AB', 'THYROID PANEL']
-                        .filter((test) => test.toLowerCase().includes((reportInputs[dialog.id]?.search || '').toLowerCase()))
+                        .filter((test) => reportInputs[dialog.id]?.selected.includes(test))
                         .map((test, index) => (
                           <div
                             key={index}
@@ -2068,49 +2056,9 @@ export default function DashboardPage({
                         ))}
                     </div>
                   </div>
-                  <div className="flex flex-col gap-2">
-                    <Label>Quick Search</Label>
-                    <Input
-                      value={reportInputs[dialog.id]?.quickSearch || ''}
-                      onChange={(e) =>
-                        setReportInputs((prev) => ({
-                          ...prev,
-                          [dialog.id]: { ...prev[dialog.id], quickSearch: e.target.value },
-                        }))
-                      }
-                      className="flex-1"
-                    />
-                    <div className="mt-2 border p-2 h-32 overflow-y-auto text-sm">
-                      {['BLOOD SUGAR', 'CBC', 'ESR']
-                        .filter((q) => q.toLowerCase().includes((reportInputs[dialog.id]?.quickSearch || '').toLowerCase()))
-                        .map((q, index) => (
-                          <div
-                            key={index}
-                            className="flex items-center gap-2"
-                          >
-                            <Checkbox
-                              checked={reportInputs[dialog.id]?.selected.includes(q)}
-                              onCheckedChange={(checked) => {
-                                setReportInputs((prev) => {
-                                  const current = prev[dialog.id]?.selected || [];
-                                  return {
-                                    ...prev,
-                                    [dialog.id]: {
-                                      ...prev[dialog.id],
-                                      selected: checked
-                                        ? [...current, q]
-                                        : current.filter((item) => item !== q),
-                                    },
-                                  };
-                                });
-                              }}
-                            />
-                            <span>{q}</span>
-                          </div>
-                        ))}
-                    </div>
-                  </div>
-                </div>
+                </Card>
+
+                {/* Save/Reset/Close buttons */}
                 <div className="flex justify-end gap-2 mt-4">
                   <Button
                     className="bg-orange-500 hover:bg-orange-600 text-white"
@@ -2139,151 +2087,186 @@ export default function DashboardPage({
               </div>
             ) : dialog.type === 'allergies' ? (
               <div className="flex flex-col gap-4 text-sm">
-                {/* Allergies Input */}
-                <div className="grid grid-cols-1 gap-2 relative">
-                  <Label htmlFor={`allergies-${dialog.id}`} className="font-medium">Allergies</Label>
-                  <div className="relative">
-                    <Input
-                      id={`allergies-${dialog.id}`}
-                      value={allergyInputs[dialog.id]?.allergies || ''}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        setAllergyInputs(prev => ({
-                          ...prev,
-                          [dialog.id]: { ...(prev[dialog.id] || {}), allergies: value }
-                        }));
-                        handleAllergySearchChange(value);
-                      }}
-                      onFocus={() => allergySearchTerm.trim() && setShowAllergyDropdown(true)}
-                      onBlur={() => setTimeout(() => setShowAllergyDropdown(false), 200)}
-                      placeholder="Start typing to search allergies..."
-                      className="w-full"
-                    />
-                    {isSearchingAllergies && (
-                      <div className="absolute right-2 top-1/2 -translate-y-1/2">
-                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
-                      </div>
-                    )}
-                  </div>
-                  
-                  {/* Allergy search results dropdown */}
-                  {showAllergyDropdown && allergySearchResults.length > 0 && (
-                    <div className="absolute z-[9999] w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto mt-1">
-                      {allergySearchResults.map((result) => (
-                        <div
-                          key={result.id || result.name}
-                          className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
-                          onMouseDown={(e) => {
-                            e.preventDefault();
-                            setAllergyInputs(prev => ({
-                              ...prev,
-                              [dialog.id]: { 
-                                ...(prev[dialog.id] || {}), 
-                                allergies: result.name || result.AllergyName || result.allergen || result || ''
-                              }
-                            }));
-                            setShowAllergyDropdown(false);
-                          }}
-                        >
-                          {result.name || result.AllergyName || result.allergen || result}
+                {/* Top Row Cards */}
+                <div className="grid grid-cols-2 gap-1">
+                  {/* Allergy Name Card */}
+                  <Card className="flex flex-col bg-white border border-gray-200 shadow-md rounded-lg p-2">
+                    <div className="text-sm font-normal mb-1">Enter Allergy</div>
+                    <div className="flex flex-row items-center gap-2 w-full">
+                      <Input
+                        id={`allergies-${dialog.id}`}
+                        value={allergyInputs[dialog.id]?.allergies || ''}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setAllergyInputs(prev => ({
+                            ...prev,
+                            [dialog.id]: { ...(prev[dialog.id] || {}), allergies: value }
+                          }));
+                          handleAllergySearchChange(value);
+                        }}
+                        onFocus={() => allergySearchTerm.trim() && setShowAllergyDropdown(true)}
+                        onBlur={() => setTimeout(() => setShowAllergyDropdown(false), 200)}
+                        placeholder="Start typing to search allergies..."
+                        className="flex-1 border border-gray-200 rounded-md px-3 py-2 bg-[#f5f5f5]"
+                      />
+                      {isSearchingAllergies && (
+                        <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
                         </div>
-                      ))}
+                      )}
+                      {showAllergyDropdown && allergySearchResults.length > 0 && (
+                        <div className="absolute z-[9999] w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto mt-1">
+                          {allergySearchResults.map((result, index) => (
+                            <div
+                              key={`${dialog.id}-allergy-${index}`}
+                              className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
+                              onMouseDown={(e) => {
+                                e.preventDefault();
+                                setAllergyInputs(prev => ({
+                                  ...prev,
+                                  [dialog.id]: { 
+                                    ...(prev[dialog.id] || {}), 
+                                    allergies: result.name || result.AllergyName || result.allergen || result || ''
+                                  }
+                                }));
+                                setShowAllergyDropdown(false);
+                              }}
+                            >
+                              {result.name || result.AllergyName || result.allergen || result}
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
+                  </Card>
 
-                {/* Nature of Reaction - Select */}
-                <div className="grid grid-cols-1 gap-2">
-                  <Label className="font-medium">Nature of Reaction</Label>
-                  <div className="flex gap-4">
-                    <Select
-                      value={allergyInputs[dialog.id]?.natureOfReaction || ''}
-                      onValueChange={(value) => setAllergyInputs(prev => ({
-                        ...prev,
-                        [dialog.id]: { ...prev[dialog.id], natureOfReaction: value }
-                      }))}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select nature of reaction" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Allergy">Allergy</SelectItem>
-                        <SelectItem value="Intolerance">Intolerance</SelectItem>
-                        <SelectItem value="Side Effect">Side Effect</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <RadioGroup 
-                      value={allergyInputs[dialog.id]?.reactionType || ''}
-                      onValueChange={(value) => setAllergyInputs(prev => ({
-                        ...prev,
-                        [dialog.id]: { ...prev[dialog.id], reactionType: value as 'Observed' | 'Historical' | '' }
-                      }))}
-                      className="flex gap-4"
-                    >
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="Observed" id={`observed-${dialog.id}`} />
-                        <Label htmlFor={`observed-${dialog.id}`} className="text-xs">Observed</Label>
+                  {/* Combined Nature of Reaction & Type Card */}
+                  <Card className="flex flex-col bg-white border border-gray-200 shadow-md rounded-lg p-2">
+                    <div className="text-sm font-normal mb-1">Nature of Reaction</div>
+                    <div className="grid grid-cols-2 gap-1">
+                      {/* Nature of Reaction */}
+                      <div>
+                        <Select
+                          value={allergyInputs[dialog.id]?.natureOfReaction || ''}
+                          onValueChange={(value) => setAllergyInputs(prev => ({
+                            ...prev,
+                            [dialog.id]: { ...prev[dialog.id], natureOfReaction: value }
+                          }))}
+                          className="bg-[#f5f5f5]"
+                        >
+                          <SelectTrigger className="w-full border border-gray-200 rounded-md px-3 py-2 bg-[#f5f5f5]">
+                            <SelectValue placeholder="Select nature of reaction" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Allergy">Allergy</SelectItem>
+                            <SelectItem value="Intolerance">Intolerance</SelectItem>
+                            <SelectItem value="Side Effect">Side Effect</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="Historical" id={`historical-${dialog.id}`} />
-                        <Label htmlFor={`historical-${dialog.id}`} className="text-xs">Historical</Label>
+                      {/* Type */}
+                      <div>
+                        <RadioGroup 
+                          value={allergyInputs[dialog.id]?.reactionType || ''}
+                          onValueChange={(value) => setAllergyInputs(prev => ({
+                            ...prev,
+                            [dialog.id]: { ...prev[dialog.id], reactionType: value as 'Observed' | 'Historical' | '' }
+                          }))}
+                          className="flex gap-4 mt-1"
+                        >
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="Observed" id={`observed-${dialog.id}`} />
+                            <Label htmlFor={`observed-${dialog.id}`} className="text-xs">Observed</Label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="Historical" id={`historical-${dialog.id}`} />
+                            <Label htmlFor={`historical-${dialog.id}`} className="text-xs">Historical</Label>
+                          </div>
+                        </RadioGroup>
                       </div>
-                    </RadioGroup>
-                  </div>
+                    </div>
+                  </Card>
                 </div>
 
-                {/* Sign/Symptoms - Select */}
-                <div className="grid grid-cols-1 gap-2">
-                  <Label htmlFor={`signSymptom-${dialog.id}`} className="font-medium">Sign/Symptoms</Label>
-                  <Select
-                    value={allergyInputs[dialog.id]?.signSymptom || ''}
-                    onValueChange={(value) => setAllergyInputs(prev => ({
-                      ...prev,
-                      [dialog.id]: { ...prev[dialog.id], signSymptom: value }
-                    }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select sign/symptom" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Rash">Rash</SelectItem>
-                      <SelectItem value="Hives">Hives</SelectItem>
-                      <SelectItem value="Swelling">Swelling</SelectItem>
-                      <SelectItem value="Difficulty Breathing">Difficulty Breathing</SelectItem>
-                      <SelectItem value="Nausea">Nausea</SelectItem>
-                      <SelectItem value="Dizziness">Dizziness</SelectItem>
-                    </SelectContent>
-                  </Select>
+                {/* Sign/Symptoms & Date/Time - Side by Side Cards */}
+                <div className="grid grid-cols-2 gap-1 mt-1">
+                  {/* Sign/Symptoms Card */}
+                  <Card className="flex flex-col bg-white border border-gray-200 shadow-md rounded-lg p-2">
+                    <div className="text-sm font-normal mb-1">Sign/Symptoms</div>
+                    <CardContent className="p-0">
+                      <Select
+                        value={allergyInputs[dialog.id]?.signSymptom || ''}
+                        onValueChange={(value) => setAllergyInputs(prev => ({
+                          ...prev,
+                          [dialog.id]: { ...prev[dialog.id], signSymptom: value }
+                        }))}
+                        className="bg-[#f5f5f5]"
+                      >
+                        <SelectTrigger className="w-full border border-gray-200 rounded-md px-3 py-2 bg-[#f5f5f5]">
+                          <SelectValue placeholder="Select sign/symptom" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Rash">Rash</SelectItem>
+                          <SelectItem value="Hives">Hives</SelectItem>
+                          <SelectItem value="Swelling">Swelling</SelectItem>
+                          <SelectItem value="Difficulty Breathing">Difficulty Breathing</SelectItem>
+                          <SelectItem value="Nausea">Nausea</SelectItem>
+                          <SelectItem value="Dizziness">Dizziness</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </CardContent>
+                  </Card>
+
+                  {/* Date/Time Card */}
+                  <Card className="flex flex-col bg-white border border-gray-200 shadow-md rounded-lg p-2">
+                    <div className="text-sm font-normal mb-1">Date/Time</div>
+                    <CardContent className="p-0">
+                      <div className="grid grid-cols-2 gap-1">
+                        {/* Date */}
+                        <div>
+                          <Input
+                            type="date"
+                            value={allergyInputs[dialog.id]?.date || ''}
+                            onChange={(e) => setAllergyInputs(prev => ({
+                              ...prev,
+                              [dialog.id]: { ...prev[dialog.id], date: e.target.value }
+                            }))}
+                            className="w-full border border-gray-200 rounded-md px-3 py-2 bg-[#f5f5f5]"
+                          />
+                        </div>
+                        {/* Time */}
+                        <div>
+                          <Input
+                            type="time"
+                            value={allergyInputs[dialog.id]?.time || ''}
+                            onChange={(e) => setAllergyInputs(prev => ({
+                              ...prev,
+                              [dialog.id]: { ...prev[dialog.id], time: e.target.value }
+                            }))}
+                            className="w-full border border-gray-200 rounded-md px-3 py-2 bg-[#f5f5f5]"
+                          />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
 
-                {/* Date/Time Input */}
-                <div className="grid grid-cols-1 gap-2">
-                  <Label htmlFor={`dateTime-${dialog.id}`} className="font-medium">Date/Time</Label>
-                  <Input
-                    id={`dateTime-${dialog.id}`}
-                    type="datetime-local"
-                    value={allergyInputs[dialog.id]?.dateTime || ''}
-                    onChange={(e) => setAllergyInputs(prev => ({
-                      ...prev,
-                      [dialog.id]: { ...prev[dialog.id], dateTime: e.target.value }
-                    }))}
-                  />
-                </div>
-
-                {/* Comment Textarea */}
-                <div className="grid grid-cols-1 gap-2">
-                  <Label htmlFor={`comment-${dialog.id}`} className="font-medium">Comment</Label>
-                  <Textarea
-                    id={`comment-${dialog.id}`}
-                    value={allergyInputs[dialog.id]?.comment || ''}
-                    onChange={(e) => setAllergyInputs(prev => ({
-                      ...prev,
-                      [dialog.id]: { ...prev[dialog.id], comment: e.target.value }
-                    }))}
-                    placeholder="Add any additional comments"
-                    className="h-24"
-                  />
-                </div>
+                {/* Comment Card */}
+                <Card className="flex flex-col bg-white border border-gray-200 shadow-md rounded-lg mt-1 p-2">
+                  <div className="text-sm font-normal mb-1">Comment</div>
+                  <CardContent className="p-0">
+                    <Textarea
+                      id={`comment-${dialog.id}`}
+                      value={allergyInputs[dialog.id]?.comment || ''}
+                      onChange={(e) => setAllergyInputs(prev => ({
+                        ...prev,
+                        [dialog.id]: { ...prev[dialog.id], comment: e.target.value }
+                      }))}
+                      placeholder="Add any additional comments"
+                      className="h-24 w-full border border-gray-200 rounded-md px-3 py-2 bg-[#f5f5f5]"
+                    />
+                  </CardContent>
+                </Card>
 
                 {/* Action Buttons */}
                 <div className="flex justify-end gap-2 mt-4">
@@ -2291,11 +2274,31 @@ export default function DashboardPage({
                     variant="outline" 
                     onClick={() => closeFloatingDialog(dialog.id)}
                   >
-                    Cancel
+                    Close
                   </Button>
                   <Button 
-                    onClick={() => handleAddAllergy(dialog.id)}
-                    className="bg-blue-600 hover:bg-blue-700"
+                    variant="secondary"
+                    onClick={() => {
+                      setAllergyInputs(prev => ({
+                        ...prev,
+                        [dialog.id]: {
+                          allergies: '',
+                          natureOfReaction: '',
+                          reactionType: '',
+                          signSymptom: '',
+                          comment: '',
+                          dateTime: ''
+                        }
+                      }));
+                    }}
+                  >
+                    Reset
+                  </Button>
+                  <Button 
+                    onClick={() => {
+                      handleAddAllergy(dialog.id);
+                      closeFloatingDialog(dialog.id);
+                    }}
                   >
                     Save
                   </Button>
