@@ -72,6 +72,23 @@ function getStringValue(val: any, key?: string): string {
   return String(val);
 }
 
+// Mapping function for API patient -> table patient
+const mapApiPatientToTablePatient = (apiPatient: any) => ({
+  DFN: apiPatient.DFN,
+  Name: apiPatient.Name,
+  Age: apiPatient.Age,
+  "Admission Date": apiPatient["Admission Date"],
+  LOS: apiPatient.LOS,
+  Ward: apiPatient.Ward,
+  Bed: apiPatient.Bed,
+  Specialty: apiPatient.Specialty,
+  "Primary Consultant": apiPatient["Primary Consultant"],
+  "Payer Category": apiPatient["Payer Category"],
+  "Type of Admission": apiPatient["Admission Type"],
+  MLC: apiPatient.MLC,
+  SSN: apiPatient.PatientSSN || apiPatient["SSN No"] || "",
+});
+
 export default function PatientsPage() {
   const { patients, loading, error, fetchPatients, setCurrentPatient } = usePatients();
   const [sortKey, setSortKey] = useState<TableFieldKey>('Name');
@@ -140,15 +157,14 @@ export default function PatientsPage() {
         }));
       }
 
+      // Map API fields to table fields before setting results
+      let mappedResults = [];
       if (Array.isArray(data)) {
-        setSSNSearchResults(data);
+        mappedResults = data.map(mapApiPatientToTablePatient);
       } else if (data && typeof data === 'object') {
-        const results = Object.entries(data).map(([id, name]) => ({
-          id,
-          name: String(name)
-        }));
-        setSSNSearchResults(results);
+        mappedResults = [mapApiPatientToTablePatient(data)];
       }
+      setSSNSearchResults(mappedResults);
     } catch (error) {
       console.error('Error searching SSN:', error);
       setSSNSearchResults([]);
@@ -297,10 +313,17 @@ export default function PatientsPage() {
     return result;
   }, [patients, searchQuery, isAdvSearchActive, currentAdvSearch, ssnSearch]);
 
-  const sortedPatients = useMemo(() => {
-    if (!sortKey) return filteredPatients;
+  // Determine which patients to display: SSN search results or filteredPatients
+  const patientsToDisplay = useMemo(() => {
+    return ssnSearch && ssnSearchResults.length > 0
+      ? ssnSearchResults
+      : filteredPatients;
+  }, [ssnSearch, ssnSearchResults, filteredPatients]);
 
-    return [...filteredPatients].sort((a, b) => {
+  const sortedPatients = useMemo(() => {
+    if (!sortKey) return patientsToDisplay;
+
+    return [...patientsToDisplay].sort((a, b) => {
       // Use type assertion to access dynamic properties
       const aValue = (a as any)[sortKey] || '';
       const bValue = (b as any)[sortKey] || '';
@@ -309,7 +332,7 @@ export default function PatientsPage() {
       if (aValue > bValue) return sortDir === 'asc' ? 1 : -1;
       return 0;
     });
-  }, [filteredPatients, sortKey, sortDir]);
+  }, [patientsToDisplay, sortKey, sortDir]);
 
   const handleRowClick = useCallback((e: React.MouseEvent, patient: any) => {
     e.preventDefault();
