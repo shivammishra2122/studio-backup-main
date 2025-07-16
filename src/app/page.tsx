@@ -1660,9 +1660,28 @@ export default function DashboardPage({
                                 }
                               }}
                               placeholder="Search or enter a problem..."
-                              className="w-full h-8 text-xs border rounded shadow-sm bg-gray-50"
+                              className="w-full h-8 text-xs border rounded shadow-sm bg-gray-50 pr-8"
                               autoComplete="off"
                             />
+                            {problemInputs[dialog.id]?.input && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setProblemInputs(prev => ({
+                                    ...prev,
+                                    [dialog.id]: {
+                                      ...prev[dialog.id],
+                                      input: '',
+                                      problemName: '',
+                                      problemCode: ''
+                                    }
+                                  }));
+                                }}
+                                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
+                            )}
                             {isProblemSearching ? (
                               <div className="absolute z-10 w-full mt-1 bg-white border rounded-md shadow-lg">
                                 <div className="p-2 text-center text-xs text-gray-500">Searching...</div>
