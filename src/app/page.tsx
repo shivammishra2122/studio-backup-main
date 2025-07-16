@@ -112,6 +112,17 @@ interface LabTest {
   comments: string;
 }
 
+interface RadiologyTest {
+  id: string;
+  name: string;
+  requestedDate: string;
+  submitTo: string;
+  urgency: string;
+  modifiers: string;
+  transport: string;
+  reason: string;
+}
+
 export default function DashboardPage({
   patient,
   problems: initialProblems = [],
@@ -203,6 +214,7 @@ export default function DashboardPage({
   const [selectedAllergy, setSelectedAllergy] = useState<Allergy | null>(null);
   const [labTests, setLabTests] = useState<LabTest[]>([]);
   const [labTestInput, setLabTestInput] = useState('');
+  const [radiologyTests, setRadiologyTests] = useState<RadiologyTest[]>([]);
 
   // Dialog input states
   const [medicationInputs, setMedicationInputs] = useState<
@@ -853,6 +865,42 @@ export default function DashboardPage({
     // Implement logic to save lab tests
     console.log('Saving lab tests:', labTests);
     toast.success('Lab tests saved successfully!');
+    closeFloatingDialog(dialogId);
+  };
+
+  const addRadiologyTest = (name: string) => {
+    if (radiologyTests.find((test) => test.name === name)) {
+      toast.error('Radiology test already added');
+      return;
+    }
+
+    setRadiologyTests((prev) => [
+      ...prev,
+      {
+        id: Date.now().toString(),
+        name,
+        requestedDate: new Date().toISOString().split('T')[0],
+        submitTo: '',
+        urgency: 'ROUTINE',
+        modifiers: '',
+        transport: '',
+        reason: ''
+      },
+    ]);
+  };
+
+  const updateRadiologyTest = (id: string, field: keyof RadiologyTest, value: string) => {
+    setRadiologyTests((prev) => prev.map((test) => test.id === id ? { ...test, [field]: value } : test));
+  };
+
+  const removeRadiologyTest = (id: string) => {
+    setRadiologyTests((prev) => prev.filter((test) => test.id !== id));
+  };
+
+  const saveRadiologyTests = (dialogId: string) => {
+    // Implement logic to save radiology tests
+    console.log('Saving radiology tests:', radiologyTests);
+    toast.success('Radiology tests saved successfully!');
     closeFloatingDialog(dialogId);
   };
 
@@ -1965,7 +2013,7 @@ export default function DashboardPage({
                       <div className="flex flex-row items-center gap-2 w-full">
                         <Select
                           value=""
-                          onValueChange={value => addLabTest(value)}
+                          onValueChange={(value) => addLabTest(value)}
                           className="bg-[#f5f5f5]"
                         >
                           <SelectTrigger className="w-full border border-gray-200 rounded-md px-3 py-2 bg-[#f5f5f5]">
@@ -2127,94 +2175,182 @@ export default function DashboardPage({
               </div>
             ) : dialog.type === 'radiology' ? (
               <div className="flex flex-col gap-4 text-sm">
-                {/* Imaging Type */}
-                <Card className="flex flex-col bg-white border border-gray-200 shadow-md rounded-lg p-2">
-                  <div className="text-sm font-normal mb-1">Imaging Type</div>
-                  <div className="flex flex-row items-center gap-2 w-full">
-                    <Select
-                      value={radiologyInputs[dialog.id]?.type || ''}
-                      onValueChange={(value) =>
-                        setRadiologyInputs((prev) => ({
-                          ...prev,
-                          [dialog.id]: { ...prev[dialog.id], type: value },
-                        }))
-                      }
-                      className="bg-[#f5f5f5]"
-                    >
-                      <SelectTrigger className="w-full border border-gray-200 rounded-md px-3 py-2 bg-[#f5f5f5]">
-                        <SelectValue placeholder="Select test" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="X-Ray">X-Ray</SelectItem>
-                        <SelectItem value="MRI">MRI</SelectItem>
-                        <SelectItem value="CT Scan">CT Scan</SelectItem>
-                        <SelectItem value="Ultrasound">Ultrasound</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </Card>
+                {/* Radiology Test Name and Quick Order Cards */}
+                <div className="grid grid-cols-2 gap-4 mb-2">
+                  {/* Radiology Test Name Card */}
+                  <Card className="flex flex-col bg-white border border-gray-200 shadow-md rounded-lg p-2">
+                    <div className="text-sm font-normal mb-1">Radiology Test Name</div>
+                    <div className="flex flex-row items-center gap-2 w-full">
+                      <Input
+                        value={radiologyInputs[dialog.id]?.type || ''}
+                        onChange={(e) =>
+                          setRadiologyInputs((prev) => ({
+                            ...prev,
+                            [dialog.id]: { ...prev[dialog.id], type: e.target.value },
+                          }))
+                        }
+                        className="flex-1 border border-gray-200 rounded-md px-3 py-2 bg-[#f5f5f5]"
+                        placeholder="Enter radiology test name..."
+                      />
+                      <Button
+                        size="sm"
+                        className="ml-2"
+                        onClick={() => {
+                          addRadiologyTest(radiologyInputs[dialog.id]?.type || '');
+                          setRadiologyInputs(prev => ({
+                            ...prev,
+                            [dialog.id]: { ...prev[dialog.id], type: '' },
+                          }));
+                        }}
+                      >
+                        Add
+                      </Button>
+                    </div>
+                  </Card>
+                  
+                  {/* Quick Order Card */}
+                  <Card className="flex flex-col bg-white border border-gray-200 shadow-md rounded-lg p-2">
+                    <div className="text-sm font-normal mb-1">Quick Order</div>
+                    <div className="flex flex-col gap-2">
+                      <div className="flex flex-row items-center gap-2 w-full">
+                        <Select
+                          value=""
+                          onValueChange={(value) => {
+                            addRadiologyTest(value);
+                          }}
+                          className="bg-[#f5f5f5]"
+                        >
+                          <SelectTrigger className="w-full border border-gray-200 rounded-md px-3 py-2 bg-[#f5f5f5]">
+                            <SelectValue placeholder="Select quick order" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="X-Ray">X-Ray</SelectItem>
+                            <SelectItem value="MRI">MRI</SelectItem>
+                            <SelectItem value="CT Scan">CT Scan</SelectItem>
+                            <SelectItem value="Ultrasound">Ultrasound</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full text-xs"
+                        onClick={() => setShowQuickListDialog(dialog.id)}
+                      >
+                        Edit Quick List
+                      </Button>
+                    </div>
+                  </Card>
+                </div>
 
-                {/* Body Part */}
-                <Card className="flex flex-col bg-white border border-gray-200 shadow-md rounded-lg p-2">
-                  <div className="text-sm font-normal mb-1">Body Part</div>
-                  <div className="flex flex-row items-center gap-2 w-full">
-                    <Input
-                      id={`body-part-${dialog.id}`}
-                      value={radiologyInputs[dialog.id]?.bodyPart || ''}
-                      onChange={(e) =>
-                        setRadiologyInputs((prev) => ({
-                          ...prev,
-                          [dialog.id]: { ...prev[dialog.id], bodyPart: e.target.value },
-                        }))
-                      }
-                      className="w-full border border-gray-200 rounded-md px-3 py-2 bg-[#f5f5f5]"
-                    />
+                {/* Radiology Test Table */}
+                {radiologyTests.length > 0 && (
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full border rounded-lg overflow-hidden shadow-md">
+                      <thead>
+                        <tr className="bg-blue-100 text-blue-900">
+                          <th className="px-4 py-2 text-left font-semibold">Procedure Name</th>
+                          <th className="px-4 py-2 text-left font-semibold">Requested Date</th>
+                          <th className="px-4 py-2 text-left font-semibold">Submit To</th>
+                          <th className="px-4 py-2 text-left font-semibold">Urgency</th>
+                          <th className="px-4 py-2 text-left font-semibold">Modifiers</th>
+                          <th className="px-4 py-2 text-left font-semibold">Transport</th>
+                          <th className="px-4 py-2 text-left font-semibold">Reason for Study</th>
+                          <th className="px-4 py-2 text-center font-semibold">Remove</th>
+                          <th className="px-4 py-2 text-center font-semibold">Save Quick Order</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {radiologyTests.map((test, idx) => (
+                          <tr key={test.id} className="even:bg-gray-50 odd:bg-white hover:bg-blue-50 transition">
+                            <td className="px-4 py-2 font-semibold text-blue-700">
+                              <Input
+                                value={test.name}
+                                onChange={(e) => updateRadiologyTest(test.id, 'name', e.target.value)}
+                                className="w-full border border-gray-200 rounded bg-[#f5f5f5]"
+                              />
+                            </td>
+                            <td className="px-4 py-2">
+                              <Input
+                                type="date"
+                                value={test.requestedDate}
+                                onChange={(e) => updateRadiologyTest(test.id, 'requestedDate', e.target.value)}
+                                className="w-full border border-gray-200 rounded bg-[#f5f5f5]"
+                              />
+                            </td>
+                            <td className="px-4 py-2">
+                              <Input
+                                value={test.submitTo}
+                                onChange={(e) => updateRadiologyTest(test.id, 'submitTo', e.target.value)}
+                                className="w-full border border-gray-200 rounded bg-[#f5f5f5]"
+                              />
+                            </td>
+                            <td className="px-4 py-2">
+                              <Select
+                                value={test.urgency}
+                                onValueChange={(value) => updateRadiologyTest(test.id, 'urgency', value)}
+                              >
+                                <SelectTrigger className="w-full border border-gray-200 rounded bg-[#f5f5f5]">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="ROUTINE">ROUTINE</SelectItem>
+                                  <SelectItem value="URGENT">URGENT</SelectItem>
+                                  <SelectItem value="STAT">STAT</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </td>
+                            <td className="px-4 py-2">
+                              <Input
+                                value={test.modifiers}
+                                onChange={(e) => updateRadiologyTest(test.id, 'modifiers', e.target.value)}
+                                className="w-full border border-gray-200 rounded bg-[#f5f5f5]"
+                              />
+                            </td>
+                            <td className="px-4 py-2">
+                              <Input
+                                value={test.transport}
+                                onChange={(e) => updateRadiologyTest(test.id, 'transport', e.target.value)}
+                                className="w-full border border-gray-200 rounded bg-[#f5f5f5]"
+                              />
+                            </td>
+                            <td className="px-4 py-2">
+                              <Input
+                                value={test.reason}
+                                onChange={(e) => updateRadiologyTest(test.id, 'reason', e.target.value)}
+                                className="w-full border border-gray-200 rounded bg-[#f5f5f5]"
+                              />
+                            </td>
+                            <td className="px-4 py-2 text-center">
+                              <Button size="icon" variant="ghost" onClick={() => removeRadiologyTest(test.id)}>
+                                <Trash2 className="h-5 w-5 text-red-500" />
+                                <span className="sr-only">Remove</span>
+                              </Button>
+                            </td>
+                            <td className="px-4 py-2 text-center">
+                              <Button size="icon" variant="ghost" onClick={() => saveQuickOrder(test)}>
+                                <Save className="h-5 w-5 text-blue-500" />
+                                <span className="sr-only">Save Quick Order</span>
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
-                </Card>
-                {/* Notes */}
-                <Card className="flex flex-col bg-white border border-gray-200 shadow-md rounded-lg p-2">
-                  <div className="text-sm font-normal mb-1">Notes</div>
-                  <div className="flex flex-row items-center gap-2 w-full">
-                    <Textarea
-                      id={`notes-${dialog.id}`}
-                      value={radiologyInputs[dialog.id]?.notes || ''}
-                      onChange={(e) =>
-                        setRadiologyInputs((prev) => ({
-                          ...prev,
-                          [dialog.id]: { ...prev[dialog.id], notes: e.target.value },
-                        }))
-                      }
-                      className="w-full border border-gray-200 rounded-md px-3 py-2 bg-[#f5f5f5]"
-                    />
-                  </div>
-                </Card>
-
+                )}
                 {/* Save/Reset/Close buttons */}
                 <div className="flex justify-end gap-2 mt-4">
-                  <Button
+                  <Button variant="outline" onClick={() => setRadiologyTests([])}>
+                    Reset
+                  </Button>
+                  <Button 
                     onClick={() => {
                       toast.success('Radiology order placed!');
                       closeFloatingDialog(dialog.id);
                     }}
                   >
-                    Confirm Order
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    onClick={() =>
-                      setRadiologyInputs((prev) => ({
-                        ...prev,
-                        [dialog.id]: { type: '', bodyPart: '', notes: '' },
-                      }))
-                    }
-                  >
-                    Reset
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => closeFloatingDialog(dialog.id)}
-                  >
-                    Cancel
+                    Save
                   </Button>
                 </div>
               </div>
