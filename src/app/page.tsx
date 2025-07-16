@@ -152,9 +152,9 @@ export default function DashboardPage({
   const { 
     searchProblems, 
     searchResults, 
-    isSearching, 
-    searchError, 
-    clearSearch 
+    isSearching: isProblemSearching, 
+    searchError: problemSearchError, 
+    clearSearch: clearProblemSearch 
   } = useProblemSearch();
 
   // State for problem inputs
@@ -912,10 +912,10 @@ export default function DashboardPage({
         searchProblems(searchTerm, patient.ssn || '800000035');
       } else {
         console.log('Search term too short, clearing results');
-        clearSearch();
+        clearProblemSearch();
       }
     }, 300),
-    [searchProblems, patient.ssn, clearSearch]
+    [searchProblems, patient.ssn, clearProblemSearch]
   );
 
   // Handle input change with immediate feedback
@@ -936,15 +936,15 @@ export default function DashboardPage({
     // Clear results if input is cleared
     if (!value.trim()) {
       console.log('Input cleared, clearing search');
-      clearSearch();
+      clearProblemSearch();
     } else if (value.trim().length >= 2) {
       console.log('Triggering search for:', value);
       handleSearchChange(value, dialogId);
     } else {
       console.log('Search term too short, not searching');
-      clearSearch();
+      clearProblemSearch();
     }
-  }, [handleSearchChange, clearSearch]);
+  }, [handleSearchChange, clearProblemSearch]);
 
   // Handle problem selection from search results
   const handleSelectProblem = useCallback((problem: string, dialogId: string) => {
@@ -956,8 +956,8 @@ export default function DashboardPage({
         other: true // Keep the search input visible after selection
       }
     }));
-    clearSearch();
-  }, [clearSearch]);
+    clearProblemSearch();
+  }, [clearProblemSearch]);
 
   // Medication names for selection
   const medicationList = [
@@ -1648,36 +1648,118 @@ export default function DashboardPage({
                           <Label htmlFor={`otherProblems-${dialog.id}`} className="text-xs font-semibold text-gray-700">Other Problem</Label>
                         </div>
                         {problemInputs[dialog.id]?.other && (
-                          <Input
-                            id={`problemInput-${dialog.id}`}
-                            value={problemInputs[dialog.id]?.input || ''}
-                            onChange={e => handleInputChange(e, dialog.id)}
-                            onFocus={() => {
-                              const currentValue = problemInputs[dialog.id]?.input || '';
-                              if (currentValue.trim().length >= 2 && searchResults.length === 0) {
-                                searchProblems(currentValue, patient.ssn || '800000035');
-                              }
-                            }}
-                            placeholder="Search or enter a problem..."
-                            className="w-full h-8 text-xs border rounded shadow-sm bg-gray-50"
-                            autoComplete="off"
-                          />
+                          <div className="relative">
+                            <Input
+                              id={`problemInput-${dialog.id}`}
+                              value={problemInputs[dialog.id]?.input || ''}
+                              onChange={e => handleInputChange(e, dialog.id)}
+                              onFocus={() => {
+                                const currentValue = problemInputs[dialog.id]?.input || '';
+                                if (currentValue.trim().length >= 2 && searchResults.length === 0) {
+                                  searchProblems(currentValue, patient.ssn || '800000035');
+                                }
+                              }}
+                              placeholder="Search or enter a problem..."
+                              className="w-full h-8 text-xs border rounded shadow-sm bg-gray-50"
+                              autoComplete="off"
+                            />
+                            {isProblemSearching ? (
+                              <div className="absolute z-10 w-full mt-1 bg-white border rounded-md shadow-lg">
+                                <div className="p-2 text-center text-xs text-gray-500">Searching...</div>
+                              </div>
+                            ) : problemSearchError ? (
+                              <div className="absolute z-10 w-full mt-1 bg-white border border-red-200 rounded-md shadow-lg">
+                                <div className="p-2 text-center text-xs text-red-500">{problemSearchError}</div>
+                              </div>
+                            ) : searchResults.length > 0 && problemInputs[dialog.id]?.input?.trim() ? (
+                              <div className="absolute z-10 w-full mt-1 bg-white border rounded-md shadow-lg max-h-60 overflow-y-auto">
+                                {searchResults.map((result, index) => {
+                                  const problemName = result.description || '';
+                                  const problemCode = result.code || '';
+                                  const displayText = problemName && problemCode ? 
+                                    `${problemName} (${problemCode})` : 
+                                    problemName || problemCode;
+                                  
+                                  const isSelected = problemInputs[dialog.id]?.problemName === problemName &&
+                                    problemInputs[dialog.id]?.problemCode === problemCode;
+                                  
+                                  return (
+                                    <div
+                                      key={`${problemCode}-${index}`}
+                                      className={`px-3 py-2 text-xs cursor-pointer flex items-center ${isSelected ? 'bg-blue-50 text-blue-700' : 'hover:bg-gray-100'}`}
+                                      onClick={() => {
+                                        setProblemInputs(prev => ({
+                                          ...prev,
+                                          [dialog.id]: {
+                                            ...prev[dialog.id],
+                                            input: displayText,
+                                            problemName: problemName,
+                                            problemCode: problemCode,
+                                          }
+                                        }));
+                                        clearProblemSearch();
+                                      }}
+                                    >
+                                      {isSelected && (
+                                        <Check className="mr-2 h-3.5 w-3.5 text-blue-500" />
+                                      )}
+                                      {!isSelected && <span className="w-5.5"></span>}
+                                      <span className={isSelected ? 'font-medium' : ''}>
+                                        {displayText}
+                                      </span>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            ) : null}
+                          </div>
                         )}
                       </div>
                     </div>
 
-                    {/* Second Row: Service and Immediacy */}
+                    {/* Second Row: Immediacy and Service */}
                     <div className="flex flex-col md:flex-row gap-2">
+                      {/* Immediacy section moved to left */}
+                      <div className="flex-1 bg-white rounded-lg shadow-md p-2 border">
+                        <div className="space-y-2">
+                          <Label className="block mb-1 text-xs font-semibold text-gray-700">Immediacy</Label>
+                          <div className="flex gap-4">
+                            <RadioGroup
+                              value={problemInputs[dialog.id]?.immediacy}
+                              onValueChange={(value) => setProblemInputs(prev => ({
+                                ...prev,
+                                [dialog.id]: { ...prev[dialog.id], immediacy: value as string }
+                              }))}
+                              className="flex items-center justify-between gap-4"
+                            >
+                              <div className="flex items-center space-x-1.5">
+                                <RadioGroupItem value="ROUTINE" id={`routine-${dialog.id}`} className="h-4 w-4" />
+                                <Label htmlFor={`routine-${dialog.id}`} className="text-xs cursor-pointer">Cronic </Label>
+                              </div>
+                              <div className="flex items-center space-x-1.5">
+                                <RadioGroupItem value="URGENT" id={`urgent-${dialog.id}`} className="h-4 w-4" />
+                                <Label htmlFor={`urgent-${dialog.id}`} className="text-xs cursor-pointer">Acute</Label>
+                              </div>
+                              <div className="flex items-center space-x-1.5">
+                                <RadioGroupItem value="STAT" id={`stat-${dialog.id}`} className="h-4 w-4" />
+                                <Label htmlFor={`stat-${dialog.id}`} className="text-xs cursor-pointer">Unknown</Label>
+                              </div>
+                            </RadioGroup>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Service section moved to right */}
                       <div className="flex-1 bg-white rounded-lg shadow-md p-2 border">
                         <Label className="block mb-1 text-xs font-semibold text-gray-700">Service</Label>
                         <Select
                           value={problemInputs[dialog.id]?.service || ''}
-                          onValueChange={value => setProblemInputs(prev => ({
+                          onValueChange={(value) => setProblemInputs(prev => ({
                             ...prev,
                             [dialog.id]: { ...prev[dialog.id], service: value as string }
                           }))}
                         >
-                          <SelectTrigger className="w-full h-8 text-xs border rounded shadow-sm bg-gray-50">
+                          <SelectTrigger className="w-full h-8 text-xs">
                             <SelectValue placeholder="Select Service" />
                           </SelectTrigger>
                           <SelectContent>
@@ -1701,36 +1783,47 @@ export default function DashboardPage({
                           </SelectContent>
                         </Select>
                       </div>
+                    </div>
+
+                    {/* New Row: Status and Date */}
+                    <div className="flex flex-col md:flex-row gap-2">
+                      {/* Status Card */}
                       <div className="flex-1 bg-white rounded-lg shadow-md p-2 border">
-                        <div className="space-y-2">
-                          <Label className="block mb-1 text-xs font-semibold text-gray-700">Immediacy</Label>
-                          <div className="flex gap-4">
-                            <RadioGroup
-                              value={problemInputs[dialog.id]?.immediacy}
-                              onValueChange={(value) => setProblemInputs(prev => ({
-                                ...prev,
-                                [dialog.id]: { ...prev[dialog.id], immediacy: value as string }
-                              }))}
-                            >
-                              <div className="flex items-center">
-                                <RadioGroupItem value="ROUTINE" id="routine" className="h-4 w-4" />
-                                <Label htmlFor="routine" className="ml-2 text-xs">Routine</Label>
-                              </div>
-                              <div className="flex items-center">
-                                <RadioGroupItem value="URGENT" id="urgent" className="h-4 w-4" />
-                                <Label htmlFor="urgent" className="ml-2 text-xs">Urgent</Label>
-                              </div>
-                              <div className="flex items-center">
-                                <RadioGroupItem value="STAT" id="stat" className="h-4 w-4" />
-                                <Label htmlFor="stat" className="ml-2 text-xs">Stat</Label>
-                              </div>
-                            </RadioGroup>
-                          </div>
-                        </div>
+                        <Label className="block mb-1 text-xs font-semibold text-gray-700">Status</Label>
+                        <Select
+                          value={problemInputs[dialog.id]?.status || ''}
+                          onValueChange={(value) => setProblemInputs(prev => ({
+                            ...prev,
+                            [dialog.id]: { ...prev[dialog.id], status: value as string }
+                          }))}
+                        >
+                          <SelectTrigger className="w-full h-8 text-xs">
+                            <SelectValue placeholder="Select Status" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="ACTIVE">Active</SelectItem>
+                            <SelectItem value="INACTIVE">Inactive</SelectItem>
+                            
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      {/* Date Card */}
+                      <div className="flex-1 bg-white rounded-lg shadow-md p-2 border">
+                        <Label className="block mb-1 text-xs font-semibold text-gray-700">Date</Label>
+                        <Input
+                          type="date"
+                          value={problemInputs[dialog.id]?.dateOnset || ''}
+                          onChange={e => setProblemInputs(prev => ({
+                            ...prev,
+                            [dialog.id]: { ...prev[dialog.id], dateOnset: e.target.value }
+                          }))}
+                          className="w-full h-8 text-xs"
+                        />
                       </div>
                     </div>
 
-                    {/* Third Row: Comment Card */}
+                    {/* Comment Card */}
                     <div className="bg-white rounded-lg shadow-md p-2 border">
                       <Label className="block mb-1 text-xs font-semibold text-gray-700">Comment</Label>
                       <Textarea
@@ -1776,6 +1869,13 @@ export default function DashboardPage({
                         className="px-4 text-xs h-8"
                       >
                         Reset
+                      </Button>
+                      <Button 
+                        variant="outline"
+                        onClick={() => closeFloatingDialog(dialog.id)}
+                        className="px-4 text-xs h-8"
+                      >
+                        Close
                       </Button>
                     </div>
                   </div>
@@ -1972,11 +2072,25 @@ export default function DashboardPage({
                 </div>
                 {/* Save/Reset/Close buttons */}
                 <div className="flex justify-end gap-2 mt-4">
-                  <Button variant="outline" onClick={() => resetMedicationForm(dialog.id)}>
+                  <Button 
+                    onClick={() => handleAddMedication(dialog.id)}
+                    className="px-4 text-xs h-8"
+                  >
+                    Save
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => resetMedicationForm(dialog.id)}
+                    className="px-4 text-xs h-8"
+                  >
                     Reset
                   </Button>
-                  <Button onClick={() => saveMedication(dialog.id)}>
-                    Save
+                  <Button 
+                    variant="outline"
+                    onClick={() => closeFloatingDialog(dialog.id)}
+                    className="px-4 text-xs h-8"
+                  >
+                    Close
                   </Button>
                 </div>
               </div>
@@ -1994,16 +2108,6 @@ export default function DashboardPage({
                         className="flex-1 border border-gray-200 rounded-md px-3 py-2 bg-[#f5f5f5]"
                         placeholder="Enter lab test name..."
                       />
-                      <Button
-                        size="sm"
-                        className="ml-2"
-                        onClick={() => {
-                          addLabTest(labTestInput);
-                          setLabTestInput('');
-                        }}
-                      >
-                        Add
-                      </Button>
                     </div>
                   </Card>
                   {/* Quick Order Card */}
@@ -2045,21 +2149,21 @@ export default function DashboardPage({
                     <table className="min-w-full border rounded-lg overflow-hidden shadow-md">
                       <thead>
                         <tr className="bg-blue-100 text-blue-900">
-                          <th className="px-4 py-2 text-left font-semibold w-48">Lab Investigation Name</th>
-                          <th className="px-4 py-2 text-left font-semibold w-40">Collect Sample</th>
-                          <th className="px-4 py-2 text-left font-semibold w-32">Specimen</th>
-                          <th className="px-4 py-2 text-left font-semibold w-32">Urgency</th>
-                          <th className="px-4 py-2 text-left font-semibold w-32">How Often</th>
-                          <th className="px-4 py-2 text-left font-semibold w-56">Comments</th>
-                          <th className="px-4 py-2 text-center font-semibold w-12">Remove</th>
-                          <th className="px-4 py-2 text-center font-semibold w-12">Save Quick Order</th>
+                          <th className="px-4 py-2 text-left font-semibold">Lab Investigation Name</th>
+                          <th className="px-4 py-2 text-left font-semibold">Collect Sample</th>
+                          <th className="px-4 py-2 text-left font-semibold">Specimen</th>
+                          <th className="px-4 py-2 text-left font-semibold">Urgency</th>
+                          <th className="px-4 py-2 text-left font-semibold">How Often</th>
+                          <th className="px-4 py-2 text-left font-semibold">Comments</th>
+                          <th className="px-4 py-2 text-center font-semibold">Remove</th>
+                          <th className="px-4 py-2 text-center font-semibold">Save Quick Order</th>
                         </tr>
                       </thead>
                       <tbody>
                         {labTests.map((test, idx) => (
                           <tr key={test.name} className="even:bg-gray-50 odd:bg-white hover:bg-blue-50 transition">
-                            <td className="px-4 py-2 font-semibold text-blue-700 w-48">{test.name}</td>
-                            <td className="px-4 py-2 w-40">
+                            <td className="px-4 py-2 font-semibold text-blue-700">{test.name}</td>
+                            <td className="px-4 py-2">
                               <Select
                                 value={test.collectSample}
                                 onValueChange={value => {
@@ -2078,7 +2182,7 @@ export default function DashboardPage({
                                 </SelectContent>
                               </Select>
                             </td>
-                            <td className="px-4 py-2 w-32">
+                            <td className="px-4 py-2">
                               <Select
                                 value={test.specimen}
                                 onValueChange={value => {
@@ -2097,7 +2201,7 @@ export default function DashboardPage({
                                 </SelectContent>
                               </Select>
                             </td>
-                            <td className="px-4 py-2 w-32">
+                            <td className="px-4 py-2">
                               <Select
                                 value={test.urgency}
                                 onValueChange={value => {
@@ -2115,7 +2219,7 @@ export default function DashboardPage({
                                 </SelectContent>
                               </Select>
                             </td>
-                            <td className="px-4 py-2 w-32">
+                            <td className="px-4 py-2">
                               <Select
                                 value={test.howOften}
                                 onValueChange={value => {
@@ -2134,7 +2238,7 @@ export default function DashboardPage({
                                 </SelectContent>
                               </Select>
                             </td>
-                            <td className="px-4 py-2 w-56">
+                            <td className="px-4 py-2">
                               <Input
                                 value={test.comments}
                                 onChange={e => {
@@ -2145,13 +2249,13 @@ export default function DashboardPage({
                                 className="w-full border border-gray-200 rounded bg-[#f5f5f5]"
                               />
                             </td>
-                            <td className="px-4 py-2 text-center w-12">
+                            <td className="px-4 py-2 text-center">
                               <Button size="icon" variant="ghost" onClick={() => setLabTests(tests => tests.filter((_, i) => i !== idx))}>
                                 <Trash2 className="h-5 w-5 text-red-500" />
                                 <span className="sr-only">Remove</span>
                               </Button>
                             </td>
-                            <td className="px-4 py-2 text-center w-12">
+                            <td className="px-4 py-2 text-center">
                               <Button size="icon" variant="ghost" onClick={() => {/* Save quick order logic here */}}>
                                 <Save className="h-5 w-5 text-blue-500" />
                                 <span className="sr-only">Save Quick Order</span>
@@ -2165,11 +2269,25 @@ export default function DashboardPage({
                 )}
                 {/* Save/Reset/Close buttons */}
                 <div className="flex justify-end gap-2 mt-4">
-                  <Button variant="outline" onClick={() => setLabTests([])}>
+                  <Button 
+                    onClick={() => saveLabTests(dialog.id)}
+                    className="px-4 text-xs h-8"
+                  >
+                    Save
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setLabTests([])}
+                    className="px-4 text-xs h-8"
+                  >
                     Reset
                   </Button>
-                  <Button onClick={() => saveLabTests(dialog.id)}>
-                    Save
+                  <Button 
+                    variant="outline"
+                    onClick={() => closeFloatingDialog(dialog.id)}
+                    className="px-4 text-xs h-8"
+                  >
+                    Close
                   </Button>
                 </div>
               </div>
@@ -2341,16 +2459,28 @@ export default function DashboardPage({
                 )}
                 {/* Save/Reset/Close buttons */}
                 <div className="flex justify-end gap-2 mt-4">
-                  <Button variant="outline" onClick={() => setRadiologyTests([])}>
-                    Reset
-                  </Button>
                   <Button 
                     onClick={() => {
                       toast.success('Radiology order placed!');
                       closeFloatingDialog(dialog.id);
                     }}
+                    className="px-4 text-xs h-8"
                   >
                     Save
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setRadiologyTests([])}
+                    className="px-4 text-xs h-8"
+                  >
+                    Reset
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    onClick={() => closeFloatingDialog(dialog.id)}
+                    className="px-4 text-xs h-8"
+                  >
+                    Close
                   </Button>
                 </div>
               </div>
@@ -2429,28 +2559,33 @@ export default function DashboardPage({
 
                 {/* Save/Reset/Close buttons */}
                 <div className="flex justify-end gap-2 mt-4">
-                  <Button
-                    className="bg-orange-500 hover:bg-orange-600 text-white"
+                  <Button 
                     onClick={() => {
                       toast.success('Report order confirmed');
                       closeFloatingDialog(dialog.id);
                     }}
+                    className="px-4 text-xs h-8"
                   >
-                    Confirm Order
+                    Save
                   </Button>
                   <Button
-                    variant="secondary"
+                    variant="outline"
                     onClick={() =>
                       setReportInputs((prev) => ({
                         ...prev,
                         [dialog.id]: { search: '', quickSearch: '', selected: [] },
                       }))
                     }
+                    className="px-4 text-xs h-8"
                   >
                     Reset
                   </Button>
-                  <Button variant="outline" onClick={() => closeFloatingDialog(dialog.id)}>
-                    Cancel
+                  <Button 
+                    variant="outline"
+                    onClick={() => closeFloatingDialog(dialog.id)}
+                    className="px-4 text-xs h-8"
+                  >
+                    Close
                   </Button>
                 </div>
               </div>
@@ -2493,8 +2628,8 @@ export default function DashboardPage({
                                 e.preventDefault();
                                 setAllergyInputs(prev => ({
                                   ...prev,
-                                  [dialog.id]: { 
-                                    ...(prev[dialog.id] || {}), 
+                                  [dialog.id]: {
+                                    ...(prev[dialog.id] || {}),
                                     allergies: result.name || result.AllergyName || result.allergen || result || ''
                                   }
                                 }));
@@ -2640,13 +2775,13 @@ export default function DashboardPage({
                 {/* Action Buttons */}
                 <div className="flex justify-end gap-2 mt-4">
                   <Button 
-                    variant="outline" 
-                    onClick={() => closeFloatingDialog(dialog.id)}
+                    onClick={() => handleAddAllergy(dialog.id)}
+                    className="px-4 text-xs h-8"
                   >
-                    Close
+                    Save
                   </Button>
                   <Button 
-                    variant="secondary"
+                    variant="outline"
                     onClick={() => {
                       setAllergyInputs(prev => ({
                         ...prev,
@@ -2660,16 +2795,16 @@ export default function DashboardPage({
                         }
                       }));
                     }}
+                    className="px-4 text-xs h-8"
                   >
                     Reset
                   </Button>
                   <Button 
-                    onClick={() => {
-                      handleAddAllergy(dialog.id);
-                      closeFloatingDialog(dialog.id);
-                    }}
+                    variant="outline"
+                    onClick={() => closeFloatingDialog(dialog.id)}
+                    className="px-4 text-xs h-8"
                   >
-                    Save
+                    Close
                   </Button>
                 </div>
               </div>
