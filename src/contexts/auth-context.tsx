@@ -1,7 +1,8 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { initSessionTimeout, resetSessionTimeout, clearSessionTimeout, clearSession, getSession } from '@/lib/auth-utils';
 
 type User = {
   username: string;
@@ -23,16 +24,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
+  const handleLogout = useCallback(async () => {
+    clearSession();
+    clearSessionTimeout();
+    setUser(null);
+    window.location.href = '/login?session=expired';
+  }, []);
+
+  const handleSessionTimeout = useCallback(() => {
+    handleLogout();
+  }, [handleLogout]);
+
   useEffect(() => {
-    // Check if user is logged in on initial load
     const checkAuth = async () => {
       try {
-        // Check if user session exists in localStorage
-        const storedUser = localStorage.getItem('user');
-        if (storedUser) {
-          const parsedUser = JSON.parse(storedUser);
-          // Only update state if user is different to prevent unnecessary re-renders
-          setUser(prevUser => JSON.stringify(prevUser) === storedUser ? prevUser : parsedUser);
+        const session = getSession();
+        if (session) {
+          const storedUser = localStorage.getItem('user');
+          if (storedUser) {
+            const parsedUser = JSON.parse(storedUser);
+            setUser(prevUser => JSON.stringify(prevUser) === storedUser ? prevUser : parsedUser);
+            initSessionTimeout(handleSessionTimeout);
+          }
         } else {
           setUser(null);
         }
@@ -46,21 +59,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     checkAuth();
 
-    // Set up beforeunload event listener
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      const currentUser = localStorage.getItem('user');
-      if (currentUser) {
-        e.preventDefault();
-        e.returnValue = 'Please logout before closing the browser';
-        return 'Please logout before closing the browser';
+    const handleActivity = () => {
+      if (getSession()) {
+        resetSessionTimeout(handleSessionTimeout);
       }
     };
 
-    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('mousemove', handleActivity);
+    window.addEventListener('keydown', handleActivity);
+    window.addEventListener('scroll', handleActivity);
+    window.addEventListener('click', handleActivity);
+
     return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('mousemove', handleActivity);
+      window.removeEventListener('keydown', handleActivity);
+      window.removeEventListener('scroll', handleActivity);
+      window.removeEventListener('click', handleActivity);
+      clearSessionTimeout();
     };
-  }, []); // Removed user from dependencies to prevent infinite loop
+  }, [handleSessionTimeout]);
 
   const login = async (username: string, password: string) => {
     try {
@@ -73,6 +90,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.setItem('user', JSON.stringify(mockUser));
       document.cookie = 'isAuthenticated=true; path=/;';
       
+      initSessionTimeout(handleSessionTimeout);
+      
       router.push('/patients');
     } catch (error) {
       console.error('Login failed:', error);
@@ -81,19 +100,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = async () => {
-    try {
-      // Clear user data
-      setUser(null);
-      localStorage.removeItem('user');
-      // Clear the authentication cookie
-      document.cookie = 'isAuthenticated=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax';
-      
-      // Force a full page reload to clear any state
-      window.location.href = '/login';
-    } catch (error) {
-      console.error('Logout failed:', error);
-      throw error;
-    }
+    await handleLogout();
   };
 
   const value = {
@@ -104,7 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loading,
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={value}>{!loading && children}</AuthContext.Provider>;
 }
 
 export function useAuth() {

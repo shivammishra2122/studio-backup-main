@@ -6,6 +6,9 @@ interface UserSession {
   name?: string;
 }
 
+const SESSION_TIMEOUT_MS = 20 * 60 * 1000; // 20 minutes
+let sessionTimer: NodeJS.Timeout | null = null;
+
 export const getSession = (): UserSession | null => {
   if (typeof window === 'undefined') return null;
   
@@ -46,4 +49,24 @@ export const clearSession = () => {
   
   localStorage.removeItem('userData');
   document.cookie = 'isAuthenticated=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+};
+
+export const initSessionTimeout = (onTimeout: () => void) => {
+  if (sessionTimer) {
+    clearTimeout(sessionTimer);
+  }
+  sessionTimer = setTimeout(onTimeout, SESSION_TIMEOUT_MS);
+};
+
+export const resetSessionTimeout = (onTimeout: () => void) => {
+  if (sessionTimer) {
+    clearTimeout(sessionTimer);
+  }
+  initSessionTimeout(onTimeout);
+};
+
+export const clearSessionTimeout = () => {
+  if (sessionTimer) {
+    clearTimeout(sessionTimer);
+  }
 };
