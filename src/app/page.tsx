@@ -10,6 +10,7 @@ import {
   Droplet, HeartPulse, Activity, Thermometer, Scale, Edit3, Clock, Pill as PillIcon, X, Ban, FileText,
   ScanLine, ClipboardList, BellRing,
 } from 'lucide-react';
+import { Trash2, Save } from 'lucide-react';
 import {
   HealthMetric, Problem, Medication, ProblemCategory, ProblemStatus, ProblemImmediacy, ProblemService,
   MOCK_PROBLEMS, MOCK_MEDICATIONS, pageCardSampleContent, MOCK_KEY_INDICATORS,
@@ -78,7 +79,7 @@ interface Allergy {
 }
 
 // Define Dialog types
-type DialogType = 'problem' | 'medication' | 'info-item' | 'allergies' | 'radiology' | 'report';
+type DialogType = 'problem' | 'medication' | 'info-item' | 'allergies' | 'radiology' | 'report' | 'lab';
 
 interface FloatingDialog {
   id: string;
@@ -100,6 +101,15 @@ interface MedicationRow {
   priority: string;
   additionalDoseNow: boolean;
   comment: string;
+}
+
+interface LabTest {
+  name: string;
+  collectSample: string;
+  specimen: string;
+  urgency: string;
+  howOften: string;
+  comments: string;
 }
 
 export default function DashboardPage({
@@ -191,6 +201,8 @@ export default function DashboardPage({
   const [filteredMeds, setFilteredMeds] = useState<string[]>([]);
   const [isAllergyDialogVisible, setIsAllergyDialogVisible] = useState<boolean>(false);
   const [selectedAllergy, setSelectedAllergy] = useState<Allergy | null>(null);
+  const [labTests, setLabTests] = useState<LabTest[]>([]);
+  const [labTestInput, setLabTestInput] = useState('');
 
   // Dialog input states
   const [medicationInputs, setMedicationInputs] = useState<
@@ -522,6 +534,9 @@ export default function DashboardPage({
         ...prev,
         [id]: { search: '', quickSearch: '', selected: [] },
       }));
+    } else if (type === 'lab') {
+      setLabTests([]);
+      setLabTestInput('');
     }
   }, [floatingDialogs]);
 
@@ -815,6 +830,32 @@ export default function DashboardPage({
     closeFloatingDialog(dialogId);
   };
 
+  const addLabTest = (name: string) => {
+    if (labTests.find((test) => test.name === name)) {
+      toast.error('Lab test already added');
+      return;
+    }
+
+    setLabTests((prev) => [
+      ...prev,
+      {
+        name,
+        collectSample: '',
+        specimen: '',
+        urgency: '',
+        howOften: '',
+        comments: '',
+      },
+    ]);
+  };
+
+  const saveLabTests = (dialogId: string) => {
+    // Implement logic to save lab tests
+    console.log('Saving lab tests:', labTests);
+    toast.success('Lab tests saved successfully!');
+    closeFloatingDialog(dialogId);
+  };
+
   // Handle problem search input change with debounce
   const handleSearchChange = useCallback(
     debounce((searchTerm: string, dialogId: string) => {
@@ -869,6 +910,39 @@ export default function DashboardPage({
     }));
     clearSearch();
   }, [clearSearch]);
+
+  // Medication names for selection
+  const medicationList = [
+    'Aspirin',
+    'Paracetamol',
+    'Amoxicillin',
+    'Metformin',
+    'Atorvastatin',
+  ];
+
+  // Track selected medication
+  const [selectedMedication, setSelectedMedication] = useState<string | null>(null);
+
+  // Reset form and clear selection
+  const resetMedicationForm = (dialogId: string) => {
+    setMedicationInputs(prev => ({
+      ...prev,
+      [dialogId]: { 
+        medicationName: '', 
+        quickOrder: '', 
+        dosage: '', 
+        route: '', 
+        schedule: '', 
+        prn: false, 
+        duration: '', 
+        durationUnit: '', 
+        priority: '', 
+        additionalDoseNow: false, 
+        comment: '' 
+      }
+    }));
+    setSelectedMedication(null);
+  };
 
   return (
     <div className="flex flex-1 flex-col min-h-0 overflow-auto bg-background relative">
@@ -1178,15 +1252,6 @@ export default function DashboardPage({
                   </Button>
                 </ShadcnCardHeader>
                 <CardContent className="p-0 h-[120px] overflow-y-auto scrollbar-hide">
-                  <style jsx global>{`
-                    .scrollbar-hide::-webkit-scrollbar {
-                      display: none;
-                    }
-                    .scrollbar-hide {
-                      -ms-overflow-style: none;
-                      scrollbar-width: none;
-                    }
-                  `}</style>
                   <Table>
                     <TableBody>
                       {medicationsLoading ? (
@@ -1228,6 +1293,38 @@ export default function DashboardPage({
                 </CardContent>
               </Card>
             );
+          } else if (title === 'Lab Report') {
+            return (
+              <Card key="lab-report" className={`shadow-lg ${colSpan}`}>
+                <ShadcnCardHeader className="flex flex-row items-center justify-between pt-2 pb-0 px-3">
+                  <div className="flex items-center space-x-1.5">
+                    <IconComponent className="h-4 w-4 text-primary" />
+                    <CardTitle className="text-base">{title}</CardTitle>
+                    <Badge variant="secondary" className="text-xs px-1.5 py-0.5">0</Badge>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={() => openFloatingDialog('lab', 'Order Lab Tests')}
+                  >
+                    <Edit3 className="h-3.5 w-3.5" />
+                    <span className="sr-only">Edit {title}</span>
+                  </Button>
+                </ShadcnCardHeader>
+                <CardContent className="p-0 h-[120px] overflow-y-auto scrollbar-hide">
+                  <Table>
+                    <TableBody>
+                      <TableRow>
+                        <TableCell className="text-center text-muted-foreground text-xs py-2">
+                          No lab reports found
+                        </TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            );
           } else {
             return (
               <Card
@@ -1252,7 +1349,7 @@ export default function DashboardPage({
                       } else if (title === 'Radiology') {
                         openFloatingDialog('radiology', 'Order Radiology Test');
                       } else if (title === 'Lab Report') {
-                        openFloatingDialog('report', 'Order Report');
+                        openFloatingDialog('lab', 'Order Lab Tests');
                       } else {
                         openFloatingDialog('info-item', `Add New Item to ${title}`, { title });
                       }
@@ -1638,7 +1735,8 @@ export default function DashboardPage({
               </div>
             ) : dialog.type === 'medication' ? (
               <div className="flex flex-col gap-4 text-sm">
-                <div className="grid grid-cols-2 gap-4">
+                {/* Medication Search and Quick Order Cards */}
+                <div className="grid grid-cols-2 gap-4 mb-2">
                   {/* Medication Name Card */}
                   <Card className="flex flex-col bg-white border border-gray-200 shadow-md rounded-lg p-2">
                     <div className="text-sm font-normal mb-1">Medication Name</div>
@@ -1646,39 +1744,34 @@ export default function DashboardPage({
                       <Input
                         id={`medication-name-${dialog.id}`}
                         value={medicationInputs[dialog.id]?.medicationName || ''}
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          setMedicationInputs(prev => ({
-                            ...prev,
-                            [dialog.id]: { ...(prev[dialog.id] || {}), medicationName: value }
-                          }));
-                        }}
+                        onChange={(e) => setMedicationInputs(prev => ({
+                          ...prev,
+                          [dialog.id]: { ...(prev[dialog.id] || {}), medicationName: e.target.value }
+                        }))}
                         className="flex-1 border border-gray-200 rounded-md px-3 py-2 bg-[#f5f5f5]"
                         placeholder="Enter medication name..."
                       />
                     </div>
                   </Card>
-
                   {/* Quick Order Card */}
                   <Card className="flex flex-col bg-white border border-gray-200 shadow-md rounded-lg p-2">
                     <div className="text-sm font-normal mb-1">Quick Order</div>
                     <div className="flex flex-col gap-2">
                       <div className="flex flex-row items-center gap-2 w-full">
                         <Select
-                          value={medicationInputs[dialog.id]?.quickOrder || ''}
-                          onValueChange={(value) => setMedicationInputs(prev => ({
-                            ...prev,
-                            [dialog.id]: { ...prev[dialog.id], quickOrder: value }
-                          }))}
+                          value={selectedMedication || ''}
+                          onValueChange={(value) => setSelectedMedication(value)}
                           className="bg-[#f5f5f5]"
                         >
                           <SelectTrigger className="w-full border border-gray-200 rounded-md px-3 py-2 bg-[#f5f5f5]">
                             <SelectValue placeholder="Select quick order" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="Morning">Morning</SelectItem>
-                            <SelectItem value="Evening">Evening</SelectItem>
-                            <SelectItem value="Night">Night</SelectItem>
+                            <SelectItem value="Aspirin">Aspirin</SelectItem>
+                            <SelectItem value="Paracetamol">Paracetamol</SelectItem>
+                            <SelectItem value="Amoxicillin">Amoxicillin</SelectItem>
+                            <SelectItem value="Metformin">Metformin</SelectItem>
+                            <SelectItem value="Atorvastatin">Atorvastatin</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -1693,189 +1786,142 @@ export default function DashboardPage({
                     </div>
                   </Card>
                 </div>
-
-                {/* Dosage */}
-                <div className="grid grid-cols-2 gap-4">
-                  <Card className="flex flex-col bg-white border border-gray-200 shadow-md rounded-lg p-2">
-                    <div className="text-sm font-normal mb-1">Dosage</div>
-                    <div className="flex flex-row items-center gap-2 w-full">
-                      <Input
-                        id={`dosage-${dialog.id}`}
-                        value={medicationInputs[dialog.id]?.dosage || ''}
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          setMedicationInputs(prev => ({
-                            ...prev,
-                            [dialog.id]: { ...prev[dialog.id], dosage: value }
-                          }));
-                        }}
-                        className="flex-1 border border-gray-200 rounded-md px-3 py-2 bg-[#f5f5f5]"
-                        placeholder="Enter dosage..."
-                      />
-                    </div>
-                  </Card>
-
-                  {/* Route */}
-                  <Card className="flex flex-col bg-white border border-gray-200 shadow-md rounded-lg p-2">
-                    <div className="text-sm font-normal mb-1">Route</div>
-                    <div className="flex flex-row items-center gap-2 w-full">
-                      <Select
-                        value={medicationInputs[dialog.id]?.route || ''}
-                        onValueChange={(value) => setMedicationInputs(prev => ({
-                          ...prev,
-                          [dialog.id]: { ...prev[dialog.id], route: value }
-                        }))}
-                        className="bg-[#f5f5f5]"
-                      >
-                        <SelectTrigger className="w-full border border-gray-200 rounded-md px-3 py-2 bg-[#f5f5f5]">
-                          <SelectValue placeholder="Select route" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="PO">PO</SelectItem>
-                          <SelectItem value="IV">IV</SelectItem>
-                          <SelectItem value="IM">IM</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </Card>
+                {/* Medication Table */}
+                <div className="overflow-x-auto">
+                  <table className="min-w-full border rounded-lg overflow-hidden shadow-md">
+                    <thead>
+                      <tr className="bg-blue-100 text-blue-900">
+                        <th className="px-4 py-2 text-left font-semibold">Medication Name</th>
+                        <th className="px-4 py-2 text-left font-semibold">Dosage</th>
+                        <th className="px-4 py-2 text-left font-semibold">Route</th>
+                        <th className="px-4 py-2 text-left font-semibold">Schedule</th>
+                        <th className="px-4 py-2 text-left font-semibold">PRN</th>
+                        <th className="px-4 py-2 text-left font-semibold">Duration</th>
+                        <th className="px-4 py-2 text-left font-semibold">Priority</th>
+                        <th className="px-4 py-2 text-left font-semibold">Additional Dose Now</th>
+                        <th className="px-4 py-2 text-left font-semibold">Comment</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr className="even:bg-gray-50 odd:bg-white hover:bg-blue-50 transition">
+                        <td className="px-4 py-2 font-semibold text-blue-700">{selectedMedication || ''}</td>
+                        <td className="px-4 py-2">
+                          <Input
+                            value={medicationInputs[dialog.id]?.dosage || ''}
+                            onChange={(e) => setMedicationInputs(prev => ({
+                              ...prev,
+                              [dialog.id]: { ...prev[dialog.id], dosage: e.target.value }
+                            }))}
+                            className="w-full border border-gray-200 rounded bg-[#f5f5f5]"
+                          />
+                        </td>
+                        <td className="px-4 py-2">
+                          <Select
+                            value={medicationInputs[dialog.id]?.route || ''}
+                            onValueChange={(value) => setMedicationInputs(prev => ({
+                              ...prev,
+                              [dialog.id]: { ...prev[dialog.id], route: value }
+                            }))}
+                          >
+                            <SelectTrigger className="w-full border border-gray-200 rounded bg-[#f5f5f5]">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="PO">PO</SelectItem>
+                              <SelectItem value="IV">IV</SelectItem>
+                              <SelectItem value="IM">IM</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </td>
+                        <td className="px-4 py-2">
+                          <Input
+                            value={medicationInputs[dialog.id]?.schedule || ''}
+                            onChange={(e) => setMedicationInputs(prev => ({
+                              ...prev,
+                              [dialog.id]: { ...prev[dialog.id], schedule: e.target.value }
+                            }))}
+                            className="w-full border border-gray-200 rounded bg-[#f5f5f5]"
+                          />
+                        </td>
+                        <td className="px-4 py-2">
+                          <Switch
+                            checked={medicationInputs[dialog.id]?.prn || false}
+                            onCheckedChange={(checked) => setMedicationInputs(prev => ({
+                              ...prev,
+                              [dialog.id]: { ...prev[dialog.id], prn: checked }
+                            }))}
+                          />
+                        </td>
+                        <td className="px-4 py-2">
+                          <div className="flex gap-2">
+                            <Input
+                              type="number"
+                              value={medicationInputs[dialog.id]?.duration || ''}
+                              onChange={(e) => setMedicationInputs(prev => ({
+                                ...prev,
+                                [dialog.id]: { ...prev[dialog.id], duration: e.target.value }
+                              }))}
+                              className="w-20 border border-gray-200 rounded bg-[#f5f5f5]"
+                            />
+                            <Select
+                              value={medicationInputs[dialog.id]?.durationUnit || ''}
+                              onValueChange={(value) => setMedicationInputs(prev => ({
+                                ...prev,
+                                [dialog.id]: { ...prev[dialog.id], durationUnit: value }
+                              }))}
+                            >
+                              <SelectTrigger className="w-32 border border-gray-200 rounded bg-[#f5f5f5]">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="days">Days</SelectItem>
+                                <SelectItem value="weeks">Weeks</SelectItem>
+                                <SelectItem value="months">Months</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </td>
+                        <td className="px-4 py-2">
+                          <Select
+                            value={medicationInputs[dialog.id]?.priority || ''}
+                            onValueChange={(value) => setMedicationInputs(prev => ({
+                              ...prev,
+                              [dialog.id]: { ...prev[dialog.id], priority: value }
+                            }))}
+                          >
+                            <SelectTrigger className="w-full border border-gray-200 rounded bg-[#f5f5f5]">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="High">High</SelectItem>
+                              <SelectItem value="Medium">Medium</SelectItem>
+                              <SelectItem value="Low">Low</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </td>
+                        <td className="px-4 py-2">
+                          <Switch
+                            checked={medicationInputs[dialog.id]?.additionalDoseNow || false}
+                            onCheckedChange={(checked) => setMedicationInputs(prev => ({
+                              ...prev,
+                              [dialog.id]: { ...prev[dialog.id], additionalDoseNow: checked }
+                            }))}
+                          />
+                        </td>
+                        <td className="px-4 py-2">
+                          <Input
+                            value={medicationInputs[dialog.id]?.comment || ''}
+                            onChange={(e) => setMedicationInputs(prev => ({
+                              ...prev,
+                              [dialog.id]: { ...prev[dialog.id], comment: e.target.value }
+                            }))}
+                            className="w-full border border-gray-200 rounded bg-[#f5f5f5]"
+                          />
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
                 </div>
-
-                {/* Schedule & PRN */}
-                <div className="grid grid-cols-2 gap-4">
-                  <Card className="flex flex-col bg-white border border-gray-200 shadow-md rounded-lg p-2">
-                    <div className="text-sm font-normal mb-1">Schedule</div>
-                    <div className="flex flex-row items-center gap-2 w-full">
-                      <Input
-                        id={`schedule-${dialog.id}`}
-                        value={medicationInputs[dialog.id]?.schedule || ''}
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          setMedicationInputs(prev => ({
-                            ...prev,
-                            [dialog.id]: { ...prev[dialog.id], schedule: value }
-                          }));
-                        }}
-                        className="flex-1 border border-gray-200 rounded-md px-3 py-2 bg-[#f5f5f5]"
-                        placeholder="Enter schedule..."
-                      />
-                    </div>
-                  </Card>
-
-                  <Card className="flex flex-col bg-white border border-gray-200 shadow-md rounded-lg p-2">
-                    <div className="text-sm font-normal mb-1">PRN</div>
-                    <div className="flex flex-row items-center gap-2 w-full">
-                      <Switch
-                        id={`prn-${dialog.id}`}
-                        checked={medicationInputs[dialog.id]?.prn || false}
-                        onCheckedChange={(checked) => setMedicationInputs(prev => ({
-                          ...prev,
-                          [dialog.id]: { ...prev[dialog.id], prn: checked }
-                        }))}
-                        className="bg-[#f5f5f5]"
-                      />
-                    </div>
-                  </Card>
-                </div>
-
-                {/* Duration & Priority */}
-                <div className="grid grid-cols-2 gap-4">
-                  <Card className="flex flex-col bg-white border border-gray-200 shadow-md rounded-lg p-2">
-                    <div className="text-sm font-normal mb-1">Duration</div>
-                    <div className="flex flex-row items-center gap-2 w-full">
-                      <Input
-                        id={`duration-${dialog.id}`}
-                        value={medicationInputs[dialog.id]?.duration || ''}
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          setMedicationInputs(prev => ({
-                            ...prev,
-                            [dialog.id]: { ...prev[dialog.id], duration: value }
-                          }));
-                        }}
-                        className="flex-1 border border-gray-200 rounded-md px-3 py-2 bg-[#f5f5f5]"
-                        placeholder="Enter duration..."
-                      />
-                      <Select
-                        value={medicationInputs[dialog.id]?.durationUnit || ''}
-                        onValueChange={(value) => setMedicationInputs(prev => ({
-                          ...prev,
-                          [dialog.id]: { ...prev[dialog.id], durationUnit: value }
-                        }))}
-                        className="bg-[#f5f5f5]"
-                      >
-                        <SelectTrigger className="w-full border border-gray-200 rounded-md px-3 py-2 bg-[#f5f5f5]">
-                          <SelectValue placeholder="Select unit" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="days">Days</SelectItem>
-                          <SelectItem value="weeks">Weeks</SelectItem>
-                          <SelectItem value="months">Months</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </Card>
-
-                  <Card className="flex flex-col bg-white border border-gray-200 shadow-md rounded-lg p-2">
-                    <div className="text-sm font-normal mb-1">Priority</div>
-                    <div className="flex flex-row items-center gap-2 w-full">
-                      <Select
-                        value={medicationInputs[dialog.id]?.priority || ''}
-                        onValueChange={(value) => setMedicationInputs(prev => ({
-                          ...prev,
-                          [dialog.id]: { ...prev[dialog.id], priority: value }
-                        }))}
-                        className="bg-[#f5f5f5]"
-                      >
-                        <SelectTrigger className="w-full border border-gray-200 rounded-md px-3 py-2 bg-[#f5f5f5]">
-                          <SelectValue placeholder="Select priority" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="High">High</SelectItem>
-                          <SelectItem value="Medium">Medium</SelectItem>
-                          <SelectItem value="Low">Low</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </Card>
-                </div>
-
-                {/* Additional Dose Now & Comment */}
-                <div className="grid grid-cols-2 gap-4">
-                  <Card className="flex flex-col bg-white border border-gray-200 shadow-md rounded-lg p-2">
-                    <div className="text-sm font-normal mb-1">Additional Dose Now</div>
-                    <div className="flex flex-row items-center gap-2 w-full">
-                      <Switch
-                        id={`additional-dose-${dialog.id}`}
-                        checked={medicationInputs[dialog.id]?.additionalDoseNow || false}
-                        onCheckedChange={(checked) => setMedicationInputs(prev => ({
-                          ...prev,
-                          [dialog.id]: { ...prev[dialog.id], additionalDoseNow: checked }
-                        }))}
-                        className="bg-[#f5f5f5]"
-                      />
-                    </div>
-                  </Card>
-
-                  <Card className="flex flex-col bg-white border border-gray-200 shadow-md rounded-lg p-2">
-                    <div className="text-sm font-normal mb-1">Comment</div>
-                    <div className="flex flex-row items-center gap-2 w-full">
-                      <Textarea
-                        id={`comment-${dialog.id}`}
-                        value={medicationInputs[dialog.id]?.comment || ''}
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          setMedicationInputs(prev => ({
-                            ...prev,
-                            [dialog.id]: { ...prev[dialog.id], comment: value }
-                          }));
-                        }}
-                        className="w-full border border-gray-200 rounded-md px-3 py-2 bg-[#f5f5f5]"
-                        placeholder="Add any comments..."
-                      />
-                    </div>
-                  </Card>
-                </div>
-
                 {/* Save/Reset/Close buttons */}
                 <div className="flex justify-end gap-2 mt-4">
                   <Button variant="outline" onClick={() => resetMedicationForm(dialog.id)}>
@@ -1886,55 +1932,245 @@ export default function DashboardPage({
                   </Button>
                 </div>
               </div>
-            ) : dialog.type === 'radiology' ? (
+            ) : dialog.type === 'lab' ? (
               <div className="flex flex-col gap-4 text-sm">
-                <div className="grid grid-cols-2 gap-4">
-                  {/* Imaging Type */}
+                {/* Lab Test Name and Quick Order Cards */}
+                <div className="grid grid-cols-2 gap-4 mb-2">
+                  {/* Lab Test Name Card */}
                   <Card className="flex flex-col bg-white border border-gray-200 shadow-md rounded-lg p-2">
-                    <div className="text-sm font-normal mb-1">Imaging Type</div>
-                    <div className="flex flex-row items-center gap-2 w-full">
-                      <Select
-                        value={radiologyInputs[dialog.id]?.type || ''}
-                        onValueChange={(value) =>
-                          setRadiologyInputs((prev) => ({
-                            ...prev,
-                            [dialog.id]: { ...prev[dialog.id], type: value },
-                          }))
-                        }
-                        className="bg-[#f5f5f5]"
-                      >
-                        <SelectTrigger className="w-full border border-gray-200 rounded-md px-3 py-2 bg-[#f5f5f5]">
-                          <SelectValue placeholder="Select test" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="X-Ray">X-Ray</SelectItem>
-                          <SelectItem value="MRI">MRI</SelectItem>
-                          <SelectItem value="CT Scan">CT Scan</SelectItem>
-                          <SelectItem value="Ultrasound">Ultrasound</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </Card>
-
-                  {/* Body Part */}
-                  <Card className="flex flex-col bg-white border border-gray-200 shadow-md rounded-lg p-2">
-                    <div className="text-sm font-normal mb-1">Body Part</div>
+                    <div className="text-sm font-normal mb-1">Lab Test Name</div>
                     <div className="flex flex-row items-center gap-2 w-full">
                       <Input
-                        id={`body-part-${dialog.id}`}
-                        value={radiologyInputs[dialog.id]?.bodyPart || ''}
-                        onChange={(e) =>
-                          setRadiologyInputs((prev) => ({
-                            ...prev,
-                            [dialog.id]: { ...prev[dialog.id], bodyPart: e.target.value },
-                          }))
-                        }
-                        className="w-full border border-gray-200 rounded-md px-3 py-2 bg-[#f5f5f5]"
+                        value={labTestInput}
+                        onChange={e => setLabTestInput(e.target.value)}
+                        className="flex-1 border border-gray-200 rounded-md px-3 py-2 bg-[#f5f5f5]"
+                        placeholder="Enter lab test name..."
                       />
+                      <Button
+                        size="sm"
+                        className="ml-2"
+                        onClick={() => {
+                          addLabTest(labTestInput);
+                          setLabTestInput('');
+                        }}
+                      >
+                        Add
+                      </Button>
+                    </div>
+                  </Card>
+                  {/* Quick Order Card */}
+                  <Card className="flex flex-col bg-white border border-gray-200 shadow-md rounded-lg p-2">
+                    <div className="text-sm font-normal mb-1">Quick Order</div>
+                    <div className="flex flex-col gap-2">
+                      <div className="flex flex-row items-center gap-2 w-full">
+                        <Select
+                          value=""
+                          onValueChange={value => addLabTest(value)}
+                          className="bg-[#f5f5f5]"
+                        >
+                          <SelectTrigger className="w-full border border-gray-200 rounded-md px-3 py-2 bg-[#f5f5f5]">
+                            <SelectValue placeholder="Select quick order" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="CBC">CBC</SelectItem>
+                            <SelectItem value="LFT">LFT</SelectItem>
+                            <SelectItem value="KFT">KFT</SelectItem>
+                            <SelectItem value="Blood Sugar">Blood Sugar</SelectItem>
+                            <SelectItem value="Lipid Profile">Lipid Profile</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full text-xs"
+                        onClick={() => setShowQuickListDialog(dialog.id)}
+                      >
+                        Edit Quick List
+                      </Button>
                     </div>
                   </Card>
                 </div>
+                {/* Lab Test Table */}
+                {labTests.length > 0 && (
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full border rounded-lg overflow-hidden shadow-md">
+                      <thead>
+                        <tr className="bg-blue-100 text-blue-900">
+                          <th className="px-4 py-2 text-left font-semibold w-48">Lab Investigation Name</th>
+                          <th className="px-4 py-2 text-left font-semibold w-40">Collect Sample</th>
+                          <th className="px-4 py-2 text-left font-semibold w-32">Specimen</th>
+                          <th className="px-4 py-2 text-left font-semibold w-32">Urgency</th>
+                          <th className="px-4 py-2 text-left font-semibold w-32">How Often</th>
+                          <th className="px-4 py-2 text-left font-semibold w-56">Comments</th>
+                          <th className="px-4 py-2 text-center font-semibold w-12">Remove</th>
+                          <th className="px-4 py-2 text-center font-semibold w-12">Save Quick Order</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {labTests.map((test, idx) => (
+                          <tr key={test.name} className="even:bg-gray-50 odd:bg-white hover:bg-blue-50 transition">
+                            <td className="px-4 py-2 font-semibold text-blue-700 w-48">{test.name}</td>
+                            <td className="px-4 py-2 w-40">
+                              <Select
+                                value={test.collectSample}
+                                onValueChange={value => {
+                                  const updated = [...labTests];
+                                  updated[idx].collectSample = value;
+                                  setLabTests(updated);
+                                }}
+                              >
+                                <SelectTrigger className="w-full border border-gray-200 rounded bg-[#f5f5f5]">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="LAVENDER-WB">LAVENDER-WB</SelectItem>
+                                  <SelectItem value="YELLOW-SERUM">YELLOW-SERUM</SelectItem>
+                                  <SelectItem value="RED-CLOT">RED-CLOT</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </td>
+                            <td className="px-4 py-2 w-32">
+                              <Select
+                                value={test.specimen}
+                                onValueChange={value => {
+                                  const updated = [...labTests];
+                                  updated[idx].specimen = value;
+                                  setLabTests(updated);
+                                }}
+                              >
+                                <SelectTrigger className="w-full border border-gray-200 rounded bg-[#f5f5f5]">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="BLOOD">BLOOD</SelectItem>
+                                  <SelectItem value="URINE">URINE</SelectItem>
+                                  <SelectItem value="SERUM">SERUM</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </td>
+                            <td className="px-4 py-2 w-32">
+                              <Select
+                                value={test.urgency}
+                                onValueChange={value => {
+                                  const updated = [...labTests];
+                                  updated[idx].urgency = value;
+                                  setLabTests(updated);
+                                }}
+                              >
+                                <SelectTrigger className="w-full border border-gray-200 rounded bg-[#f5f5f5]">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="ROUTINE">ROUTINE</SelectItem>
+                                  <SelectItem value="URGENT">URGENT</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </td>
+                            <td className="px-4 py-2 w-32">
+                              <Select
+                                value={test.howOften}
+                                onValueChange={value => {
+                                  const updated = [...labTests];
+                                  updated[idx].howOften = value;
+                                  setLabTests(updated);
+                                }}
+                              >
+                                <SelectTrigger className="w-full border border-gray-200 rounded bg-[#f5f5f5]">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="ONCE">ONCE</SelectItem>
+                                  <SelectItem value="DAILY">DAILY</SelectItem>
+                                  <SelectItem value="WEEKLY">WEEKLY</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </td>
+                            <td className="px-4 py-2 w-56">
+                              <Input
+                                value={test.comments}
+                                onChange={e => {
+                                  const updated = [...labTests];
+                                  updated[idx].comments = e.target.value;
+                                  setLabTests(updated);
+                                }}
+                                className="w-full border border-gray-200 rounded bg-[#f5f5f5]"
+                              />
+                            </td>
+                            <td className="px-4 py-2 text-center w-12">
+                              <Button size="icon" variant="ghost" onClick={() => setLabTests(tests => tests.filter((_, i) => i !== idx))}>
+                                <Trash2 className="h-5 w-5 text-red-500" />
+                                <span className="sr-only">Remove</span>
+                              </Button>
+                            </td>
+                            <td className="px-4 py-2 text-center w-12">
+                              <Button size="icon" variant="ghost" onClick={() => {/* Save quick order logic here */}}>
+                                <Save className="h-5 w-5 text-blue-500" />
+                                <span className="sr-only">Save Quick Order</span>
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+                {/* Save/Reset/Close buttons */}
+                <div className="flex justify-end gap-2 mt-4">
+                  <Button variant="outline" onClick={() => setLabTests([])}>
+                    Reset
+                  </Button>
+                  <Button onClick={() => saveLabTests(dialog.id)}>
+                    Save
+                  </Button>
+                </div>
+              </div>
+            ) : dialog.type === 'radiology' ? (
+              <div className="flex flex-col gap-4 text-sm">
+                {/* Imaging Type */}
+                <Card className="flex flex-col bg-white border border-gray-200 shadow-md rounded-lg p-2">
+                  <div className="text-sm font-normal mb-1">Imaging Type</div>
+                  <div className="flex flex-row items-center gap-2 w-full">
+                    <Select
+                      value={radiologyInputs[dialog.id]?.type || ''}
+                      onValueChange={(value) =>
+                        setRadiologyInputs((prev) => ({
+                          ...prev,
+                          [dialog.id]: { ...prev[dialog.id], type: value },
+                        }))
+                      }
+                      className="bg-[#f5f5f5]"
+                    >
+                      <SelectTrigger className="w-full border border-gray-200 rounded-md px-3 py-2 bg-[#f5f5f5]">
+                        <SelectValue placeholder="Select test" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="X-Ray">X-Ray</SelectItem>
+                        <SelectItem value="MRI">MRI</SelectItem>
+                        <SelectItem value="CT Scan">CT Scan</SelectItem>
+                        <SelectItem value="Ultrasound">Ultrasound</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </Card>
 
+                {/* Body Part */}
+                <Card className="flex flex-col bg-white border border-gray-200 shadow-md rounded-lg p-2">
+                  <div className="text-sm font-normal mb-1">Body Part</div>
+                  <div className="flex flex-row items-center gap-2 w-full">
+                    <Input
+                      id={`body-part-${dialog.id}`}
+                      value={radiologyInputs[dialog.id]?.bodyPart || ''}
+                      onChange={(e) =>
+                        setRadiologyInputs((prev) => ({
+                          ...prev,
+                          [dialog.id]: { ...prev[dialog.id], bodyPart: e.target.value },
+                        }))
+                      }
+                      className="w-full border border-gray-200 rounded-md px-3 py-2 bg-[#f5f5f5]"
+                    />
+                  </div>
+                </Card>
                 {/* Notes */}
                 <Card className="flex flex-col bg-white border border-gray-200 shadow-md rounded-lg p-2">
                   <div className="text-sm font-normal mb-1">Notes</div>
@@ -1984,44 +2220,41 @@ export default function DashboardPage({
               </div>
             ) : dialog.type === 'report' ? (
               <div className="flex flex-col gap-4 text-sm">
-                <div className="grid grid-cols-2 gap-4">
-                  {/* Report Search */}
-                  <Card className="flex flex-col bg-white border border-gray-200 shadow-md rounded-lg p-2">
-                    <div className="text-sm font-normal mb-1">Report Search</div>
-                    <div className="flex flex-row items-center gap-2 w-full">
-                      <Input
-                        id={`report-search-${dialog.id}`}
-                        value={reportInputs[dialog.id]?.search || ''}
-                        onChange={(e) =>
-                          setReportInputs((prev) => ({
-                            ...prev,
-                            [dialog.id]: { ...prev[dialog.id], search: e.target.value },
-                          }))
-                        }
-                        className="w-full border border-gray-200 rounded-md px-3 py-2 bg-[#f5f5f5]"
-                      />
-                    </div>
-                  </Card>
+                {/* Report Search */}
+                <Card className="flex flex-col bg-white border border-gray-200 shadow-md rounded-lg p-2">
+                  <div className="text-sm font-normal mb-1">Report Search</div>
+                  <div className="flex flex-row items-center gap-2 w-full">
+                    <Input
+                      id={`report-search-${dialog.id}`}
+                      value={reportInputs[dialog.id]?.search || ''}
+                      onChange={(e) =>
+                        setReportInputs((prev) => ({
+                          ...prev,
+                          [dialog.id]: { ...prev[dialog.id], search: e.target.value },
+                        }))
+                      }
+                      className="w-full border border-gray-200 rounded-md px-3 py-2 bg-[#f5f5f5]"
+                    />
+                  </div>
+                </Card>
 
-                  {/* Quick Search */}
-                  <Card className="flex flex-col bg-white border border-gray-200 shadow-md rounded-lg p-2">
-                    <div className="text-sm font-normal mb-1">Quick Search</div>
-                    <div className="flex flex-row items-center gap-2 w-full">
-                      <Input
-                        id={`quick-search-${dialog.id}`}
-                        value={reportInputs[dialog.id]?.quickSearch || ''}
-                        onChange={(e) =>
-                          setReportInputs((prev) => ({
-                            ...prev,
-                            [dialog.id]: { ...prev[dialog.id], quickSearch: e.target.value },
-                          }))
-                        }
-                        className="w-full border border-gray-200 rounded-md px-3 py-2 bg-[#f5f5f5]"
-                      />
-                    </div>
-                  </Card>
-                </div>
-
+                {/* Quick Search */}
+                <Card className="flex flex-col bg-white border border-gray-200 shadow-md rounded-lg p-2">
+                  <div className="text-sm font-normal mb-1">Quick Search</div>
+                  <div className="flex flex-row items-center gap-2 w-full">
+                    <Input
+                      id={`quick-search-${dialog.id}`}
+                      value={reportInputs[dialog.id]?.quickSearch || ''}
+                      onChange={(e) =>
+                        setReportInputs((prev) => ({
+                          ...prev,
+                          [dialog.id]: { ...prev[dialog.id], quickSearch: e.target.value },
+                        }))
+                      }
+                      className="w-full border border-gray-200 rounded-md px-3 py-2 bg-[#f5f5f5]"
+                    />
+                  </div>
+                </Card>
                 {/* Selected Reports */}
                 <Card className="flex flex-col bg-white border border-gray-200 shadow-md rounded-lg p-2">
                   <div className="text-sm font-normal mb-1">Selected Reports</div>
