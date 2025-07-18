@@ -22,7 +22,8 @@ import {
   RefreshCw as RefreshCwIcon,
   Search as SearchIcon,
   Bell,
-  X
+  X,
+  Fingerprint
  } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePatients } from "@/context/patient-context";
@@ -105,6 +106,23 @@ export default function PatientsPage() {
   const [isSearchingSSN, setIsSearchingSSN] = useState(false);
   const [duz, setDuz] = useState('');
   const [ihtLocation, setIhtLocation] = useState('');
+  const [isSSNSearch, setIsSSNSearch] = useState(false);
+
+  // Advanced search dialog state
+  const [isAdvOpen, setIsAdvOpen] = useState(false);
+  const [advName, setAdvName] = useState('');
+  const [advDob, setAdvDob] = useState('');
+  const [advPhone, setAdvPhone] = useState('');
+  const [advIp, setAdvIp] = useState('');
+
+  // Advanced search state
+  const [isAdvSearchActive, setIsAdvSearchActive] = useState(false);
+  const [currentAdvSearch, setCurrentAdvSearch] = useState({
+    name: '',
+    dob: '',
+    phone: '',
+    ip: ''
+  });
 
   // Get DUZ and ihtLocation from context or session
   useEffect(() => {
@@ -173,21 +191,33 @@ export default function PatientsPage() {
     }
   }, 300), [duz, ihtLocation]);
 
-  // Advanced search dialog state
-  const [isAdvOpen, setIsAdvOpen] = useState(false);
-  const [advName, setAdvName] = useState('');
-  const [advDob, setAdvDob] = useState('');
-  const [advPhone, setAdvPhone] = useState('');
-  const [advIp, setAdvIp] = useState('');
+  // Handle search input change
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    if (isSSNSearch) {
+      setSSNSearch(value);
+      // Automatically search when 4+ digits are entered
+      if (value.trim().length >= 4) {
+        searchSSN(value);
+      } else {
+        // Clear results if less than 4 digits
+        setSSNSearchResults([]);
+      }
+    } else {
+      setSearchQuery(value);
+    }
+  };
 
-  // Advanced search state
-  const [isAdvSearchActive, setIsAdvSearchActive] = useState(false);
-  const [currentAdvSearch, setCurrentAdvSearch] = useState({
-    name: '',
-    dob: '',
-    phone: '',
-    ip: ''
-  });
+  // Handle search submission (for Enter key)
+  const handleSearchSubmit = () => {
+    if (isSSNSearch) {
+      if (ssnSearch.trim()) {
+        searchSSN(ssnSearch);
+      }
+    } else if (searchQuery.trim()) {
+      fetchPatients({ search: searchQuery.trim() });
+    }
+  };
 
   // Fetch patients on initial load
   useEffect(() => {
@@ -236,14 +266,6 @@ export default function PatientsPage() {
     setIsAdvSearchActive(false);
   };
 
-  const handleSearch = () => {
-    if (searchQuery.trim()) {
-      fetchPatients({ search: searchQuery.trim() });
-    } else {
-      fetchPatients({});
-    }
-  };
-
   const handleSort = useCallback((key: TableFieldKey) => {
     if (sortKey === key) {
       setSortDir(prev => prev === 'asc' ? 'desc' : 'asc');
@@ -253,29 +275,17 @@ export default function PatientsPage() {
     }
   }, [sortKey]);
 
-  // Handle SSN search input change
-  const handleSSNSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    setSSNSearch(e.target.value);
-  }, []);
-
-  // Apply advanced search filters to the patients
+  // Apply search filters
   const filteredPatients = useMemo(() => {
     let result = [...patients];
     
-    // Apply simple search if active
-    if (searchQuery) {
+    // Apply normal search if active
+    if (searchQuery && !isSSNSearch) {
       const query = searchQuery.toLowerCase();
       result = result.filter(patient => 
         Object.values(patient).some(
           val => val && String(val).toLowerCase().includes(query)
         )
-      );
-    }
-    
-    // Apply SSN search if active
-    if (ssnSearch) {
-      result = result.filter(patient => 
-        patient.SSN?.toLowerCase().includes(ssnSearch.toLowerCase())
       );
     }
     
@@ -311,14 +321,14 @@ export default function PatientsPage() {
     }
     
     return result;
-  }, [patients, searchQuery, isAdvSearchActive, currentAdvSearch, ssnSearch]);
+  }, [patients, searchQuery, isAdvSearchActive, currentAdvSearch, isSSNSearch]);
 
-  // Determine which patients to display: SSN search results or filteredPatients
+  // Determine which patients to display
   const patientsToDisplay = useMemo(() => {
-    return ssnSearch && ssnSearchResults.length > 0
+    return isSSNSearch && ssnSearchResults.length > 0
       ? ssnSearchResults
       : filteredPatients;
-  }, [ssnSearch, ssnSearchResults, filteredPatients]);
+  }, [isSSNSearch, ssnSearchResults, filteredPatients]);
 
   const sortedPatients = useMemo(() => {
     if (!sortKey) return patientsToDisplay;
@@ -370,197 +380,132 @@ export default function PatientsPage() {
   return (
     <div className="w-full px-4 py-2 space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-[#2d3748]">Patient List</h1>
-        <div className="flex items-center gap-2">
-          {/* SSN Search */}
-          <div className="relative">
-            <SearchIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <input
-              type="search"
-              placeholder="Search by SSN..."
-              className="pl-9 h-8 text-sm border rounded-md w-64 px-3 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-              value={ssnSearch}
-              onChange={handleSSNSearchChange}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  searchSSN(ssnSearch);
-                }
-              }}
-              disabled={isSearchingSSN}
-            />
-            {isSearchingSSN && (
-              <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin" />
-            )}
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center justify-between">
+          <h1 className="text-xl font-bold text-[#2d3748]">Patient List</h1>
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="outline" 
+              size="icon"
+              className="h-8 w-8 p-0"
+              aria-label="Notifications"
+            >
+              <Bell className="h-4 w-4" />
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className="flex items-center gap-1.5 text-xs h-8"
+            >
+              {isRefreshing ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <RefreshCwIcon className="h-3.5 w-3.5" />
+              )}
+              Refresh
+            </Button>
+            <LogoutButton variant="outline" size="sm" className="h-8" />
+          </div>
+        </div>
+        
+        {/* Category filter and Search Bar Row */}
+        <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
+          {/* Category filter - Left side */}
+          <div className="flex-1 w-full">
+            <RadioGroup
+              value={filterCategory}
+              onValueChange={setFilterCategory}
+              className="w-full"
+            >
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {['Appointments', "Ward's", "Provider's", 'Emergency', "Team/Personal's", 'Specialties', 'Default', 'New Order Dashboard'].map((cat) => (
+                  <div key={cat} className="flex items-center space-x-1.5">
+                    <RadioGroupItem value={cat} id={cat} className="h-3.5 w-3.5" />
+                    <Label htmlFor={cat} className="text-xs whitespace-nowrap cursor-pointer">
+                      {cat}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+            </RadioGroup>
           </div>
           
-          <Button 
-            variant="outline" 
-            size="icon"
-            className="h-8 w-8 p-0"
-            aria-label="Notifications"
-          >
-            <Bell className="h-4 w-4" />
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-            className="flex items-center gap-1.5 text-xs h-8"
-          >
-            {isRefreshing ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <RefreshCwIcon className="h-3.5 w-3.5" />
-            )}
-            Refresh
-          </Button>
-          <LogoutButton variant="outline" size="sm" className="h-8" />
+          {/* Search Bar - Right side */}
+          <div className="flex items-center gap-2 w-full md:w-auto">
+            <div className="relative w-full md:min-w-[300px]">
+              <SearchIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type="search"
+                placeholder={isSSNSearch ? "Search by SSN..." : "Search patients..."}
+                className="pl-9 h-8 text-sm border rounded-md w-full px-3 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                value={isSSNSearch ? ssnSearch : searchQuery}
+                onChange={handleSearchChange}
+                onKeyDown={(e) => e.key === "Enter" && handleSearchSubmit()}
+                disabled={isSearchingSSN && isSSNSearch}
+              />
+              {isSearchingSSN && isSSNSearch && (
+                <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin" />
+              )}
+            </div>
+            
+            <div className="flex border rounded-md overflow-hidden h-8">
+              <button
+                type="button"
+                onClick={() => {
+                  if (isSSNSearch) {
+                    setIsSSNSearch(false);
+                    setSSNSearch('');
+                    setSSNSearchResults([]);
+                  }
+                }}
+                className={`px-3 text-sm flex items-center gap-1 transition-colors ${
+                  !isSSNSearch 
+                    ? 'bg-blue-500 text-white' 
+                    : 'bg-white hover:bg-gray-100 text-gray-700'
+                }`}
+              >
+                <SearchIcon className="h-3.5 w-3.5" />
+                <span>Search</span>
+              </button>
+              
+              <div className="w-px bg-gray-200"></div>
+              
+              <button
+                type="button"
+                onClick={() => {
+                  if (!isSSNSearch) {
+                    setIsSSNSearch(true);
+                    setSearchQuery('');
+                  }
+                }}
+                className={`px-3 text-sm flex items-center gap-1 transition-colors ${
+                  isSSNSearch 
+                    ? 'bg-blue-500 text-white' 
+                    : 'bg-white hover:bg-gray-100 text-gray-700'
+                }`}
+              >
+                <Fingerprint className="h-3.5 w-3.5" />
+                <span>SSN</span>
+              </button>
+            </div>
+            
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="h-8 whitespace-nowrap"
+              onClick={() => setIsAdvOpen(true)}
+            >
+              Advanced
+            </Button>
+          </div>
         </div>
       </div>
       
-      {/* Category section (left) + Search section (right) */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
-        {/* Category filter */}
-        <RadioGroup
-          value={filterCategory}
-          onValueChange={setFilterCategory}
-          className="w-full"
-        >
-          <div className="grid grid-cols-4 gap-2">
-            {['Appointments', "Ward's", "Provider's", 'Emergency', "Team/Personal's", 'Specialties', 'Default', 'New Order Dashboard'].map((cat) => (
-              <div key={cat} className="flex items-center space-x-1.5">
-                <RadioGroupItem value={cat} id={cat} className="h-3.5 w-3.5" />
-                <Label htmlFor={cat} className="text-xs whitespace-nowrap cursor-pointer">
-                  {cat}
-                </Label>
-              </div>
-            ))}
-          </div>
-        </RadioGroup>
-
-        {/* Search section */}
-        <div className="flex items-center gap-2">
-          {/* Simple search */}
-          <div className="relative">
-            <SearchIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <input
-              type="search"
-              placeholder="Search patients..."
-              className="pl-9 h-9 text-sm border rounded-md w-full md:w-64 px-3 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-
-          {/* Clear filters button - only show when advanced search is active */}
-          {isAdvSearchActive && (
-            <Button 
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={clearAdvancedSearch}
-              className="h-9 text-xs flex items-center gap-1.5 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
-            >
-              <X className="h-3.5 w-3.5" />
-              Clear Filters
-            </Button>
-          )}
-
-          {/* Advanced search button */}
-          <Dialog open={isAdvOpen} onOpenChange={setIsAdvOpen}>
-            <DialogTrigger asChild>
-              <Button 
-                size="sm" 
-                variant={isAdvSearchActive ? "default" : "outline"}
-                className="h-8 text-xs"
-              >
-                {isAdvSearchActive ? 'Edit Search' : 'Advanced'}
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle>Advanced Patient Search</DialogTitle>
-              </DialogHeader>
-              <form onSubmit={handleAdvancedSearch} className="space-y-3 mt-2">
-                <div className="space-y-1">
-                  <Label htmlFor="adv-name">Name</Label>
-                  <Input 
-                    id="adv-name" 
-                    value={advName} 
-                    onChange={(e) => setAdvName(e.target.value)} 
-                    placeholder="Last Name, First Name" 
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor="adv-dob">Date of Birth</Label>
-                  <Input 
-                    id="adv-dob" 
-                    value={advDob} 
-                    onChange={(e) => setAdvDob(e.target.value)} 
-                    placeholder="DD/MM/YYYY" 
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor="adv-phone">Phone No.</Label>
-                  <Input 
-                    id="adv-phone" 
-                    value={advPhone} 
-                    onChange={(e) => setAdvPhone(e.target.value)} 
-                    placeholder="Phone Number" 
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor="adv-ip">IP No.</Label>
-                  <Input 
-                    id="adv-ip" 
-                    value={advIp} 
-                    onChange={(e) => setAdvIp(e.target.value)} 
-                    placeholder="IP Number" 
-                  />
-                </div>
-                <DialogFooter className="mt-4">
-                  <div className="flex justify-between w-full">
-                    <Button 
-                      type="button"
-                      variant="ghost" 
-                      size="sm"
-                      onClick={() => {
-                        clearAdvancedSearch();
-                        setIsAdvOpen(false);
-                      }}
-                      className="text-red-600 hover:bg-red-50"
-                    >
-                      Clear
-                    </Button>
-                    <div className="flex gap-2">
-                      <Button 
-                        type="button"
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => setIsAdvOpen(false)}
-                      >
-                        Cancel
-                      </Button>
-                      <Button 
-                        type="submit" 
-                        size="sm"
-                        className="flex items-center gap-1.5"
-                      >
-                        Search
-                      </Button>
-                    </div>
-                  </div>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
-        </div>
-      </div>
-        
       {/* Patient Table */}
       <div className="bg-white rounded shadow-sm border border-gray-200 overflow-hidden">
+        {/* Table content remains the same */}
         <div className="overflow-x-auto">
           <div className="h-[400px] overflow-y-auto text-xs">
             <table className="min-w-full divide-y divide-gray-200">
