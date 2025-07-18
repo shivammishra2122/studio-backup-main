@@ -1538,9 +1538,70 @@ export default function DashboardPage({
         {thirdRowInformationalCardTitles.map((title) => {
           const IconComponent = infoCardIcons[title] || FileText;
           const items = dynamicPageCardContent[title] || [];
-          const isLoading = title === 'Clinical Notes' ? clinicalNotesLoading : false;
-          const itemCount = title === 'Clinical Notes' ? clinicalNotes?.length || 0 : items.length;
-          const displayItems = title === 'Clinical Notes' ? clinicalNotes : items;
+          
+          // For Clinical Notes, use the useClinicalNotes hook data
+          if (title === 'Clinical Notes') {
+            const { notes: clinicalNotes, loading: clinicalNotesLoading } = useClinicalNotes(patient?.ssn);
+            const itemCount = clinicalNotes?.length || 0;
+            
+            return (
+              <Card key="clinical-notes" className="shadow-lg">
+                <ShadcnCardHeader className="flex flex-row items-center justify-between pt-2 pb-0 px-3">
+                  <div className="flex items-center space-x-1.5">
+                    <IconComponent className="h-4 w-4 text-primary" />
+                    <CardTitle className="text-base">Clinical Notes</CardTitle>
+                    <Badge variant="secondary" className="text-xs px-1.5 py-0.5">
+                      {clinicalNotesLoading ? '...' : itemCount}
+                    </Badge>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={() => window.location.href = '/clinical-notes'}
+                  >
+                    <Edit3 className="h-3.5 w-3.5" />
+                    <span className="sr-only">Edit Clinical Notes</span>
+                  </Button>
+                </ShadcnCardHeader>
+                <CardContent className="p-0 h-[172px] overflow-y-auto scrollbar-hide">
+                  <Table>
+                    <TableBody>
+                      {clinicalNotesLoading ? (
+                        <TableRow>
+                          <TableCell className="text-center" colSpan={1}>
+                            <div className="flex justify-center py-2">
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900"></div>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ) : itemCount === 0 ? (
+                        <TableRow>
+                          <TableCell className="text-center text-muted-foreground text-xs py-2">
+                            No clinical notes found
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        clinicalNotes.map((note: any) => (
+                          <TableRow key={note.id} className="hover:bg-muted/50">
+                            <TableCell className="p-0">
+                              <div className="text-xs px-3 py-1.5">
+                                {note.notesTitle || 'Untitled Note'}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            );
+          }
+          
+          // For other cards, use the existing implementation
+          const isLoading = false;
+          const itemCount = items.length;
           
           return (
             <Card key={`${title.toLowerCase().replace(/\s+/g, '-')}`} className="shadow-lg">
@@ -1556,13 +1617,7 @@ export default function DashboardPage({
                   variant="ghost"
                   size="icon"
                   className="h-7 w-7"
-                  onClick={() => {
-                    if (title === 'Clinical Notes') {
-                      window.location.href = '/clinical-notes';
-                    } else {
-                      openFloatingDialog('info-item', `Add New Item to ${title}`, { title });
-                    }
-                  }}
+                  onClick={() => openFloatingDialog('info-item', `Add New Item to ${title}`, { title })}
                 >
                   <Edit3 className="h-3.5 w-3.5" />
                   <span className="sr-only">Edit {title}</span>
@@ -1586,14 +1641,11 @@ export default function DashboardPage({
                         </TableCell>
                       </TableRow>
                     ) : (
-                      displayItems.map((item: any, index: number) => (
-                        <TableRow 
-                          key={item.id || index}
-                          className="hover:bg-muted/50"
-                        >
+                      items.map((item: any, index: number) => (
+                        <TableRow key={index} className="hover:bg-muted/50">
                           <TableCell className="p-0">
                             <div className="text-xs px-3 py-1.5">
-                              {item.note || item.title || item.name || item.notesTitle || 'Unnamed Item'}
+                              {item}
                             </div>
                           </TableCell>
                         </TableRow>

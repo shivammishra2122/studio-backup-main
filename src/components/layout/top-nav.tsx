@@ -20,6 +20,8 @@ import { SourceCombinationsModal } from '../source-combinations-modal';
 import { PersonalListsModal } from '../personal-lists-modal';
 import { PersonalDiagnosisListsModal } from '../personal-diagnosis-lists-modal';
 import { TeamInformationModal } from '../team-information-modal';
+import { PatientCredentialModal } from '../patient-credential-modal';
+import { DoctorAvailabilityModal } from '../doctor-availability-modal';
 import { useState } from 'react';
 
 const navButtonLabels = [
@@ -61,6 +63,8 @@ export function TopNav() {
   const [showPersonalListsModal, setShowPersonalListsModal] = useState(false);
   const [showPersonalDiagnosisListsModal, setShowPersonalDiagnosisListsModal] = useState(false);
   const [showTeamInformationModal, setShowTeamInformationModal] = useState(false);
+  const [showPatientCredentialModal, setShowPatientCredentialModal] = useState(false);
+  const [showDoctorAvailabilityModal, setShowDoctorAvailabilityModal] = useState(false);
 
   // Detect if on a patient-specific route: /patients/[id] or /patients/[id]/something
   const patientMatch = pathname.match(/^\/patients\/(\w+)(?:\/|$)/);
@@ -154,9 +158,28 @@ export function TopNav() {
               <HeadsetIcon className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuItem className="text-xs">Help Center</DropdownMenuItem>
-            <DropdownMenuItem className="text-xs">Contact Support</DropdownMenuItem>
+          <DropdownMenuContent align="end" className="w-60">
+            <DropdownMenuItem onSelect={() => setShowPatientSelectionModal(true)} className="text-xs">Patient Selection Defaults</DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => setShowSourceCombinationsModal(true)} className="text-xs">Source Combinations</DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => setShowPersonalListsModal(true)} className="text-xs">Personal Lists</DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => setShowPersonalDiagnosisListsModal(true)} className="text-xs">Personal Diagnosis Lists</DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => setShowTeamInformationModal(true)} className="text-xs">Team Information</DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem className="text-xs" disabled>Custom Widgets</DropdownMenuItem>
+            <DropdownMenuItem className="text-xs" disabled>Change Author</DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => setShowPatientCredentialModal(true)} className="text-xs">Patient Credential</DropdownMenuItem>
+            <DropdownMenuItem className="text-xs" disabled>Patient Location</DropdownMenuItem>
+            <DropdownMenuItem className="text-xs" disabled>Ward Bed - Occupancy</DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => setShowDoctorAvailabilityModal(true)} className="text-xs">Doctor's Availability</DropdownMenuItem>
+            <DropdownMenuItem className="text-xs" disabled>Lab Result Alert</DropdownMenuItem>
+            <DropdownMenuItem className="text-xs" disabled>Order Check</DropdownMenuItem>
+            <DropdownMenuItem className="text-xs" disabled>Chief-Complaints Master</DropdownMenuItem>
+            <DropdownMenuItem className="text-xs" disabled>BCMA</DropdownMenuItem>
+            <DropdownMenuItem className="text-xs" disabled>Blood Bank</DropdownMenuItem>
+            <DropdownMenuItem className="text-xs" disabled>NDRS</DropdownMenuItem>
+            <DropdownMenuItem className="text-xs" disabled>Medclick</DropdownMenuItem>
+            <DropdownMenuItem className="text-xs" disabled>AMI Predection</DropdownMenuItem>
+            <DropdownMenuItem className="text-xs" disabled>Emergency Configuration</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
 
@@ -238,6 +261,14 @@ export function TopNav() {
       <TeamInformationModal
         open={showTeamInformationModal}
         onOpenChange={setShowTeamInformationModal}
+      />
+      <PatientCredentialModal
+        open={showPatientCredentialModal}
+        onOpenChange={setShowPatientCredentialModal}
+      />
+      <DoctorAvailabilityModal
+        open={showDoctorAvailabilityModal}
+        onOpenChange={setShowDoctorAvailabilityModal}
       />
     </div>
   );
