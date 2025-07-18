@@ -1060,7 +1060,7 @@ export default function DashboardPage({
                   <div className="overflow-y-auto" style={{ maxHeight: '9rem' }}>
                     <Table>
                       <TableBody>
-                        {problemsToShow.slice(0, 6).map((problem, index) => (
+                        {problemsToShow.map((problem, index) => (
                           <TableRow key={problem.id} className={`${index % 2 === 0 ? 'bg-muted/30' : ''} h-6`}>
                             <TableCell className="p-0 px-2">
                               <div
