@@ -1053,11 +1053,10 @@ export default function DashboardPage({
                 Final Diagnosis
               </button>
             </div>
-
             <CardContent className="flex-1 p-0 overflow-y-auto">
               {/* Problems Tab */}
               {activeProblemsTab === 'problems' && (
-                <div className="h-full">
+                <div className="h-full flex flex-col">
                   <div className="overflow-y-auto" style={{ maxHeight: '9rem' }}>
                     <Table>
                       <TableBody>
@@ -1368,7 +1367,7 @@ export default function DashboardPage({
                     <span className="sr-only">Edit {title}</span>
                   </Button>
                 </ShadcnCardHeader>
-                <CardContent className="p-0 h-[120px] overflow-y-auto scrollbar-hide">
+                <CardContent className="p-0 h-[172px] overflow-y-auto scrollbar-hide">
                   <Table>
                     <TableBody>
                       {medicationsLoading ? (
@@ -1429,7 +1428,7 @@ export default function DashboardPage({
                     <span className="sr-only">Edit {title}</span>
                   </Button>
                 </ShadcnCardHeader>
-                <CardContent className="p-0 h-[120px] overflow-y-auto scrollbar-hide">
+                <CardContent className="p-0 h-[132px] overflow-y-auto scrollbar-hide">
                   <Table>
                     <TableBody>
                       <TableRow>
@@ -1569,7 +1568,7 @@ export default function DashboardPage({
                   <span className="sr-only">Edit {title}</span>
                 </Button>
               </ShadcnCardHeader>
-              <CardContent className="p-0 h-[120px] overflow-y-auto scrollbar-hide">
+              <CardContent className="p-0 h-[172px] overflow-y-auto scrollbar-hide">
                 <Table>
                   <TableBody>
                     {isLoading ? (
