@@ -157,6 +157,9 @@ export default function DashboardPage({
     clearSearch: clearProblemSearch 
   } = useProblemSearch();
 
+  // State for active tab in Problems card
+  const [activeProblemsTab, setActiveProblemsTab] = useState<'problems' | 'chief-complaints' | 'final-diagnosis'>('problems');
+
   // State for problem inputs
   const [problemInputs, setProblemInputs] = useState<Record<string, {
     input: string;
@@ -995,46 +998,112 @@ export default function DashboardPage({
   return (
     <div className="flex flex-1 flex-col min-h-0 overflow-auto bg-background relative">
       {/* Top Row: Problems, Chart, Vital Signs */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 mb-2">
-        <Card className="lg:col-span-3 shadow-lg">
-          <ShadcnCardHeader className="flex flex-row items-center justify-between pt-2 pb-0 px-3">
-            <div className="flex items-center space-x-1.5">
-              <Clock className="h-4 w-4 text-primary" />
-              <CardTitle className="text-base">Problems</CardTitle>
-              <Badge variant="secondary" className="text-xs px-1.5 py-0.5">{problemsToShow.length}</Badge>
+      <div className="h-1/3 grid grid-cols-1 lg:grid-cols-12 gap-3 mb-2">
+        <Card className="lg:col-span-3 shadow-lg flex flex-col h-full">
+          <div className="flex flex-col flex-1">
+            <div className="flex items-center justify-between border-b px-3 pt-2">
+              <div className="flex items-center space-x-1.5">
+                <Clock className="h-4 w-4 text-primary" />
+                <CardTitle className="text-base">Problems</CardTitle>
+                <Badge variant="secondary" className="text-xs px-1.5 py-0.5">
+                  {activeProblemsTab === 'problems' ? problemsToShow.length : 0}
+                </Badge>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                onClick={() => openFloatingDialog('problem', 'Add New Problem')}
+              >
+                <Edit3 className="h-3.5 w-3.5" />
+                <span className="sr-only">Add {activeProblemsTab === 'problems' ? 'Problem' : activeProblemsTab === 'chief-complaints' ? 'Chief Complaint' : 'Final Diagnosis'}</span>
+              </Button>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7"
-              onClick={() => openFloatingDialog('problem', 'Add New Problem')}
-            >
-              <Edit3 className="h-3.5 w-3.5" />
-              <span className="sr-only">Add Problem</span>
-            </Button>
-          </ShadcnCardHeader>
-          <CardContent className="p-0 max-h-32 overflow-y-auto no-scrollbar">
-            <Table>
-              <TableBody>
-                {problemsToShow.map((problem, index) => (
-                  <TableRow key={problem.id} className={index % 2 === 0 ? 'bg-muted/30' : ''}>
-                    <TableCell className="px-2 py-1">
-                      <div
-                        className="font-medium text-xs cursor-pointer"
-                        onClick={() => {
-                          setSelectedProblem(problem);
-                          setShowProblemDialog(true);
-                        }}
-                      >{('description' in problem ? problem.description : (problem as any).problem)}</div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-            {problemsToShow.length === 0 && (
-              <p className="py-4 text-center text-xs text-muted-foreground">No problems listed.</p>
-            )}
-          </CardContent>
+            
+            {/* Tab Navigation */}
+            <div className="flex border-b">
+              <button
+                className={`flex-1 py-2 text-xs font-medium text-center ${
+                  activeProblemsTab === 'problems'
+                    ? 'text-primary border-b-2 border-primary'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+                onClick={() => setActiveProblemsTab('problems')}
+              >
+                Problems
+              </button>
+              <button
+                className={`flex-1 py-2 text-xs font-medium text-center ${
+                  activeProblemsTab === 'chief-complaints'
+                    ? 'text-primary border-b-2 border-primary'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+                onClick={() => setActiveProblemsTab('chief-complaints')}
+              >
+                Chief Complaints
+              </button>
+              <button
+                className={`flex-1 py-2 text-xs font-medium text-center ${
+                  activeProblemsTab === 'final-diagnosis'
+                    ? 'text-primary border-b-2 border-primary'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+                onClick={() => setActiveProblemsTab('final-diagnosis')}
+              >
+                Final Diagnosis
+              </button>
+            </div>
+
+            <CardContent className="flex-1 p-0 overflow-y-auto">
+              {/* Problems Tab */}
+              {activeProblemsTab === 'problems' && (
+                <div className="h-full">
+                  <div className="overflow-y-auto" style={{ maxHeight: '9rem' }}>
+                    <Table>
+                      <TableBody>
+                        {problemsToShow.slice(0, 6).map((problem, index) => (
+                          <TableRow key={problem.id} className={`${index % 2 === 0 ? 'bg-muted/30' : ''} h-6`}>
+                            <TableCell className="p-0 px-2">
+                              <div
+                                className="font-medium text-xs cursor-pointer leading-tight"
+                                onClick={() => {
+                                  setSelectedProblem(problem);
+                                  setShowProblemDialog(true);
+                                }}
+                              >
+                                {('description' in problem ? problem.description : (problem as any).problem)}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                        {problemsToShow.length === 0 && (
+                          <TableRow className="h-6">
+                            <TableCell className="p-0 px-2 text-center">
+                              <p className="text-xs text-muted-foreground">No problems listed.</p>
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              )}
+
+              {/* Chief Complaints Tab */}
+              {activeProblemsTab === 'chief-complaints' && (
+                <div className="p-3 h-full flex items-center justify-center">
+                  <p className="text-sm text-muted-foreground text-center">No chief complaints recorded.</p>
+                </div>
+              )}
+
+              {/* Final Diagnosis Tab */}
+              {activeProblemsTab === 'final-diagnosis' && (
+                <div className="p-3 h-full flex items-center justify-center">
+                  <p className="text-sm text-muted-foreground text-center">No final diagnosis recorded.</p>
+                </div>
+              )}
+            </CardContent>
+          </div>
         </Card>
 
         <Card className="lg:col-span-5 shadow-lg h-full">
@@ -1271,7 +1340,7 @@ export default function DashboardPage({
       </div>
 
       {/* Second Row: Allergies, Medications, Report, Radiology */}
-      <div className="grid grid-cols-1 md:grid-cols-10 gap-3 mb-2">
+      <div className="h-1/3 grid grid-cols-1 md:grid-cols-10 gap-3 mb-2">
         {secondRowInformationalCardTitles.map((title) => {
           const IconComponent = infoCardIcons[title] || FileText;
           const items = title === 'Allergies' ? allergiesToShow : dynamicPageCardContent[title] || [];
@@ -1466,7 +1535,7 @@ export default function DashboardPage({
       </div>
 
       {/* Third Row: Clinical Notes, Encounter Notes, Clinical Reminder */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mb-1">
+      <div className="h-1/3 grid grid-cols-1 lg:grid-cols-3 gap-3 mb-1">
         {thirdRowInformationalCardTitles.map((title) => {
           const IconComponent = infoCardIcons[title] || FileText;
           const items = dynamicPageCardContent[title] || [];
