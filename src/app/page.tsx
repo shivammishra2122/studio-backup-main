@@ -1006,8 +1006,8 @@ export default function DashboardPage({
                 <Clock className="h-4 w-4 text-primary" />
                 <CardTitle className="text-base">Problems</CardTitle>
                 <Badge variant="secondary" className="text-xs px-1.5 py-0.5">
-                  {activeProblemsTab === 'problems' ? problemsToShow.length : 0}
-                </Badge>
+  {`${problemsToShow.length} | 0 | 0`}
+</Badge>
               </div>
               <Button
                 variant="ghost"
