@@ -40,21 +40,21 @@ export function LogoutButton({ className, ...props }: LogoutButtonProps) {
     <>
       <Button
         variant="ghost"
-        size="sm"
-        className={`text-sm font-medium hover:bg-transparent hover:underline ${className || ''}`}
+        size={props.children ? "default" : "icon"}
+        className={`${!props.children ? 'h-8 w-8' : ''} ${className || ''}`}
         onClick={() => setShowLogoutDialog(true)}
         disabled={isLoggingOut}
         {...props}
       >
         {isLoggingOut ? (
           <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Logging out...
+            {!props.children && <Loader2 className="h-4 w-4 animate-spin" />}
+            {props.children || null}
           </>
         ) : (
           <>
-            <LogOut className="mr-2 h-4 w-4" />
-            Logout
+            {!props.children && <LogOut className="h-4 w-4" />}
+            {props.children || null}
           </>
         )}
       </Button>

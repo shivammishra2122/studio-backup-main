@@ -439,12 +439,28 @@ export default function PatientsPage() {
               <input
                 type="search"
                 placeholder={isSSNSearch ? "SSN..." : "Search..."}
-                className="pl-9 h-8 text-sm border rounded-md w-full px-3 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                className="pl-9 pr-7 h-8 text-sm border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                 value={isSSNSearch ? ssnSearch : searchQuery}
                 onChange={handleSearchChange}
                 onKeyDown={(e) => e.key === "Enter" && handleSearchSubmit()}
                 disabled={isSearchingSSN && isSSNSearch}
               />
+              {(isSSNSearch ? ssnSearch : searchQuery) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (isSSNSearch) {
+                      setSSNSearch('');
+                      setSSNSearchResults([]);
+                    } else {
+                      setSearchQuery('');
+                    }
+                  }}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
               {isSearchingSSN && isSSNSearch && (
                 <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin" />
               )}

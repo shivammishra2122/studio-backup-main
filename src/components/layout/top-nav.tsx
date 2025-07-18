@@ -67,144 +67,96 @@ export function TopNav() {
   const patientId = patientMatch ? patientMatch[1] : null;
 
   return (
-    <div className="bg-card px-1 py-1 flex flex-wrap md:flex-nowrap items-center gap-1 min-h-8">
-      <div className="md:hidden">
+    <div className="bg-card px-1 py-1 flex items-center min-h-8 w-full shadow-sm">
+      {/* Left side - Sidebar toggle */}
+      <div className="md:hidden flex-shrink-0">
         <SidebarTrigger asChild>
-          <Button variant="ghost" size="icon" className="h-7 w-7">
+          <Button variant="ghost" size="icon" className="h-8 w-8">
             <Menu className="h-4 w-4" />
           </Button>
         </SidebarTrigger>
       </div>
 
-      {/* Nav buttons container: wraps on small screens, no fixed width */}
-      <div className="flex flex-wrap md:flex-nowrap items-center gap-0.5 overflow-x-auto no-scrollbar flex-1">
-        {navButtonLabels.map((label) => {
-          let href = "#";
-          if (patientId) {
-            // Patient-specific links
-            if (label === "Cover Sheet") href = `/patients/${patientId}`;
-            else if (label === "Dashboard") href = `/patients/${patientId}/vitals-dashboard`;
-            else if (label === "Orders") href = `/patients/${patientId}/orders`;
-            else if (label === "Clinical Notes") href = `/patients/${patientId}/clinical-notes`;
-            else if (label === "Discharge Summary") href = `/patients/${patientId}/discharge-summary`;
-            else if (label === "Emergency Care") href = `/patients/${patientId}/emergency-care`;
-            else if (label === "Postmortem") href = `/patients/${patientId}/postmortem`;
-            else if (label === "Nursing") href = `/patients/${patientId}/nursing`;
-            else if (label === "Referral") href = `/patients/${patientId}/referral`;
-            else if (label === "Lab") href = `/patients/${patientId}/lab`;
-            else if (label === "Radiology") href = `/patients/${patientId}/radiology`;
-            else if (label === "Report") href = `/patients/${patientId}/report`;
-          } else {
-            // Global links
-            if (label === "Cover Sheet") href = "/";
-            else if (label === "Dashboard") href = "/vitals-dashboard";
-            else if (label === "Orders") href = "/orders";
-            else if (label === "Clinical Notes") href = "/clinical-notes";
-            else if (label === "Discharge Summary") href = "/discharge-summary";
-            else if (label === "Emergency Care") href = "/emergency-care";
-            else if (label === "Postmortem") href = "/postmortem";
-            else if (label === "Nursing") href = "/nursing";
-            else if (label === "Referral") href = "/referral";
-            else if (label === "Lab") href = "/lab";
-            else if (label === "Radiology") href = "/radiology";
-            else if (label === "Report") href = "/report";
-          }
+      {/* Middle - Navigation buttons with scroll */}
+      <div className="flex-1 overflow-x-auto no-scrollbar">
+        <div className="flex items-center gap-0.5 flex-nowrap">
+          {navButtonLabels.map((label) => {
+            let href = "#";
+            if (patientId) {
+              // Patient-specific links
+              if (label === "Cover Sheet") href = `/patients/${patientId}`;
+              else if (label === "Dashboard") href = `/patients/${patientId}/vitals-dashboard`;
+              else if (label === "Orders") href = `/patients/${patientId}/orders`;
+              else if (label === "Clinical Notes") href = `/patients/${patientId}/clinical-notes`;
+              else if (label === "Discharge Summary") href = `/patients/${patientId}/discharge-summary`;
+              else if (label === "Emergency Care") href = `/patients/${patientId}/emergency-care`;
+              else if (label === "Postmortem") href = `/patients/${patientId}/postmortem`;
+              else if (label === "Nursing") href = `/patients/${patientId}/nursing`;
+              else if (label === "Referral") href = `/patients/${patientId}/referral`;
+              else if (label === "Lab") href = `/patients/${patientId}/lab`;
+              else if (label === "Radiology") href = `/patients/${patientId}/radiology`;
+              else if (label === "Report") href = `/patients/${patientId}/report`;
+            } else {
+              // Global links
+              if (label === "Cover Sheet") href = "/";
+              else if (label === "Dashboard") href = "/vitals-dashboard";
+              else if (label === "Orders") href = "/orders";
+              else if (label === "Clinical Notes") href = "/clinical-notes";
+              else if (label === "Discharge Summary") href = "/discharge-summary";
+              else if (label === "Emergency Care") href = "/emergency-care";
+              else if (label === "Postmortem") href = "/postmortem";
+              else if (label === "Nursing") href = "/nursing";
+              else if (label === "Referral") href = "/referral";
+              else if (label === "Lab") href = "/lab";
+              else if (label === "Radiology") href = "/radiology";
+              else if (label === "Report") href = "/report";
+            }
 
-          const isActive = pathname === href && href !== "#";
+            const isActive = pathname === href && href !== "#";
 
-          if (href === "#") {
+            if (href === "#") {
+              return (
+                <Button
+                  key={label}
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 px-3 text-xs whitespace-nowrap min-w-[90px] hover:bg-accent hover:text-foreground flex-shrink-0"
+                >
+                  {label}
+                </Button>
+              );
+            }
+
             return (
-              <Button
-                key={label}
-                variant="ghost"
-                size="sm"
-                className="text-xs px-2 py-1 h-7 whitespace-nowrap hover:bg-accent hover:text-foreground"
-              >
-                {label}
-              </Button>
+              <Link key={label} href={href} passHref legacyBehavior>
+                <Button
+                  asChild
+                  variant={isActive ? "default" : "ghost"}
+                  size="sm"
+                  className={`h-8 px-3 text-xs whitespace-nowrap min-w-[90px] flex-shrink-0 ${
+                    !isActive ? 'hover:bg-accent hover:text-foreground' : 'hover:bg-primary/90'
+                  }`}
+                >
+                  <a>{label}</a>
+                </Button>
+              </Link>
             );
-          }
+          })}
+        </div>
+      </div>
 
-          return (
-            <Link key={label} href={href} passHref legacyBehavior>
-              <Button
-                asChild
-                variant={isActive ? "default" : "ghost"}
-                size="sm"
-                className={`text-xs px-2 py-1 h-7 whitespace-nowrap ${!isActive ? 'hover:bg-accent hover:text-foreground' : 'hover:bg-primary hover:text-primary-foreground'}`}
-              >
-                <a>{label}</a>
-              </Button>
-            </Link>
-          );
-        })}
-
-        {/* Helpdesk Dropdown */}
+      {/* Right side - All action buttons in a single group */}
+      <div className="flex items-center gap-0.5 flex-shrink-0 ml-2 pl-2 border-l border-border">
+        {/* Helpdesk Button */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 ml-1"
-              title="Helpdesk"
-            >
+            <Button variant="ghost" size="icon" className="h-8 w-8" title="Helpdesk">
               <HeadsetIcon className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-64 max-h-96 overflow-y-auto">
-            <DropdownMenuLabel className="font-semibold">Helpdesk Options</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem 
-              className="text-xs p-2 cursor-pointer hover:bg-accent"
-              onClick={() => setShowPatientSelectionModal(true)}
-            >
-              Patient Selection Defaults
-            </DropdownMenuItem>
-            <DropdownMenuItem 
-              className="text-xs p-2 cursor-pointer hover:bg-accent"
-              onClick={() => setShowSourceCombinationsModal(true)}
-            >
-              Source Combinations
-            </DropdownMenuItem>
-            <DropdownMenuItem 
-              className="text-xs p-2 cursor-pointer hover:bg-accent"
-              onClick={() => setShowPersonalListsModal(true)}
-            >
-              Personal Lists
-            </DropdownMenuItem>
-            <DropdownMenuItem 
-              className="text-xs p-2 cursor-pointer hover:bg-accent"
-              onClick={() => setShowPersonalDiagnosisListsModal(true)}
-            >
-              Personal Diagnosis Lists
-            </DropdownMenuItem>
-            <DropdownMenuItem 
-              className="text-xs p-2 cursor-pointer hover:bg-accent"
-              onClick={() => setShowTeamInformationModal(true)}
-            >
-              Team Information
-            </DropdownMenuItem>
-            {[
-              'Custom Widgets',
-              'Change Author',
-              'Patient Credential',
-              'Patient Location',
-              'Ward Bed - Occupancy',
-              "Doctor's Availability",
-              'Lab Result Alert',
-              'Order Check',
-              'Chief-Complaints Master',
-              'BCMA',
-              'Blood Bank',
-              'NDRS',
-              'Medclick',
-              'AMI Prediction',
-              'Emergency Configuration'
-            ].map((item) => (
-              <DropdownMenuItem key={item} className="text-xs p-2 cursor-pointer hover:bg-accent">
-                {item}
-              </DropdownMenuItem>
-            ))}
+          <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuItem className="text-xs">Help Center</DropdownMenuItem>
+            <DropdownMenuItem className="text-xs">Contact Support</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
 
@@ -212,23 +164,70 @@ export function TopNav() {
         <LogoutButton 
           variant="ghost" 
           size="icon"
-          className="h-7 w-7 ml-1"
+          className="h-8 w-8"
           title="Logout"
         >
           <LogOut className="h-4 w-4" />
+          <span className="sr-only">Logout</span>
         </LogoutButton>
+
+        {/* More Options Dropdown */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8">
+              <MoreVertical className="h-4 w-4" />
+              <span className="sr-only">More options</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-60">
+            <div className="flex items-center justify-end space-x-2 p-2 border-b mb-1">
+              <HeadsetIcon className="h-6 w-6" />
+              <AlertIcon className="h-6 w-6" />
+              <PowerIcon className="h-6 w-6" />
+            </div>
+            <DropdownMenuItem className="py-2 px-3 text-xs">
+              <Avatar className="h-5 w-5 mr-2.5">
+                <AvatarImage src="https://placehold.co/40x40.png" alt="User" />
+                <AvatarFallback className="text-xs">
+                  <User className="h-3 w-3" />
+                </AvatarFallback>
+              </Avatar>
+              SANSYS DOCTOR
+            </DropdownMenuItem>
+            <DropdownMenuItem className="py-2 px-3 text-xs" disabled>
+              <Building2 className="h-4 w-4 mr-2.5 text-muted-foreground" />
+              Location: Main Clinic
+            </DropdownMenuItem>
+            <DropdownMenuItem className="py-2 px-3 text-xs">
+              <MapPin className="h-4 w-4 mr-2.5 text-muted-foreground" />
+              CHANGE LOCATION
+            </DropdownMenuItem>
+            <DropdownMenuItem className="py-2 px-3 text-xs">
+              <Lock className="h-4 w-4 mr-2.5 text-muted-foreground" />
+              CHANGE PASSWORD
+            </DropdownMenuItem>
+            <DropdownMenuItem className="py-2 px-3 text-xs">
+              <PenLine className="h-4 w-4 mr-2.5 text-muted-foreground" />
+              CHANGE SIGNATURE
+            </DropdownMenuItem>
+            <DropdownMenuItem className="py-2 px-3 text-xs">
+              <PenLine className="h-4 w-4 mr-2.5 text-muted-foreground" />
+              SIGNATURE BLOCK
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {/* Modals */}
-      <PatientSelectionDefaultsModal 
+      <PatientSelectionDefaultsModal
         open={showPatientSelectionModal}
         onOpenChange={setShowPatientSelectionModal}
       />
-      <SourceCombinationsModal 
+      <SourceCombinationsModal
         open={showSourceCombinationsModal}
         onOpenChange={setShowSourceCombinationsModal}
       />
-      <PersonalListsModal 
+      <PersonalListsModal
         open={showPersonalListsModal}
         onOpenChange={setShowPersonalListsModal}
       />
@@ -240,51 +239,6 @@ export function TopNav() {
         open={showTeamInformationModal}
         onOpenChange={setShowTeamInformationModal}
       />
-
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" className="h-7 w-7">
-            <MoreVertical className="h-4 w-4" />
-            <span className="sr-only">More options</span>
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-60">
-          <div className="flex items-center justify-end space-x-2 p-2 border-b mb-1">
-            <HeadsetIcon className="h-6 w-6" />
-            <AlertIcon className="h-6 w-6" />
-            <PowerIcon className="h-6 w-6" />
-          </div>
-          <DropdownMenuItem className="py-2 px-3 text-xs">
-            <Avatar className="h-5 w-5 mr-2.5">
-              <AvatarImage src="https://placehold.co/40x40.png" alt="User Avatar" data-ai-hint="person user" />
-              <AvatarFallback className="text-xs">
-                <User className="h-3 w-3" />
-              </AvatarFallback>
-            </Avatar>
-            SANSYS DOCTOR
-          </DropdownMenuItem>
-          <DropdownMenuItem className="py-2 px-3 text-xs" disabled>
-            <Building2 className="h-4 w-4 mr-2.5 text-muted-foreground" />
-            Location: Main Clinic
-          </DropdownMenuItem>
-          <DropdownMenuItem className="py-2 px-3 text-xs">
-            <MapPin className="h-4 w-4 mr-2.5 text-muted-foreground" />
-            CHANGE LOCATION
-          </DropdownMenuItem>
-          <DropdownMenuItem className="py-2 px-3 text-xs">
-            <Lock className="h-4 w-4 mr-2.5 text-muted-foreground" />
-            CHANGE PASSWORD
-          </DropdownMenuItem>
-          <DropdownMenuItem className="py-2 px-3 text-xs">
-            <PenLine className="h-4 w-4 mr-2.5 text-muted-foreground" />
-            CHANGE SIGNATURE
-          </DropdownMenuItem>
-          <DropdownMenuItem className="py-2 px-3 text-xs">
-            <PenLine className="h-4 w-4 mr-2.5 text-muted-foreground" />
-            SIGNATURE BLOCK
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
     </div>
   );
 }
