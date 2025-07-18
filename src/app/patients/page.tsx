@@ -434,11 +434,11 @@ export default function PatientsPage() {
           
           {/* Search Bar - Right side */}
           <div className="flex items-center gap-2 w-full md:w-auto">
-            <div className="relative w-full md:min-w-[300px]">
+            <div className="relative w-48">
               <SearchIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <input
                 type="search"
-                placeholder={isSSNSearch ? "Search by SSN..." : "Search patients..."}
+                placeholder={isSSNSearch ? "SSN..." : "Search..."}
                 className="pl-9 h-8 text-sm border rounded-md w-full px-3 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                 value={isSSNSearch ? ssnSearch : searchQuery}
                 onChange={handleSearchChange}
@@ -450,7 +450,7 @@ export default function PatientsPage() {
               )}
             </div>
             
-            <div className="flex border rounded-md overflow-hidden h-8">
+            <div className="flex border rounded-md overflow-hidden h-8 flex-shrink-0">
               <button
                 type="button"
                 onClick={() => {
@@ -460,14 +460,14 @@ export default function PatientsPage() {
                     setSSNSearchResults([]);
                   }
                 }}
-                className={`px-3 text-sm flex items-center gap-1 transition-colors ${
+                className={`px-2 text-sm flex items-center gap-1 transition-colors ${
                   !isSSNSearch 
                     ? 'bg-blue-500 text-white' 
                     : 'bg-white hover:bg-gray-100 text-gray-700'
                 }`}
               >
                 <SearchIcon className="h-3.5 w-3.5" />
-                <span>Search</span>
+                <span className="hidden sm:inline">Search</span>
               </button>
               
               <div className="w-px bg-gray-200"></div>
@@ -480,29 +480,89 @@ export default function PatientsPage() {
                     setSearchQuery('');
                   }
                 }}
-                className={`px-3 text-sm flex items-center gap-1 transition-colors ${
+                className={`px-2 text-sm flex items-center gap-1 transition-colors ${
                   isSSNSearch 
                     ? 'bg-blue-500 text-white' 
                     : 'bg-white hover:bg-gray-100 text-gray-700'
                 }`}
               >
                 <Fingerprint className="h-3.5 w-3.5" />
-                <span>SSN</span>
+                <span className="hidden sm:inline">SSN</span>
+              </button>
+              
+              <div className="w-px bg-gray-200"></div>
+              
+              <button
+                type="button"
+                onClick={() => setIsAdvOpen(true)}
+                className="px-2 text-sm flex items-center gap-1 bg-white hover:bg-gray-100 text-gray-700 transition-colors"
+              >
+                <span className="hidden sm:inline">Advanced</span>
+                <ChevronDown className="h-3.5 w-3.5" />
               </button>
             </div>
-            
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="h-8 whitespace-nowrap"
-              onClick={() => setIsAdvOpen(true)}
-            >
-              Advanced
-            </Button>
           </div>
         </div>
       </div>
       
+      {/* Advanced Search Dialog */}
+      <Dialog open={isAdvOpen} onOpenChange={setIsAdvOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Advanced Search</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleAdvancedSearch} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="advName">Patient Name</Label>
+              <Input
+                id="advName"
+                value={advName}
+                onChange={(e) => setAdvName(e.target.value)}
+                placeholder="Enter patient name"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="advDob">Date of Birth</Label>
+              <Input
+                id="advDob"
+                type="date"
+                value={advDob}
+                onChange={(e) => setAdvDob(e.target.value)}
+                placeholder="MM/DD/YYYY"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="advPhone">Phone Number</Label>
+              <Input
+                id="advPhone"
+                value={advPhone}
+                onChange={(e) => setAdvPhone(e.target.value)}
+                placeholder="Enter phone number"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="advIp">IP Number</Label>
+              <Input
+                id="advIp"
+                value={advIp}
+                onChange={(e) => setAdvIp(e.target.value)}
+                placeholder="Enter IP number"
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsAdvOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit">Search</Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
       {/* Patient Table */}
       <div className="bg-white rounded shadow-sm border border-gray-200 overflow-hidden">
         {/* Table content remains the same */}
