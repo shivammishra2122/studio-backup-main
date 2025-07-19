@@ -47,21 +47,39 @@ export const PatientProvider = ({ children }: { children: ReactNode }) => {
     setError(null);
     try {
       // Get patients data with search params
-      const data = await apiService.getPatients(searchParams) as unknown as Patient[];
-      const patientsData = Array.isArray(data) ? data : [];
-      setPatients(patientsData);
+      const data = await apiService.getPatients(searchParams) as unknown as any;
+      
+      // Process the data to ensure it's an array of patients
+      let patientsData = [];
+      if (Array.isArray(data)) {
+        patientsData = data;
+      } else if (data && typeof data === 'object') {
+        // If data is an object with numeric keys, convert to array
+        patientsData = Object.values(data);
+      }
+      
+      // Map the patients to include the SSN field
+      const mappedPatients = patientsData.map((patient: any) => ({
+        ...patient,
+        SSN: patient.PatientSSN || patient['SSN No'] || ''
+      }));
+      
+      setPatients(mappedPatients);
       
       // If we have a current patient, update it with fresh data
       if (currentPatient) {
-        const updatedPatient = patientsData.find(p => p.DFN === currentPatient.DFN);
+        const updatedPatient = mappedPatients.find((p: any) => p.DFN === currentPatient.DFN);
         if (updatedPatient) {
           setCurrentPatient(updatedPatient);
         }
       }
+      
+      return mappedPatients;
     } catch (err) {
       const error = err as Error;
       setError(error.message || 'Failed to fetch patients. Please try again.');
       console.error('Error fetching patients:', error);
+      return [];
     } finally {
       setLoading(false);
     }

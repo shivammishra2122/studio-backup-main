@@ -47,17 +47,17 @@ interface TableField {
 }
 
 const TABLE_FIELDS: TableField[] = [
-  { key: 'DFN', label: 'Patient ID', icon: FileText },
+  { key: 'SSN', label: 'UHID', icon: FileText },
   { key: 'Name', label: 'Patient Name', icon: User },
   { key: 'Age', label: 'Age/Gender', icon: UserCog },
-  { key: 'Admission Date', label: 'Admission', icon: Calendar },
+  { key: 'Admission Date', label: 'Admission Date', icon: Calendar },
   { key: 'LOS', label: 'LOS', icon: Clock },
   { key: 'Ward', label: 'Ward', icon: Home },
   { key: 'Bed', label: 'Bed', icon: Bed },
   { key: 'Specialty', label: 'Specialty', icon: Stethoscope },
-  { key: 'Primary Consultant', label: 'Consultant', icon: UserCog },
-  { key: 'Payer Category', label: 'Payer', icon: CreditCard },
-  { key: 'Type of Admission', label: 'Admission Type', icon: FileText },
+  { key: 'Primary Consultant', label: 'Primary Consultant', icon: UserCog },
+  { key: 'Payer Category', label: 'Payer Category', icon: CreditCard },
+  { key: 'Type of Admission', label: 'Type of Admission', icon: Fingerprint },
   { key: 'MLC', label: 'MLC', icon: AlertTriangle },
 ];
 
@@ -74,21 +74,37 @@ function getStringValue(val: any, key?: string): string {
 }
 
 // Mapping function for API patient -> table patient
-const mapApiPatientToTablePatient = (apiPatient: any) => ({
-  DFN: apiPatient.DFN,
-  Name: apiPatient.Name,
-  Age: apiPatient.Age,
-  "Admission Date": apiPatient["Admission Date"],
-  LOS: apiPatient.LOS,
-  Ward: apiPatient.Ward,
-  Bed: apiPatient.Bed,
-  Specialty: apiPatient.Specialty,
-  "Primary Consultant": apiPatient["Primary Consultant"],
-  "Payer Category": apiPatient["Payer Category"],
-  "Type of Admission": apiPatient["Admission Type"],
-  MLC: apiPatient.MLC,
-  SSN: apiPatient.PatientSSN || apiPatient["SSN No"] || "",
-});
+const mapApiPatientToTablePatient = (apiPatient: any) => {
+  // If the patient object is nested under a numeric key, extract it
+  const patientData = typeof apiPatient === 'object' && !Array.isArray(apiPatient) && 
+                     Object.values(apiPatient).every(v => typeof v === 'object') ?
+                     Object.values(apiPatient)[0] : apiPatient;
+  
+  // Extract SSN - using both PatientSSN and SSN No fields from the API
+  const ssn = patientData.PatientSSN || patientData["SSN No"] || '';
+  
+  // Create the mapped patient object
+  return {
+    // Use SSN as the main ID
+    SSN: String(ssn),
+    // Keep other fields as is
+    Name: patientData.Name || '',
+    Age: patientData.Age || '',
+    "Admission Date": patientData["Admission Date"] || '',
+    LOS: patientData.LOS || '',
+    Ward: patientData.Ward || '',
+    Bed: patientData.Bed || '',
+    Specialty: patientData.Specialty || '',
+    "Primary Consultant": patientData["Primary Consultant"] || '',
+    "Payer Category": patientData["Payer Category"] || '',
+    "Type of Admission": patientData["Type of Admission"] || '',
+    MLC: patientData.MLC || '',
+    // Keep DFN for internal reference but don't display it
+    DFN: String(patientData.DFN || ''),
+    // Include all original fields
+    ...patientData
+  };
+};
 
 export default function PatientsPage() {
   const { patients, loading, error, fetchPatients, setCurrentPatient } = usePatients();
@@ -219,19 +235,20 @@ export default function PatientsPage() {
     }
   };
 
-  // Fetch patients on initial load
+  // Fetch patients on initial load and when search params change
   useEffect(() => {
-    const loadPatients = async () => {
+    const loadInitialPatients = async () => {
       try {
+        // The fetchPatients function now handles the mapping in the context
         await fetchPatients({});
         setLastUpdated(new Date());
-      } catch (err) {
-        console.error('Failed to load patients:', err);
+      } catch (error) {
+        console.error('Failed to load patients:', error);
       }
     };
-
-    loadPatients();
-  }, []);
+    
+    loadInitialPatients();
+  }, [fetchPatients]);
 
   const handleRefresh = async () => {
     try {
@@ -438,7 +455,7 @@ export default function PatientsPage() {
               <SearchIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <input
                 type="search"
-                placeholder={isSSNSearch ? "SSN..." : "Search..."}
+                placeholder={isSSNSearch ? "UHID..." : "Search..."}
                 className="pl-9 pr-7 h-8 text-sm border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                 value={isSSNSearch ? ssnSearch : searchQuery}
                 onChange={handleSearchChange}
@@ -467,6 +484,7 @@ export default function PatientsPage() {
             </div>
             
             <div className="flex border rounded-md overflow-hidden h-8 flex-shrink-0">
+              {/* Search button - commented out but kept for future use
               <button
                 type="button"
                 onClick={() => {
@@ -487,6 +505,7 @@ export default function PatientsPage() {
               </button>
               
               <div className="w-px bg-gray-200"></div>
+              */}
               
               <button
                 type="button"
@@ -496,14 +515,10 @@ export default function PatientsPage() {
                     setSearchQuery('');
                   }
                 }}
-                className={`px-2 text-sm flex items-center gap-1 transition-colors ${
-                  isSSNSearch 
-                    ? 'bg-blue-500 text-white' 
-                    : 'bg-white hover:bg-gray-100 text-gray-700'
-                }`}
+                className="px-2 text-sm flex items-center gap-1 bg-blue-500 text-white"
               >
                 <Fingerprint className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">SSN</span>
+                <span className="hidden sm:inline">UHID</span>
               </button>
               
               <div className="w-px bg-gray-200"></div>
