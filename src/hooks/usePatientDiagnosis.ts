@@ -44,7 +44,7 @@ export function usePatientDiagnosis(patientSSN: string): UsePatientDiagnosisResu
           "PatientSSN": effectiveSSN,
           "DUZ": "80",
           "ihtLocation": "67",
-          "rcpAdmDateL": "11084766"
+          "rcpAdmDateL": " "
         })
       });
 

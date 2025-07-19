@@ -40,6 +40,7 @@ import { useMedications } from '@/hooks/useMedications';
 import useProblemSave from '@/hooks/useProblemSave';
 import useProblemSearch from '@/hooks/useProblemSearch';
 import { debounce } from 'lodash';
+import { usePatientDiagnosis } from '@/hooks/usePatientDiagnosis';
 
 // Chart configurations
 const glucoseChartConfig: ChartConfig = { level: { label: 'Glucose (mg/dL)', color: 'hsl(var(--chart-2))' } };
@@ -218,6 +219,16 @@ export default function DashboardPage({
   const [labTests, setLabTests] = useState<LabTest[]>([]);
   const [labTestInput, setLabTestInput] = useState('');
   const [radiologyTests, setRadiologyTests] = useState<RadiologyTest[]>([]);
+
+
+  // Add with other state declarations
+const { diagnosis, loading: diagnosisLoading, error: diagnosisError } = usePatientDiagnosis(patient?.ssn || '');
+
+// Convert the diagnosis object to an array for easier mapping
+const diagnosisList = Object.entries(diagnosis).map(([key, value]) => ({
+  id: key,
+  ...value
+}));
 
   // Dialog input states
   const [medicationInputs, setMedicationInputs] = useState<
@@ -1096,11 +1107,54 @@ export default function DashboardPage({
               )}
 
               {/* Final Diagnosis Tab */}
-              {activeProblemsTab === 'final-diagnosis' && (
-                <div className="p-3 h-full flex items-center justify-center">
-                  <p className="text-sm text-muted-foreground text-center">No final diagnosis recorded.</p>
+              {/* Final Diagnosis Tab */}
+{activeProblemsTab === 'final-diagnosis' && (
+  <div className="h-full flex flex-col">
+    <div className="overflow-y-auto" style={{ maxHeight: '9rem' }}>
+      <Table>
+        <TableBody>
+          {diagnosisLoading ? (
+            <TableRow className="h-6">
+              <TableCell className="p-0 px-2 text-center">
+                <div className="flex items-center justify-center h-8">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
                 </div>
-              )}
+              </TableCell>
+            </TableRow>
+          ) : diagnosisError ? (
+            <TableRow className="h-6">
+              <TableCell className="p-0 px-2 text-center">
+                <p className="text-xs text-red-500">Error loading diagnosis</p>
+              </TableCell>
+            </TableRow>
+          ) : diagnosisList.length > 0 ? (
+            diagnosisList.map((diag, index) => (
+              <TableRow key={diag.id} className={`${index % 2 === 0 ? 'bg-muted/30' : ''} h-6`}>
+                <TableCell className="p-0 px-2">
+                  <div
+                    className="font-medium text-xs cursor-pointer leading-tight"
+                    onClick={() => {
+                      // You can add a click handler here if needed
+                      console.log('Diagnosis clicked:', diag);
+                    }}
+                  >
+                    {diag['Diagnosis Description'] || 'No description available'}
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))
+          ) : (
+            <TableRow className="h-6">
+              <TableCell className="p-0 px-2 text-center">
+                <p className="text-xs text-muted-foreground">No diagnosis listed.</p>
+              </TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
+    </div>
+  </div>
+)}
             </CardContent>
           </div>
         </Card>
