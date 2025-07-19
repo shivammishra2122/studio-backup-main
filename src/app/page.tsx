@@ -41,6 +41,7 @@ import useProblemSave from '@/hooks/useProblemSave';
 import useProblemSearch from '@/hooks/useProblemSearch';
 import { debounce } from 'lodash';
 import { usePatientDiagnosis } from '@/hooks/usePatientDiagnosis';
+import { usePatientComplaints } from '@/hooks/usePatientComplaints';
 
 // Chart configurations
 const glucoseChartConfig: ChartConfig = { level: { label: 'Glucose (mg/dL)', color: 'hsl(var(--chart-2))' } };
@@ -230,6 +231,7 @@ const diagnosisList = Object.entries(diagnosis).map(([key, value]) => ({
   ...value
 }));
 
+
   // Dialog input states
   const [medicationInputs, setMedicationInputs] = useState<
     Record<string, { 
@@ -272,6 +274,10 @@ const diagnosisList = Object.entries(diagnosis).map(([key, value]) => ({
   const [allergySearchResults, setAllergySearchResults] = useState<any[]>([]);
   const [isSearchingAllergies, setIsSearchingAllergies] = useState(false);
   const [showAllergyDropdown, setShowAllergyDropdown] = useState(false);
+
+  // Add with other state declarations
+const { complaints, loading: complaintsLoading } = usePatientComplaints(patient?.ssn || '');
+const complaintsList = Object.values(complaints);
 
   // Debounced allergy search function
   const searchAllergies = useCallback(debounce(async (searchTerm: string) => {
@@ -1017,7 +1023,7 @@ const diagnosisList = Object.entries(diagnosis).map(([key, value]) => ({
                 <Clock className="h-4 w-4 text-primary" />
                 <CardTitle className="text-base">Problems</CardTitle>
                 <Badge variant="secondary" className="text-xs px-1.5 py-0.5">
-  {`${problemsToShow.length} | 0 | 0`}
+  {`${problemsToShow.length} | ${complaintsList.length} | ${diagnosisList.length}`}
 </Badge>
               </div>
               <Button
@@ -1100,11 +1106,42 @@ const diagnosisList = Object.entries(diagnosis).map(([key, value]) => ({
               )}
 
               {/* Chief Complaints Tab */}
-              {activeProblemsTab === 'chief-complaints' && (
-                <div className="p-3 h-full flex items-center justify-center">
-                  <p className="text-sm text-muted-foreground text-center">No chief complaints recorded.</p>
+              {/* Chief Complaints Tab */}
+{activeProblemsTab === 'chief-complaints' && (
+  <div className="h-full flex flex-col">
+    <div className="overflow-y-auto" style={{ maxHeight: '9rem' }}>
+      <Table>
+        <TableBody>
+          {complaintsLoading ? (
+            <TableRow className="h-6">
+              <TableCell className="p-0 px-2 text-center">
+                <div className="flex items-center justify-center h-8">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
                 </div>
-              )}
+              </TableCell>
+            </TableRow>
+          ) : complaintsList.length > 0 ? (
+            complaintsList.map((complaint, index) => (
+              <TableRow key={complaint["Order IEN"]} className={`${index % 2 === 0 ? 'bg-muted/30' : ''} h-6`}>
+                <TableCell className="p-0 px-2">
+                  <div className="font-medium text-xs cursor-pointer leading-tight">
+                    {complaint.CompName}
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))
+          ) : (
+            <TableRow className="h-6">
+              <TableCell className="p-0 px-2 text-center">
+                <p className="text-xs text-muted-foreground">No chief complaints recorded.</p>
+              </TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
+    </div>
+  </div>
+)}
 
               {/* Final Diagnosis Tab */}
               {/* Final Diagnosis Tab */}
