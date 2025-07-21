@@ -390,7 +390,7 @@ const VitalsView = React.FC<{ patient?: Patient }> = ({ patient }) => {
 
   return (
     <div className="flex flex-col md:flex-row gap-3 w-full h-full">
-      <div className="w-full md:w-[70%] flex flex-col border rounded-md bg-card shadow">
+      <div className="w-full md:w-[65%] flex flex-col border rounded-md bg-card shadow">
         <div className="flex items-center justify-between py-1.5 px-3 border-b bg-card text-foreground rounded-t-md">
           <h2 className="text-sm">{isVitalsEntryMode ? "Vitals Entry" : "Vitals"}</h2>
           <div className="flex items-center space-x-1">
