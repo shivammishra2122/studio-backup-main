@@ -72,7 +72,8 @@ export default function SidebarNav() {
               finalDiagnosis: found["Final Diagnosis"] || '',
               posting: found.Posting || '',
               reasonForVisit: found["Reason For Visit"] || '',
-              ssn: String(found.SSN || ''),
+              // Try multiple possible SSN field names from the API
+              ssn: String(found.SSN || found.ssn || found['SSN No'] || found['SSN_No'] || ''),
               // Include other fields from ApiPatient if necessary and not already mapped
               "Admission Date": found["Admission Date"] || '',
               Age: found.Age,
@@ -169,12 +170,12 @@ export default function SidebarNav() {
               {/* Patient ID with Icon */}
               <div className="flex items-center text-blue-100">
                 <CreditCard className="mr-2 h-4 w-4 flex-shrink-0 text-blue-200" />
-                <span className="truncate">{patient.DFN}</span>
+                <span className="truncate">UHID: {patient.ssn || 'N/A'}</span>
               </div>
               {/* Mobile No. with Icon */}
               <div className="flex items-center text-blue-100">
                 <Phone className="mr-2 h-4 w-4 flex-shrink-0 text-blue-200" />
-                <span className="truncate">{patient["Mobile No"]}</span>
+                <span className="truncate">{patient.mobile || patient["Mobile No"] || 'N/A'}</span>
               </div>
             </div>
 
