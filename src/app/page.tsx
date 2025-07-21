@@ -2117,7 +2117,7 @@ const complaintsList = Object.values(complaints);
                 <div className="grid grid-cols-2 gap-4 mb-2">
                   {/* Medication Name Card */}
                   <Card className="flex flex-col bg-white border border-gray-200 shadow-md rounded-lg p-2">
-                    <div className="text-sm font-normal mb-1">Medication Name</div>
+                    <div className="text-sm font-semibold mb-1">Medication Name</div>
                     <div className="flex flex-row items-center gap-2 w-full">
                       <Input
                         id={`medication-name-${dialog.id}`}
@@ -2133,7 +2133,7 @@ const complaintsList = Object.values(complaints);
                   </Card>
                   {/* Quick Order Card */}
                   <Card className="flex flex-col bg-white border border-gray-200 shadow-md rounded-lg p-2">
-                    <div className="text-sm font-normal mb-1">Quick Order</div>
+                    <div className="text-sm font-semibold mb-1">Quick Order</div>
                     <div className="flex flex-col gap-2">
                       <div className="flex flex-row items-center gap-2 w-full">
                         <Select
@@ -2330,7 +2330,7 @@ const complaintsList = Object.values(complaints);
                 <div className="grid grid-cols-2 gap-4 mb-2">
                   {/* Lab Test Name Card */}
                   <Card className="flex flex-col bg-white border border-gray-200 shadow-md rounded-lg p-2">
-                    <div className="text-sm font-normal mb-1">Lab Test Name</div>
+                    <div className="text-sm font-semibold mb-1">Lab Test Name</div>
                     <div className="flex flex-row items-center gap-2 w-full">
                       <Input
                         value={labTestInput}
@@ -2342,7 +2342,7 @@ const complaintsList = Object.values(complaints);
                   </Card>
                   {/* Quick Order Card */}
                   <Card className="flex flex-col bg-white border border-gray-200 shadow-md rounded-lg p-2">
-                    <div className="text-sm font-normal mb-1">Quick Order</div>
+                    <div className="text-sm font-semibold mb-1">Quick Order</div>
                     <div className="flex flex-col gap-2">
                       <div className="flex flex-row items-center gap-2 w-full">
                         <Select
@@ -2527,7 +2527,7 @@ const complaintsList = Object.values(complaints);
                 <div className="grid grid-cols-2 gap-4 mb-2">
                   {/* Radiology Test Name Card */}
                   <Card className="flex flex-col bg-white border border-gray-200 shadow-md rounded-lg p-2">
-                    <div className="text-sm font-normal mb-1">Radiology Test Name</div>
+                    <div className="text-sm font-semibold mb-1">Radiology Test Name</div>
                     <div className="flex flex-row items-center gap-2 w-full">
                       <Input
                         value={radiologyInputs[dialog.id]?.type || ''}
@@ -2558,7 +2558,7 @@ const complaintsList = Object.values(complaints);
                   
                   {/* Quick Order Card */}
                   <Card className="flex flex-col bg-white border border-gray-200 shadow-md rounded-lg p-2">
-                    <div className="text-sm font-normal mb-1">Quick Order</div>
+                    <div className="text-sm font-semibold mb-1">Quick Order</div>
                     <div className="flex flex-col gap-2">
                       <div className="flex flex-row items-center gap-2 w-full">
                         <Select
@@ -2718,7 +2718,7 @@ const complaintsList = Object.values(complaints);
               <div className="flex flex-col gap-4 text-sm">
                 {/* Report Search */}
                 <Card className="flex flex-col bg-white border border-gray-200 shadow-md rounded-lg p-2">
-                  <div className="text-sm font-normal mb-1">Report Search</div>
+                  <div className="text-sm font-semibold mb-1">Report Search</div>
                   <div className="flex flex-row items-center gap-2 w-full">
                     <Input
                       id={`report-search-${dialog.id}`}
@@ -2736,7 +2736,7 @@ const complaintsList = Object.values(complaints);
 
                 {/* Quick Search */}
                 <Card className="flex flex-col bg-white border border-gray-200 shadow-md rounded-lg p-2">
-                  <div className="text-sm font-normal mb-1">Quick Search</div>
+                  <div className="text-sm font-semibold mb-1">Quick Search</div>
                   <div className="flex flex-row items-center gap-2 w-full">
                     <Input
                       id={`quick-search-${dialog.id}`}
@@ -2753,7 +2753,7 @@ const complaintsList = Object.values(complaints);
                 </Card>
                 {/* Selected Reports */}
                 <Card className="flex flex-col bg-white border border-gray-200 shadow-md rounded-lg p-2">
-                  <div className="text-sm font-normal mb-1">Selected Reports</div>
+                  <div className="text-sm font-semibold mb-1">Selected Reports</div>
                   <div className="flex flex-row items-center gap-2 w-full">
                     <div className="flex flex-col gap-2">
                       {['LIVER FUNCTION TEST', 'DSDNA AB', 'THYROID PANEL']
@@ -2820,210 +2820,210 @@ const complaintsList = Object.values(complaints);
                 </div>
               </div>
                                                 ) : dialog.type === 'allergies' ? (
-                                                  <div className="flex flex-col gap-4 text-sm">
-                                                    {/* Top Row Cards */}
-                                                    <div className="grid grid-cols-3 gap-1">
-                                                      {/* Allergy Name Card */}
-                                                      <Card className="flex flex-col bg-white border border-gray-200 shadow-md rounded-lg p-2">
-                                                        <div className="text-sm font-normal mb-1">Enter Allergy</div>
-                                                        <div className="flex flex-row items-center gap-2 w-full">
-                                                          <Input
-                                                            id={`allergies-${dialog.id}`}
-                                                            value={allergyInputs[dialog.id]?.allergies || ''}
-                                                            onChange={(e) => {
-                                                              const value = e.target.value;
-                                                              setAllergyInputs(prev => ({
-                                                                ...prev,
-                                                                [dialog.id]: { ...(prev[dialog.id] || {}), allergies: value }
-                                                              }));
-                                                              handleAllergySearchChange(value);
-                                                            }}
-                                                            onFocus={() => allergySearchTerm.trim() && setShowAllergyDropdown(true)}
-                                                            onBlur={() => setTimeout(() => setShowAllergyDropdown(false), 200)}
-                                                            placeholder="Start typing to search allergies..."
-                                                            className="flex-1 border border-gray-200 rounded-md px-3 py-2 bg-[#f5f5f5]"
-                                                          />
-                                                        </div>
-                                                      </Card>
-                                    
-                                                      {/* Nature of Reaction Card */}
-                                                      <Card className="flex flex-col bg-white border border-gray-200 shadow-md rounded-lg p-2">
-                                                        <div className="text-sm font-normal mb-1">Nature of Reaction</div>
-                                                        <Select
-                                                          value={allergyInputs[dialog.id]?.natureOfReaction || ''}
-                                                          onValueChange={(value) => setAllergyInputs(prev => ({
-                                                            ...prev,
-                                                            [dialog.id]: { ...prev[dialog.id], natureOfReaction: value }
-                                                          }))}
-                                                        >
-                                                          <SelectTrigger className="w-full border border-gray-200 rounded-md px-3 py-2 bg-[#f5f5f5]">
-                                                            <SelectValue placeholder="Select..." />
-                                                          </SelectTrigger>
-                                                          <SelectContent>
-                                                            <SelectItem value="Allergy">Allergy</SelectItem>
-                                                            <SelectItem value="Intolerance">Intolerance</SelectItem>
-                                                            <SelectItem value="Side Effect">Side Effect</SelectItem>
-                                                          </SelectContent>
-                                                        </Select>
-                                                      </Card>
-                        
-                                                      {/* Type Card */}
-                                                      <Card className="flex flex-col bg-white border border-gray-200 shadow-md rounded-lg p-2">
-                                                        <div className="text-sm font-normal mb-1">Type</div>
-                                                        <RadioGroup 
-                                                          value={allergyInputs[dialog.id]?.reactionType || ''}
-                                                          onValueChange={(value) => setAllergyInputs(prev => ({
-                                                            ...prev,
-                                                            [dialog.id]: { ...prev[dialog.id], reactionType: value as 'Observed' | 'Historical' | '' }
-                                                          }))}
-                                                          className="flex gap-4 mt-2"
-                                                        >
-                                                          <div className="flex items-center space-x-2">
-                                                            <RadioGroupItem value="Observed" id={`observed-${dialog.id}`} />
-                                                            <Label htmlFor={`observed-${dialog.id}`} className="text-xs">Observed</Label>
-                                                          </div>
-                                                          <div className="flex items-center space-x-2">
-                                                            <RadioGroupItem value="Historical" id={`historical-${dialog.id}`} />
-                                                            <Label htmlFor={`historical-${dialog.id}`} className="text-xs">Historical</Label>
-                                                          </div>
-                                                        </RadioGroup>
-                                                      </Card>
-                                                    </div>
-                                    
-                                                    {/* Conditional fields for 'Observed' type */}
-                                                    {allergyInputs[dialog.id]?.reactionType === 'Observed' && (
-                                                      <div className="grid grid-cols-2 gap-1 mt-1">
-                                                        {/* Reaction Date/Time Card */}
-                                                        <Card className="flex flex-col bg-white border border-gray-200 shadow-md rounded-lg p-2">
-                                                          <div className="text-sm font-normal mb-1">Reaction Date/Time</div>
-                                                          <Input
-                                                            type="datetime-local"
-                                                            value={allergyInputs[dialog.id]?.reactionDateTime || ''}
-                                                            onChange={e => setAllergyInputs(prev => ({
-                                                              ...prev,
-                                                              [dialog.id]: { ...prev[dialog.id], reactionDateTime: e.target.value }
-                                                            }))}
-                                                            className="w-full border border-gray-200 rounded-md px-3 py-2 bg-[#f5f5f5]"
-                                                          />
-                                                        </Card>
-                                    
-                                                        {/* Severity Card */}
-                                                        <Card className="flex flex-col bg-white border border-gray-200 shadow-md rounded-lg p-2">
-                                                          <div className="text-sm font-normal mb-1">Severity</div>
-                                                          <Select
-                                                            value={allergyInputs[dialog.id]?.severity || ''}
-                                                            onValueChange={(value) => setAllergyInputs(prev => ({
-                                                              ...prev,
-                                                              [dialog.id]: { ...prev[dialog.id], severity: value }
-                                                            }))}
-                                                          >
-                                                            <SelectTrigger className="w-full border border-gray-200 rounded-md px-3 py-2 bg-[#f5f5f5]">
-                                                              <SelectValue placeholder="Select severity" />
-                                                            </SelectTrigger>
-                                                            <SelectContent>
-                                                              <SelectItem value="Mild">Mild</SelectItem>
-                                                              <SelectItem value="Moderate">Moderate</SelectItem>
-                                                              <SelectItem value="Severe">Severe</SelectItem>
-                                                            </SelectContent>
-                                                          </Select>
-                                                        </Card>
-                                                      </div>
-                                                    )}
-                                    
-                                                    {/* Sign/Symptoms & Date/Time Row */}
-                                                    <div className="grid grid-cols-2 gap-1 mt-1">
-                                                        {/* Sign/Symptoms Card */}
-                                                        <Card className="flex flex-col bg-white border border-gray-200 shadow-md rounded-lg p-2">
-                                                        <div className="text-sm font-normal mb-1">Sign/Symptoms</div>
-                                                        <Select
-                                                            value={allergyInputs[dialog.id]?.signSymptom || ''}
-                                                            onValueChange={(value) => setAllergyInputs(prev => ({
-                                                            ...prev,
-                                                            [dialog.id]: { ...prev[dialog.id], signSymptom: value }
-                                                            }))}
-                                                        >
-                                                            <SelectTrigger className="w-full border border-gray-200 rounded-md px-3 py-2 bg-[#f5f5f5]">
-                                                            <SelectValue placeholder="Select sign/symptom" />
-                                                            </SelectTrigger>
-                                                            <SelectContent>
-                                                            <SelectItem value="Rash">Rash</SelectItem>
-                                                            <SelectItem value="Hives">Hives</SelectItem>
-                                                            <SelectItem value="Swelling">Swelling</SelectItem>
-                                                            <SelectItem value="Difficulty Breathing">Difficulty Breathing</SelectItem>
-                                                            <SelectItem value="Nausea">Nausea</SelectItem>
-                                                            <SelectItem value="Dizziness">Dizziness</SelectItem>
-                                                            </SelectContent>
-                                                        </Select>
-                                                        </Card>
-                        
-                                                        {/* Date/Time Card */}
-                                                        <Card className="flex flex-col bg-white border border-gray-200 shadow-md rounded-lg p-2">
-                                                            <div className="text-sm font-normal mb-1">Date/Time</div>
-                                                            <Input
-                                                                type="datetime-local"
-                                                                value={allergyInputs[dialog.id]?.dateTime || ''}
-                                                                onChange={e => setAllergyInputs(prev => ({
-                                                                ...prev,
-                                                                [dialog.id]: { ...prev[dialog.id], dateTime: e.target.value }
-                                                                }))}
-                                                                className="w-full border border-gray-200 rounded-md px-3 py-2 bg-[#f5f5f5]"
-                                                            />
-                                                        </Card>
-                                                    </div>
-                                    
-                                                    {/* Comment Card */}
-                                                    <Card className="flex flex-col bg-white border border-gray-200 shadow-md rounded-lg mt-1 p-2">
-                                                      <div className="text-sm font-normal mb-1">Comment</div>
-                                                      <Textarea
-                                                        id={`comment-${dialog.id}`}
-                                                        value={allergyInputs[dialog.id]?.comment || ''}
-                                                        onChange={(e) => setAllergyInputs(prev => ({
-                                                          ...prev,
-                                                          [dialog.id]: { ...prev[dialog.id], comment: e.target.value }
-                                                        }))}
-                                                        placeholder="Add any additional comments"
-                                                        className="h-24 w-full border border-gray-200 rounded-md px-3 py-2 bg-[#f5f5f5]"
-                                                      />
-                                                    </Card>
-                                    
-                                                    {/* Action Buttons */}
-                                                    <div className="flex justify-end gap-2 mt-4">
-                                                      <Button 
-                                                        onClick={() => handleAddAllergy(dialog.id)}
-                                                        className="px-4 text-xs h-8"
-                                                      >
-                                                        Save
-                                                      </Button>
-                                                      <Button 
-                                                        variant="outline"
-                                                        onClick={() => {
-                                                          setAllergyInputs(prev => ({
-                                                            ...prev,
-                                                            [dialog.id]: {
-                                                              allergies: '',
-                                                              natureOfReaction: '',
-                                                              reactionType: '',
-                                                              signSymptom: '',
-                                                              dateTime: '',
-                                                              reactionDateTime: '',
-                                                              severity: '',
-                                                              comment: ''
-                                                            }
-                                                          }));
-                                                        }}
-                                                        className="px-4 text-xs h-8"
-                                                      >
-                                                        Reset
-                                                      </Button>
-                                                      <Button 
-                                                        variant="outline"
-                                                        onClick={() => closeFloatingDialog(dialog.id)}
-                                                        className="px-4 text-xs h-8"
-                                                      >
-                                                        Close
-                                                      </Button>
-                                                    </div>
-                                                  </div>
+                          <div className="flex flex-col gap-4 text-sm">
+                            {/* Top Row Cards */}
+                            <div className="grid grid-cols-3 gap-1">
+                              {/* Allergy Name Card */}
+                              <Card className="flex flex-col bg-white border border-gray-200 shadow-md rounded-lg p-2">
+                                <div className="text-sm font-semibold mb-1">Enter Allergy</div>
+                                <div className="flex flex-row items-center gap-2 w-full">
+                                  <Input
+                                    id={`allergies-${dialog.id}`}
+                                    value={allergyInputs[dialog.id]?.allergies || ''}
+                                    onChange={(e) => {
+                                      const value = e.target.value;
+                                      setAllergyInputs(prev => ({
+                                        ...prev,
+                                        [dialog.id]: { ...(prev[dialog.id] || {}), allergies: value }
+                                      }));
+                                      handleAllergySearchChange(value);
+                                    }}
+                                    onFocus={() => allergySearchTerm.trim() && setShowAllergyDropdown(true)}
+                                    onBlur={() => setTimeout(() => setShowAllergyDropdown(false), 200)}
+                                    placeholder="Start typing to search allergies..."
+                                    className="flex-1 border border-gray-200 rounded-md px-3 py-2 bg-[#f5f5f5]"
+                                  />
+                                </div>
+                              </Card>
+            
+                              {/* Nature of Reaction Card */}
+                              <Card className="flex flex-col bg-white border border-gray-200 shadow-md rounded-lg p-2">
+                                <div className="text-sm font-semibold mb-1">Nature of Reaction</div>
+                                <Select
+                                  value={allergyInputs[dialog.id]?.natureOfReaction || ''}
+                                  onValueChange={(value) => setAllergyInputs(prev => ({
+                                    ...prev,
+                                    [dialog.id]: { ...prev[dialog.id], natureOfReaction: value }
+                                  }))}
+                                >
+                                  <SelectTrigger className="w-full border border-gray-200 rounded-md px-3 py-2 bg-[#f5f5f5]">
+                                    <SelectValue placeholder="Select..." />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="Allergy">Allergy</SelectItem>
+                                    <SelectItem value="Intolerance">Intolerance</SelectItem>
+                                    <SelectItem value="Side Effect">Side Effect</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </Card>
+
+                              {/* Type Card */}
+                              <Card className="flex flex-col bg-white border border-gray-200 shadow-md rounded-lg p-2">
+                                <div className="text-sm font-semibold mb-1">Type</div>
+                                <RadioGroup 
+                                  value={allergyInputs[dialog.id]?.reactionType || ''}
+                                  onValueChange={(value) => setAllergyInputs(prev => ({
+                                    ...prev,
+                                    [dialog.id]: { ...prev[dialog.id], reactionType: value as 'Observed' | 'Historical' | '' }
+                                  }))}
+                                  className="flex gap-4 mt-2"
+                                >
+                                  <div className="flex items-center space-x-2">
+                                    <RadioGroupItem value="Observed" id={`observed-${dialog.id}`} />
+                                    <Label htmlFor={`observed-${dialog.id}`} className="text-xs">Observed</Label>
+                                  </div>
+                                  <div className="flex items-center space-x-2">
+                                    <RadioGroupItem value="Historical" id={`historical-${dialog.id}`} />
+                                    <Label htmlFor={`historical-${dialog.id}`} className="text-xs">Historical</Label>
+                                  </div>
+                                </RadioGroup>
+                              </Card>
+                            </div>
+            
+                            {/* Conditional fields for 'Observed' type */}
+                            {allergyInputs[dialog.id]?.reactionType === 'Observed' && (
+                              <div className="grid grid-cols-2 gap-1 mt-1">
+                                {/* Reaction Date/Time Card */}
+                                <Card className="flex flex-col bg-white border border-gray-200 shadow-md rounded-lg p-2">
+                                  <div className="text-sm font-semibold mb-1">Reaction Date/Time</div>
+                                  <Input
+                                    type="datetime-local"
+                                    value={allergyInputs[dialog.id]?.reactionDateTime || ''}
+                                    onChange={e => setAllergyInputs(prev => ({
+                                      ...prev,
+                                      [dialog.id]: { ...prev[dialog.id], reactionDateTime: e.target.value }
+                                    }))}
+                                    className="w-full border border-gray-200 rounded-md px-3 py-2 bg-[#f5f5f5]"
+                                  />
+                                </Card>
+            
+                                {/* Severity Card */}
+                                <Card className="flex flex-col bg-white border border-gray-200 shadow-md rounded-lg p-2">
+                                  <div className="text-sm font-semibold mb-1">Severity</div>
+                                  <Select
+                                    value={allergyInputs[dialog.id]?.severity || ''}
+                                    onValueChange={(value) => setAllergyInputs(prev => ({
+                                      ...prev,
+                                      [dialog.id]: { ...prev[dialog.id], severity: value }
+                                    }))}
+                                  >
+                                    <SelectTrigger className="w-full border border-gray-200 rounded-md px-3 py-2 bg-[#f5f5f5]">
+                                      <SelectValue placeholder="Select severity" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="Mild">Mild</SelectItem>
+                                      <SelectItem value="Moderate">Moderate</SelectItem>
+                                      <SelectItem value="Severe">Severe</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </Card>
+                              </div>
+                            )}
+            
+                            {/* Sign/Symptoms & Date/Time Row */}
+                            <div className="grid grid-cols-2 gap-1 mt-1">
+                                {/* Sign/Symptoms Card */}
+                                <Card className="flex flex-col bg-white border border-gray-200 shadow-md rounded-lg p-2">
+                                <div className="text-sm font-semibold mb-1">Sign/Symptoms</div>
+                                <Select
+                                    value={allergyInputs[dialog.id]?.signSymptom || ''}
+                                    onValueChange={(value) => setAllergyInputs(prev => ({
+                                    ...prev,
+                                    [dialog.id]: { ...prev[dialog.id], signSymptom: value }
+                                    }))}
+                                >
+                                    <SelectTrigger className="w-full border border-gray-200 rounded-md px-3 py-2 bg-[#f5f5f5]">
+                                    <SelectValue placeholder="Select sign/symptom" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                    <SelectItem value="Rash">Rash</SelectItem>
+                                    <SelectItem value="Hives">Hives</SelectItem>
+                                    <SelectItem value="Swelling">Swelling</SelectItem>
+                                    <SelectItem value="Difficulty Breathing">Difficulty Breathing</SelectItem>
+                                    <SelectItem value="Nausea">Nausea</SelectItem>
+                                    <SelectItem value="Dizziness">Dizziness</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                </Card>
+
+                                {/* Date/Time Card */}
+                                <Card className="flex flex-col bg-white border border-gray-200 shadow-md rounded-lg p-2">
+                                    <div className="text-sm font-semibold mb-1">Date/Time</div>
+                                    <Input
+                                        type="datetime-local"
+                                        value={allergyInputs[dialog.id]?.dateTime || ''}
+                                        onChange={e => setAllergyInputs(prev => ({
+                                        ...prev,
+                                        [dialog.id]: { ...prev[dialog.id], dateTime: e.target.value }
+                                        }))}
+                                        className="w-full border border-gray-200 rounded-md px-3 py-2 bg-[#f5f5f5]"
+                                    />
+                                </Card>
+                            </div>
+            
+                            {/* Comment Card */}
+                            <Card className="flex flex-col bg-white border border-gray-200 shadow-md rounded-lg mt-1 p-2">
+                              <div className="text-sm font-semibold mb-1">Comment</div>
+                              <Textarea
+                                id={`comment-${dialog.id}`}
+                                value={allergyInputs[dialog.id]?.comment || ''}
+                                onChange={(e) => setAllergyInputs(prev => ({
+                                  ...prev,
+                                  [dialog.id]: { ...prev[dialog.id], comment: e.target.value }
+                                }))}
+                                placeholder="Add any additional comments"
+                                className="h-24 w-full border border-gray-200 rounded-md px-3 py-2 bg-[#f5f5f5]"
+                              />
+                            </Card>
+            
+                            {/* Action Buttons */}
+                            <div className="flex justify-end gap-2 mt-4">
+                              <Button 
+                                onClick={() => handleAddAllergy(dialog.id)}
+                                className="px-4 text-xs h-8"
+                              >
+                                Save
+                              </Button>
+                              <Button 
+                                variant="outline"
+                                onClick={() => {
+                                  setAllergyInputs(prev => ({
+                                    ...prev,
+                                    [dialog.id]: {
+                                      allergies: '',
+                                      natureOfReaction: '',
+                                      reactionType: '',
+                                      signSymptom: '',
+                                      dateTime: '',
+                                      reactionDateTime: '',
+                                      severity: '',
+                                      comment: ''
+                                    }
+                                  }));
+                                }}
+                                className="px-4 text-xs h-8"
+                              >
+                                Reset
+                              </Button>
+                              <Button 
+                                variant="outline"
+                                onClick={() => closeFloatingDialog(dialog.id)}
+                                className="px-4 text-xs h-8"
+                              >
+                                Close
+                              </Button>
+                            </div>
+                          </div>
             ) : dialog.type === 'info-item' ? (
               <div className="grid gap-4">
                 <div className="grid grid-cols-4 items-center gap-4 text-sm">
