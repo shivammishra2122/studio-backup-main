@@ -46,19 +46,15 @@ export const PatientProvider = ({ children }: { children: ReactNode }) => {
     setLoading(true);
     setError(null);
     try {
-      // Get patients data with search params
       const data = await apiService.getPatients(searchParams) as unknown as any;
       
-      // Process the data to ensure it's an array of patients
       let patientsData = [];
       if (Array.isArray(data)) {
         patientsData = data;
       } else if (data && typeof data === 'object') {
-        // If data is an object with numeric keys, convert to array
         patientsData = Object.values(data);
       }
       
-      // Map the patients to include the SSN field
       const mappedPatients = patientsData.map((patient: any) => ({
         ...patient,
         SSN: patient.PatientSSN || patient['SSN No'] || ''
@@ -66,13 +62,16 @@ export const PatientProvider = ({ children }: { children: ReactNode }) => {
       
       setPatients(mappedPatients);
       
-      // If we have a current patient, update it with fresh data
-      if (currentPatient) {
-        const updatedPatient = mappedPatients.find((p: any) => p.DFN === currentPatient.DFN);
+      // Update current patient with fresh data without adding a dependency cycle
+      setCurrentPatientState(prevPatient => {
+        if (!prevPatient) return null;
+        const updatedPatient = mappedPatients.find((p: any) => p.DFN === prevPatient.DFN);
         if (updatedPatient) {
-          setCurrentPatient(updatedPatient);
+          sessionStorage.setItem('currentPatient', JSON.stringify(updatedPatient));
+          return updatedPatient;
         }
-      }
+        return prevPatient;
+      });
       
       return mappedPatients;
     } catch (err) {
@@ -83,7 +82,7 @@ export const PatientProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setLoading(false);
     }
-  }, [currentPatient, setCurrentPatient]);
+  }, [setCurrentPatientState]);
 
   const clearError = useCallback(() => {
     setError(null);
