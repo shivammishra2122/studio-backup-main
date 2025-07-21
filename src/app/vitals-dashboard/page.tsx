@@ -390,7 +390,7 @@ const VitalsView = React.FC<{ patient?: Patient }> = ({ patient }) => {
 
   return (
     <div className="flex flex-col md:flex-row gap-3 w-full h-full">
-      <div className="flex-1 min-w-0 flex flex-col border rounded-md bg-card shadow">
+      <div className="w-full md:w-[70%] flex flex-col border rounded-md bg-card shadow">
         <div className="flex items-center justify-between py-1.5 px-3 border-b bg-card text-foreground rounded-t-md">
           <h2 className="text-sm">{isVitalsEntryMode ? "Vitals Entry" : "Vitals"}</h2>
           <div className="flex items-center space-x-1">
@@ -1161,12 +1161,12 @@ const IntakeOutputView = ({ patient }: { patient?: Patient }) => {
   };
 
   return (
-    <div className="flex-1 w-[90%] flex justify-between gap-3 overflow-auto">
-      <div className="basis-1/2 flex flex-col border rounded-md bg-card shadow overflow-hidden">
+    <div className="flex-1 w-[100%] flex justify-between gap-3 overflow-auto">
+      <div className="flex flex-col border rounded-md bg-card shadow overflow-hidden">
         {currentView === 'summary' ? (
           <>
             <div className="flex items-center justify-between p-2 border-b bg-card text-foreground rounded-t-md">
-              <h2 className="text-base">Patient Intake/Output Summary</h2>
+              <h2 className="text-base font-semibold">Patient Intake/Output Summary</h2>
               <div className="flex items-center space-x-1">
                 <Button 
                   variant={useUpdateData ? 'default' : 'outline'}
@@ -1478,7 +1478,7 @@ const ProblemsView = ({ patient }: { patient?: Patient }) => {
     return (
       <Card className="flex-1 flex flex-col shadow text-xs overflow-hidden">
         <CardHeader className="p-2.5 border-b bg-card text-foreground rounded-t-md">
-          <CardTitle className="text-xs">Problems</CardTitle>
+          <CardTitle className="text-base font-semibold">Problems</CardTitle>
         </CardHeader>
         <CardContent className="p-4 space-y-4">
           <Skeleton className="h-8 w-full" />
@@ -1493,7 +1493,7 @@ const ProblemsView = ({ patient }: { patient?: Patient }) => {
     return (
       <Card className="flex-1 flex flex-col shadow text-xs overflow-hidden">
         <CardHeader className="p-2.5 border-b bg-card text-foreground rounded-t-md">
-          <CardTitle className="text-xs">Problems</CardTitle>
+          <CardTitle className="text-base font-semibold">Problems</CardTitle>
         </CardHeader>
         <CardContent className="p-4 text-red-500">
           Error loading problems. Please try again.
@@ -1505,7 +1505,7 @@ const ProblemsView = ({ patient }: { patient?: Patient }) => {
   return (
     <Card className="flex-1 flex flex-col shadow text-xs overflow-hidden">
       <CardHeader className="p-2.5 border-b bg-card text-foreground rounded-t-md">
-        <CardTitle className="text-xs">Problems</CardTitle>
+        <CardTitle className="text-base font-semibold">Problems</CardTitle>
       </CardHeader>
       <CardContent className="p-1 flex-1 flex flex-col overflow-hidden">
         <div className="flex flex-wrap items-center justify-between p-2 border-b gap-y-2 mb-2">

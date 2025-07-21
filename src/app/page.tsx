@@ -988,8 +988,32 @@ const complaintsList = Object.values(complaints);
     'Atorvastatin',
   ];
 
-  // Track selected medication
-  const [selectedMedication, setSelectedMedication] = useState<string | null>(null);
+  // Track selected medications
+  const [selectedMedications, setSelectedMedications] = useState<string[]>([]);
+
+  // Add a new medication to the list
+  const addSelectedMedication = (medication: string) => {
+    if (medication && !selectedMedications.includes(medication)) {
+      setSelectedMedications(prev => [...prev, medication]);
+      
+      // Update the input field to show the selected medication
+      const dialogId = Object.keys(medicationInputs)[0]; // Get the first dialog ID
+      if (dialogId) {
+        setMedicationInputs(prev => ({
+          ...prev,
+          [dialogId]: { 
+            ...(prev[dialogId] || {}), 
+            medicationName: medication 
+          }
+        }));
+      }
+    }
+  };
+
+  // Remove a medication from the list
+  const removeSelectedMedication = (medication: string) => {
+    setSelectedMedications(prev => prev.filter(m => m !== medication));
+  };
 
   // Reset form and clear selection
   const resetMedicationForm = (dialogId: string) => {
@@ -1009,7 +1033,7 @@ const complaintsList = Object.values(complaints);
         comment: '' 
       }
     }));
-    setSelectedMedication(null);
+    setSelectedMedications([]);
   };
 
   return (
@@ -2137,21 +2161,39 @@ const complaintsList = Object.values(complaints);
                     <div className="flex flex-col gap-2">
                       <div className="flex flex-row items-center gap-2 w-full">
                         <Select
-                          value={selectedMedication || ''}
-                          onValueChange={(value) => setSelectedMedication(value)}
+                          value=""
+                          onValueChange={(value) => addSelectedMedication(value)}
                           className="bg-[#f5f5f5]"
                         >
                           <SelectTrigger className="w-full border border-gray-200 rounded-md px-3 py-2 bg-[#f5f5f5]">
-                            <SelectValue placeholder="Select quick order" />
+                            <SelectValue placeholder="Select medications" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="Aspirin">Aspirin</SelectItem>
-                            <SelectItem value="Paracetamol">Paracetamol</SelectItem>
-                            <SelectItem value="Amoxicillin">Amoxicillin</SelectItem>
-                            <SelectItem value="Metformin">Metformin</SelectItem>
-                            <SelectItem value="Atorvastatin">Atorvastatin</SelectItem>
+                            {['Aspirin', 'Paracetamol', 'Amoxicillin', 'Metformin', 'Atorvastatin']
+                              .filter(med => !selectedMedications.includes(med))
+                              .map(med => (
+                                <SelectItem key={med} value={med}>
+                                  {med}
+                                </SelectItem>
+                              ))}
                           </SelectContent>
                         </Select>
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {selectedMedications.map(med => (
+                            <div key={med} className="flex items-center bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">
+                              {med}
+                              <button 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  removeSelectedMedication(med);
+                                }}
+                                className="ml-1 text-blue-500 hover:text-blue-700"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                       <Button
                         variant="outline"
@@ -2181,8 +2223,20 @@ const complaintsList = Object.values(complaints);
                       </tr>
                     </thead>
                     <tbody>
-                      <tr className="even:bg-gray-50 odd:bg-white hover:bg-blue-50 transition">
-                        <td className="px-4 py-2 font-semibold text-blue-700">{selectedMedication || ''}</td>
+                      {selectedMedications.length > 0 ? (
+                        selectedMedications.map((medication, index) => (
+                          <tr key={index} className="even:bg-gray-50 odd:bg-white hover:bg-blue-50 transition">
+                            <td className="px-4 py-2 font-semibold text-blue-700">
+                              <div className="flex items-center justify-between">
+                                {medication}
+                                <button 
+                                  onClick={() => removeSelectedMedication(medication)}
+                                  className="text-red-500 hover:text-red-700"
+                                >
+                                  ×
+                                </button>
+                              </div>
+                            </td>
                         <td className="px-4 py-2">
                           <Input
                             value={medicationInputs[dialog.id]?.dosage || ''}
@@ -2296,7 +2350,15 @@ const complaintsList = Object.values(complaints);
                             className="w-full border border-gray-200 rounded bg-[#f5f5f5]"
                           />
                         </td>
-                      </tr>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={9} className="text-center py-4 text-gray-500">
+                            No medications selected. Use the dropdown above to add medications.
+                          </td>
+                        </tr>
+                      )}
                     </tbody>
                   </table>
                 </div>
@@ -3004,6 +3066,7 @@ const complaintsList = Object.values(complaints);
                                       natureOfReaction: '',
                                       reactionType: '',
                                       signSymptom: '',
+                                    
                                       dateTime: '',
                                       reactionDateTime: '',
                                       severity: '',

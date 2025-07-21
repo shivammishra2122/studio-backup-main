@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
+import { X } from "lucide-react";
 
 const ALL_AVAILABLE_MEDICATIONS = [
   "PARACETAMOL 500MG",
@@ -93,68 +95,115 @@ const IpMedicationOrderDialog: React.FC<IpMedicationOrderDialogProps> = ({ open,
           <span>Patient Type : In Patient</span>
         </div>
 
-        <div className="p-4 flex gap-4 items-end">
-          <div className="flex-1 relative">
-            <label className="block text-sm font-medium">Medication Name</label>
-            <Input
-              value={medSearch}
-              onChange={e => {
-                setMedSearch(e.target.value);
-                setDropdownOpen(true);
-              }}
-              onFocus={() => setDropdownOpen(true)}
-              onBlur={() => setTimeout(() => setDropdownOpen(false), 120)}
-              className="w-full"
-              placeholder="Type to search..."
-              autoComplete="off"
-            />
-            {dropdownOpen && medSearch && (
-              <div className="border rounded bg-white max-h-48 overflow-y-auto absolute z-20 w-full">
-                {filteredMeds.length === 0 ? (
-                  <div className="p-2 text-muted-foreground">No medication found.</div>
-                ) : (
-                  filteredMeds.map(med => (
-                    <div
-                      key={`medication-${med}`}
-                      className="p-2 hover:bg-sky-100 cursor-pointer"
-                      onMouseDown={() => handleSelectMed(med)}
-                    >
-                      {med}
-                    </div>
-                  ))
-                )}
-              </div>
-            )}
+        <div className="p-4 flex flex-col gap-4">
+          {/* Selected Medications Chips */}
+          {selectedRows.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-2">
+              {selectedRows.map((row, idx) => (
+                <Badge 
+                  key={`selected-${idx}`} 
+                  variant="outline" 
+                  className="flex items-center gap-1 bg-blue-50 border-blue-200 text-blue-800"
+                >
+                  {row.medicationName}
+                  <button 
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleRemoveRow(idx);
+                    }}
+                    className="ml-1 hover:text-red-500"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              ))}
+            </div>
+          )}
+          
+          <div className="flex gap-4 items-end">
+            <div className="flex-1 relative">
+              <label className="block text-sm font-medium">
+                {selectedRows.length > 0 ? 'Add Another Medication' : 'Search and Select Medications'}
+              </label>
+              <Input
+                value={medSearch}
+                onChange={e => {
+                  setMedSearch(e.target.value);
+                  setDropdownOpen(true);
+                }}
+                onFocus={() => setDropdownOpen(true)}
+                onBlur={() => setTimeout(() => setDropdownOpen(false), 200)}
+                className="w-full"
+                placeholder={selectedRows.length > 0 ? "Add another medication..." : "Type to search medications..."}
+                autoComplete="off"
+              />
+              {dropdownOpen && medSearch && (
+                <div className="border rounded bg-white max-h-48 overflow-y-auto absolute z-20 w-full">
+                  {filteredMeds.length === 0 ? (
+                    <div className="p-2 text-muted-foreground">No medication found.</div>
+                  ) : (
+                    filteredMeds.map(med => (
+                      <div
+                        key={`medication-${med}`}
+                        className="p-2 hover:bg-sky-100 cursor-pointer"
+                        onMouseDown={() => handleSelectMed(med)}
+                      >
+                        {med}
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+            <div className="flex-1">
+              <label className="block text-sm font-medium">Quick Order</label>
+              <Input
+                value={quickOrder}
+                onChange={e => setQuickOrder(e.target.value)}
+                className="w-full"
+                placeholder="Type quick order code..."
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Button 
+                type="button" 
+                variant="outline"
+                className="bg-white hover:bg-gray-50 text-gray-700 h-9 text-xs"
+                onClick={() => {
+                  if (medSearch) {
+                    handleSelectMed(medSearch);
+                  }
+                }}
+                disabled={!medSearch}
+              >
+                Add Custom
+              </Button>
+              <Button 
+                type="button" 
+                className="bg-yellow-500 hover:bg-yellow-600 text-white h-9 text-xs"
+              >
+                Quick List
+              </Button>
+            </div>
           </div>
-          <div className="flex-1">
-            <label className="block text-sm font-medium">Quick Order</label>
-            <Input
-              value={quickOrder}
-              onChange={e => setQuickOrder(e.target.value)}
-              className="w-full"
-              placeholder=""
-            />
-          </div>
-          <Button type="button" className="bg-yellow-500 hover:bg-yellow-600 text-white h-9 text-xs">Edit Quick List</Button>
-        </div>
 
-        {selectedRows.length > 0 && (
-          <div className="overflow-x-auto">
-            <table className="min-w-full mt-2 border">
-              <thead className="bg-blue-200">
-                <tr>
-                  <th className="px-2 py-1">Medicine Name</th>
-                  <th className="px-2 py-1">Dosage</th>
-                  <th className="px-2 py-1">Route</th>
-                  <th className="px-2 py-1">Schedule</th>
-                  <th className="px-2 py-1">PRN</th>
-                  <th className="px-2 py-1">Duration</th>
-                  <th className="px-2 py-1">Priority</th>
-                  <th className="px-2 py-1">Additional Dose Now</th>
-                  <th className="px-2 py-1">Comment</th>
-                  <th className="px-2 py-1">Remove</th>
-                  <th className="px-2 py-1">Save Quick Order</th>
-                </tr>
+          {selectedRows.length > 0 && (
+            <div className="overflow-x-auto">
+              <table className="min-w-full mt-2 border">
+                <thead className="bg-blue-200">
+                  <tr>
+                    <th className="px-2 py-1">Medicine Name</th>
+                    <th className="px-2 py-1">Dosage</th>
+                    <th className="px-2 py-1">Route</th>
+                    <th className="px-2 py-1">Schedule</th>
+                    <th className="px-2 py-1">PRN</th>
+                    <th className="px-2 py-1">Duration</th>
+                    <th className="px-2 py-1">Priority</th>
+                    <th className="px-2 py-1">Additional Dose Now</th>
+                    <th className="px-2 py-1">Comment</th>
+                    <th className="px-2 py-1">Remove</th>
+                    <th className="px-2 py-1">Save Quick Order</th>
+                  </tr>
               </thead>
               <tbody>
                 {selectedRows.map((row, idx) => (
@@ -245,6 +294,8 @@ const IpMedicationOrderDialog: React.FC<IpMedicationOrderDialogProps> = ({ open,
             </table>
           </div>
         )}
+
+        </div>
 
         <div className="flex justify-center space-x-4 p-4 pt-2 border-t border-gray-200">
           <Button className="bg-yellow-500 hover:bg-yellow-600 text-white h-9 text-xs px-6" onClick={handleConfirmOrder}>Confirm Order</Button>
