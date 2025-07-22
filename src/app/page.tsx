@@ -42,6 +42,10 @@ import useProblemSearch from '@/hooks/useProblemSearch';
 import { debounce } from 'lodash';
 import { usePatientDiagnosis } from '@/hooks/usePatientDiagnosis';
 import { usePatientComplaints } from '@/hooks/usePatientComplaints';
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
 
 // Chart configurations
 const glucoseChartConfig: ChartConfig = { level: { label: 'Glucose (mg/dL)', color: 'hsl(var(--chart-2))' } };
@@ -397,7 +401,7 @@ const complaintsList = Object.values(complaints);
       setIsSearchingSSN(false);
     }
   }, 300), []);
-
+  const [isPopoverOpen, setIsPopoverOpen] = useState<{[key: string]: boolean}>({});
   // Update search term and trigger search
   const handleAllergySearchChange = (value: string) => {
     setAllergySearchTerm(value);
@@ -3020,17 +3024,92 @@ const complaintsList = Object.values(complaints);
 
                                 {/* Date/Time Card */}
                                 <Card className="flex flex-col bg-white border border-gray-200 shadow-md rounded-lg p-2">
-                                    <div className="text-sm font-semibold mb-1">Date/Time</div>
-                                    <Input
-                                        type="datetime-local"
-                                        value={allergyInputs[dialog.id]?.dateTime || ''}
-                                        onChange={e => setAllergyInputs(prev => ({
-                                        ...prev,
-                                        [dialog.id]: { ...prev[dialog.id], dateTime: e.target.value }
-                                        }))}
-                                        className="w-full border border-gray-200 rounded-md px-3 py-2 bg-[#f5f5f5]"
-                                    />
-                                </Card>
+  <div className="text-sm font-semibold mb-1">Date/Time</div>
+  <Popover 
+  open={isPopoverOpen[dialog.id]} 
+  onOpenChange={(open) => {
+    setIsPopoverOpen(prev => ({
+      ...prev,
+      [dialog.id]: open
+    }));
+  }}>
+    <PopoverTrigger asChild>
+      <div className="w-full border border-gray-200 rounded-md px-3 py-2 bg-[#f5f5f5] flex items-center gap-2 cursor-pointer">
+        <input
+          type="text"
+          readOnly
+          value={allergyInputs[dialog.id]?.dateTime ? format(new Date(allergyInputs[dialog.id].dateTime), "PPPpp") : ""}
+          placeholder="Select date and time"
+          className="bg-transparent border-none p-0 focus-visible:ring-0 focus-visible:ring-offset-0 cursor-pointer flex-1"
+        />
+        <CalendarIcon className="h-4 w-4 text-gray-500" />
+      </div>
+    </PopoverTrigger>
+    <PopoverContent className="w-auto p-4" align="start">
+  
+    <Calendar
+      mode="single"
+      selected={allergyInputs[dialog.id]?.dateTime ? new Date(allergyInputs[dialog.id].dateTime) : undefined}
+      onSelect={(date) => {
+        if (date) {
+          const currentDate = allergyInputs[dialog.id]?.dateTime ? new Date(allergyInputs[dialog.id].dateTime) : new Date();
+          date.setHours(currentDate.getHours(), currentDate.getMinutes());
+          setAllergyInputs(prev => ({
+            ...prev,
+            [dialog.id]: {
+              ...prev[dialog.id],
+              dateTime: date.toISOString()
+            }
+          }));
+        }
+      }}
+      initialFocus
+    />
+    <div className="flex items-center justify-between gap-4">
+  <div className="flex items-center gap-2">
+    <Input
+      type="time"
+      value={
+        allergyInputs[dialog.id]?.dateTime 
+          ? new Date(allergyInputs[dialog.id].dateTime).toTimeString().substring(0, 5)
+          : new Date().toTimeString().substring(0, 5)
+      }
+      onChange={(e) => {
+        const time = e.target.value;
+        if (time && allergyInputs[dialog.id]?.dateTime) {
+          const [hours, minutes] = time.split(':').map(Number);
+          const newDate = new Date(allergyInputs[dialog.id].dateTime);
+          newDate.setHours(hours, minutes);
+          setAllergyInputs(prev => ({
+            ...prev,
+            [dialog.id]: {
+              ...prev[dialog.id],
+              dateTime: newDate.toISOString()
+            }
+          }));
+        }
+      }}
+      className="w-24"
+    />
+    <span className="text-sm text-muted-foreground">Time</span>
+  </div>
+  <Button
+  type="button"
+  variant="default"
+  size="sm"
+  onClick={() => {
+    setIsPopoverOpen(prev => ({
+      ...prev,
+      [dialog.id]: false
+    }));
+  }}
+>
+  Save
+</Button>
+</div>
+</PopoverContent>
+  </Popover>
+</Card>
                             </div>
             
                             {/* Comment Card */}
