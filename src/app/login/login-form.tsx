@@ -62,7 +62,20 @@ export function LoginForm() {
             id: String(id),
             name: String(name)
           }));
+        
         setLocations(locationsData);
+        
+        // Find and select HOSPITAL ONE if it exists
+        const hospitalOne = locationsData.find(loc => 
+          loc.name.toUpperCase().includes('HOSPITAL ONE')
+        );
+        
+        if (hospitalOne) {
+          form.setValue('locationId', hospitalOne.id);
+        } else if (locationsData.length > 0) {
+          // If HOSPITAL ONE not found, select the first location
+          form.setValue('locationId', locationsData[0].id);
+        }
       } catch (error) {
         console.error('Error fetching locations:', error);
         toast({

@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 
 export interface Medication {
+  OrderIEN: any;
+  Schedule: string | undefined;
   id?: string | number;
   name?: string;
   medication?: string;

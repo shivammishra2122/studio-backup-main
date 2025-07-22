@@ -47,7 +47,7 @@ interface TableField {
 }
 
 const TABLE_FIELDS: TableField[] = [
-  { key: 'SSN', label: 'UHID', icon: FileText },
+  { key: 'SSN', label: 'Patient ID', icon: FileText },
   { key: 'Name', label: 'Patient Name', icon: User },
   { key: 'Age', label: 'Age/Gender', icon: UserCog },
   { key: 'Admission Date', label: 'Admission Date', icon: Calendar },
@@ -455,7 +455,7 @@ export default function PatientsPage() {
               <SearchIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <input
                 type="search"
-                placeholder={isSSNSearch ? "UHID..." : "Search..."}
+                placeholder={isSSNSearch ? "Patient ID..." : "Search..."}
                 className="pl-9 pr-7 h-8 text-sm border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                 value={isSSNSearch ? ssnSearch : searchQuery}
                 onChange={handleSearchChange}
@@ -518,7 +518,7 @@ export default function PatientsPage() {
                 className="px-2 text-sm flex items-center gap-1 bg-blue-500 text-white"
               >
                 <Fingerprint className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">UHID</span>
+                <span className="hidden sm:inline">PATIENT ID</span>
               </button>
               
               <div className="w-px bg-gray-200"></div>

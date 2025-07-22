@@ -28,7 +28,10 @@ import {
   Copy,
   ChevronLeft,
   ChevronRight,
-  AlertCircle
+  AlertCircle,
+  Search,
+  ChevronsLeft,
+  ChevronsRight
 } from 'lucide-react';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { Dialog, DialogContent, DialogHeader, DialogTitle as DialogUITitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
@@ -42,6 +45,7 @@ import { apiService } from '@/services/api'; // Import api
 import { useMedications } from '@/hooks/useMedications'; // Import the useMedications hook
 import { fetchRadiologyOrders } from '@/services/radiology';
 import { fetchNursingOrders } from '@/services/nursing';
+import { fetchProcedureOrders, ProcedureOrder } from '@/services/procedure';
 
 // Add OrdersPageProps interface
 interface OrdersPageProps {
@@ -718,7 +722,7 @@ const DelayOrdersView = () => {
   const [showEntries, setShowEntries] = useState<string>("10");
   const [searchText, setSearchText] = useState<string>("");
 
-  const filteredDelayOrders = [];
+  const filteredDelayOrders: any[] = [];
 
   const delayOrderTableHeaders = ["S.No.", "Event", "Order", "Start/Stop Date", "Status", "Ordered By", "Sign", "Discontinue", "Change Event", "Release Order", "Order View"];
 
@@ -2066,6 +2070,7 @@ const ProcedureOrdersView = ({ patientSSN }: ProcedureOrdersViewProps) => {
 
 // Add interface for API response type
 interface ApiPatientResponse {
+  SSN: string;
   DFN: number;
   Name: string;
   Gender: string;
