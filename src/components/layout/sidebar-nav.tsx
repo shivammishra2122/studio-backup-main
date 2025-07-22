@@ -170,7 +170,7 @@ export default function SidebarNav() {
               {/* Patient ID with Icon */}
               <div className="flex items-center text-blue-100">
                 <CreditCard className="mr-2 h-4 w-4 flex-shrink-0 text-blue-200" />
-                <span className="truncate">UHID: {patient.ssn || 'N/A'}</span>
+              <span className="truncate"> Patient ID: {patient.ssn || 'N/A'}</span>
               </div>
               {/* Mobile No. with Icon */}
               <div className="flex items-center text-blue-100">
