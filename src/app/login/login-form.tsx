@@ -173,55 +173,56 @@ export function LoginForm() {
           </div>
           
           {accessCode && (
-            <>
-              <div className="space-y-2">
-                <Label htmlFor="verificationCode">Verification Code</Label>
-                <Input 
-                  id="verificationCode"
-                  type="password"
-                  autoComplete="new-password"
-                  placeholder="Enter your verification code" 
-                  {...form.register("verificationCode")}
-                  className="[&::-webkit-contacts-auto-fill-button]:hidden [&::-webkit-credentials-auto-fill-button]:hidden"
-                  data-lpignore="true"
-                  data-form-type="other"
-                />
-                {form.formState.errors.verificationCode && (
-                  <p className="text-red-500 text-xs">{form.formState.errors.verificationCode.message}</p>
-                )}
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="locationId">Location</Label>
-                <Select
-                  onValueChange={(value) => form.setValue('locationId', value)}
-                  value={form.watch('locationId')}
-                  disabled={isLoadingLocations}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={
-                      isLoadingLocations ? 'Loading locations...' : 'Select a location'
-                    } />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {locations.map((location) => (
-                      <SelectItem key={location.id} value={location.id}>
-                        {location.name}
-                      </SelectItem>
-                    ))}
-                    {locations.length === 0 && !isLoadingLocations && (
-                      <div className="text-sm p-2 text-gray-500">
-                        {accessCode ? 'No locations found for this access code' : 'Enter an access code to see locations'}
-                      </div>
-                    )}
-                  </SelectContent>
-                </Select>
-                {form.formState.errors.locationId && (
-                  <p className="text-red-500 text-xs">{form.formState.errors.locationId.message}</p>
-                )}
-              </div>
-            </>
-          )}
+  <>
+    <div className="space-y-2">
+      <Label htmlFor="verificationCode">Verification Code</Label>
+      <Input 
+        id="verificationCode"
+        type="password"
+        autoComplete="new-password"
+        placeholder="Enter your verification code" 
+        {...form.register("verificationCode")}
+        className="[&::-webkit-contacts-auto-fill-button]:hidden [&::-webkit-credentials-auto-fill-button]:hidden"
+        data-lpignore="true"
+        data-form-type="other"
+      />
+      {form.formState.errors.verificationCode && (
+        <p className="text-red-500 text-xs">{form.formState.errors.verificationCode.message}</p>
+      )}
+    </div>
+
+    <div className="space-y-2">
+      <Label htmlFor="locationId">Location</Label>
+      {isLoadingLocations ? (
+        <div className="text-sm p-2 text-gray-500">Loading locations...</div>
+      ) : locations.length > 0 && form.watch('locationId') ? (
+        <Select
+          onValueChange={(value) => form.setValue('locationId', value)}
+          value={form.watch('locationId')}
+          disabled={isLoadingLocations}
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {locations.map((location) => (
+              <SelectItem key={location.id} value={location.id}>
+                {location.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      ) : (
+        <div className="text-sm p-2 text-gray-500">
+          {accessCode ? 'No locations found for this access code' : 'Enter an access code to see locations'}
+        </div>
+      )}
+      {form.formState.errors.locationId && (
+        <p className="text-red-500 text-xs">{form.formState.errors.locationId.message}</p>
+      )}
+    </div>
+  </>
+)}
 
           <Button 
             type="submit" 
