@@ -1,4 +1,4 @@
-import { Patient } from '@/lib/constants';
+import { Patient } from '@/services/api';
 
 /**
  * Safely extracts the SSN from a Patient object

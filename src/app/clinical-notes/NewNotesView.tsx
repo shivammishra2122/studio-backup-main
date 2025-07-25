@@ -106,13 +106,13 @@ export const NewNotesView = () => {
           <div className="space-y-3 flex-1 flex flex-col">
             <div className="flex items-center gap-x-3">
               <Label htmlFor="noteTemplate" className="shrink-0">Select Template</Label>
-              <Select value={selectedTemplate} onValueChange={setSelectedTemplate}>
+              <Select value={selectedTemplate || undefined} onValueChange={setSelectedTemplate}>
                 <SelectTrigger id="noteTemplate" className="h-7 w-48 text-xs">
                   <SelectValue placeholder="Select a template" />
                 </SelectTrigger>
                 <SelectContent>
                   {mockNewNoteTemplates.map(template => (
-                    <SelectItem key={template.id} value={template.templateName} className="text-xs">
+                    <SelectItem key={template.id} value={template.id} className="text-xs">
                       {template.templateName} ({template.department})
                     </SelectItem>
                   ))}

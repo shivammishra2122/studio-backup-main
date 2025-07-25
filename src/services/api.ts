@@ -86,12 +86,12 @@ const api = axios.create({
   },
 });
 
-export interface Patient {
+export type Patient = {
   id: string;
   name: string;
   gender: string;
   dob: string;
-  age: string;
+  age: number;
   aadhaarNo?: string;
   mobile?: string;
   phone?: string;
@@ -154,7 +154,7 @@ export interface Patient {
   lengthOfStay?: string;
   bedDetails?: string;
   wardNo?: string;
-}
+};
 
 interface PatientSearchParams {
     UserName: string;

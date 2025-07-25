@@ -164,7 +164,7 @@ const IntakeOutputView = ({ patient }: { patient?: Patient }) => {
               {isIntake ? 'Intake Time' : 'Output Time'}
             </Label>
             <div className="flex gap-2">
-              <Select value={hour} onValueChange={setHour}>
+              <Select value={hour || undefined} onValueChange={setHour}>
                 <SelectTrigger className="w-16 h-8 text-sm">
                   <SelectValue placeholder="HH" />
                 </SelectTrigger>
@@ -176,7 +176,7 @@ const IntakeOutputView = ({ patient }: { patient?: Patient }) => {
                   ))}
                 </SelectContent>
               </Select>
-              <Select value={minute} onValueChange={setMinute}>
+              <Select value={minute || undefined} onValueChange={setMinute}>
                 <SelectTrigger className="w-16 h-8 text-sm">
                   <SelectValue placeholder="MM" />
                 </SelectTrigger>
@@ -188,7 +188,7 @@ const IntakeOutputView = ({ patient }: { patient?: Patient }) => {
                   ))}
                 </SelectContent>
               </Select>
-              <Select value={second} onValueChange={setSecond}>
+              <Select value={second || undefined} onValueChange={setSecond}>
                 <SelectTrigger className="w-16 h-8 text-sm">
                   <SelectValue placeholder="SS" />
                 </SelectTrigger>
@@ -206,7 +206,7 @@ const IntakeOutputView = ({ patient }: { patient?: Patient }) => {
             <Label className="text-sm w-24">
               {isIntake ? 'Intake Type' : 'Output Type'} <span className="text-red-500">*</span>
             </Label>
-            <Select value={type} onValueChange={setType}>
+            <Select value={type || undefined} onValueChange={setType}>
               <SelectTrigger className="h-8 text-sm flex-1">
                 <SelectValue placeholder="SELECT" />
               </SelectTrigger>

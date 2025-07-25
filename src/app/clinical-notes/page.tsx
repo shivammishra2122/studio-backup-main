@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle as DialogUITitle, Dial
 import { Settings, RefreshCw, CalendarDays, ArrowUpDown, Trash2, Edit2, CheckCircle2, ImageUp, X, FileSignature, Droplets, Loader2, Search, ArrowLeft, Printer, PlusCircle } from 'lucide-react';
 import { DigitalSignatureDialog } from '@/components/DigitalSignatureDialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Patient } from '@/lib/constants';
+// Removed import of Patient from '@/lib/constants' as it is not exported
 import { apiService } from '@/services/api';
 
 const clinicalNotesSubNavItems = [
@@ -108,6 +108,7 @@ const ClinicalNotesPage = () => {
   const [currentNoteId, setCurrentNoteId] = useState<string | null>(null);
   const [notes, setNotes] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [templateValue, setTemplateValue] = useState<string | undefined>(undefined);
 
   const handleSignClick = (noteId: string) => {
     setSignatureNoteId(noteId);
@@ -267,9 +268,9 @@ const ClinicalNotesPage = () => {
     <div className="flex flex-col h-[calc(100vh-var(--top-nav-height,40px))] bg-background text-sm px-1 pb-1 pt-0">
       {/* Sub-navigation */}
       <div className="flex items-end space-x-1 px-1 pb-0 overflow-x-auto no-scrollbar">
-        {clinicalNotesSubNavItems.map((item) => (
+        {clinicalNotesSubNavItems.map((item, idx) => (
           <Button
-            key={item}
+            key={idx}
             onClick={() => {
               setActiveSubNav(item);
               setSelectedNote(null);
@@ -303,9 +304,9 @@ const ClinicalNotesPage = () => {
                           <SelectValue placeholder="Select patient" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">All Patients</SelectItem>
-                          {uniquePatients.map(patient => (
-                            <SelectItem key={patient.id} value={patient.id}>
+                          <SelectItem value="undefined">All Patients</SelectItem>
+                          {uniquePatients.map((patient, idx) => (
+                            <SelectItem key={idx} value={patient.id}>
                               {patient.name} ({patient.id})
                             </SelectItem>
                           ))}
@@ -317,7 +318,7 @@ const ClinicalNotesPage = () => {
                   {/* Status filter */}
                   <div className="flex items-center space-x-2">
                     <Label htmlFor="status-filter">Status</Label>
-                    <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <Select value={statusFilter || undefined} onValueChange={setStatusFilter}>
                       <SelectTrigger id="status-filter" className="h-8 w-[120px]">
                         <SelectValue placeholder="Status" />
                       </SelectTrigger>
@@ -656,7 +657,7 @@ const ClinicalNotesPage = () => {
                           <SelectValue placeholder="Select specialty..." />
                         </SelectTrigger>
                         <SelectContent>
-                          {mockSpecialties.map((specialty) => (
+                          {mockSpecialties.filter(specialty => !!specialty.id && specialty.id !== "").map(specialty => (
                             <SelectItem key={specialty.id} value={specialty.id}>
                               {specialty.name}
                             </SelectItem>
@@ -666,12 +667,12 @@ const ClinicalNotesPage = () => {
                     </div>
                     <div className="flex-1 space-y-2">
                       <Label htmlFor="template">Template</Label>
-                      <Select>
+                      <Select value={templateValue || undefined} onValueChange={setTemplateValue}>
                         <SelectTrigger className="w-full">
                           <SelectValue placeholder="Select a template..." />
                         </SelectTrigger>
                         <SelectContent>
-                          {mockNewNoteTemplates.map((template) => (
+                          {mockNewNoteTemplates.filter(template => !!template.id && template.id !== "").map(template => (
                             <SelectItem key={template.id} value={template.id}>
                               {template.templateName}
                             </SelectItem>
@@ -780,43 +781,9 @@ const mockNewNoteTemplates: NewNoteTemplateType[] = [
 
 // Mock Medical Specialties
 const mockSpecialties = [
-  // Primary Care
-  { id: 'fm', name: 'Family Medicine' },
-  { id: 'im', name: 'Internal Medicine' },
-  { id: 'peds', name: 'Pediatrics' },
-  { id: 'obgyn', name: 'OB/GYN' },
-  
-  // Medical Specialties
-  { id: 'cardio', name: 'Cardiology' },
-  { id: 'derm', name: 'Dermatology' },
-  { id: 'endo', name: 'Endocrinology' },
-  { id: 'gastro', name: 'Gastroenterology' },
-  { id: 'heme', name: 'Hematology' },
-  { id: 'id', name: 'Infectious Disease' },
-  { id: 'nephro', name: 'Nephrology' },
-  { id: 'neuro', name: 'Neurology' },
-  { id: 'onc', name: 'Oncology' },
-  { id: 'pulm', name: 'Pulmonology' },
-  { id: 'rheum', name: 'Rheumatology' },
-  
-  // Surgical Specialties
-  { id: 'gensurg', name: 'General Surgery' },
-  { id: 'cardio', name: 'Cardiothoracic Surgery' },
-  { id: 'ent', name: 'Otolaryngology (ENT)' },
-  { id: 'nsgy', name: 'Neurosurgery' },
-  { id: 'ortho', name: 'Orthopedic Surgery' },
-  { id: 'plastics', name: 'Plastic Surgery' },
-  { id: 'urol', name: 'Urology' },
-  { id: 'vasc', name: 'Vascular Surgery' },
-  
-  // Other Specialties
-  { id: 'anes', name: 'Anesthesiology' },
-  { id: 'derm', name: 'Dermatology' },
-  { id: 'em', name: 'Emergency Medicine' },
-  { id: 'path', name: 'Pathology' },
-  { id: 'pmr', name: 'Physical Medicine & Rehab' },
-  { id: 'psych', name: 'Psychiatry' },
-  { id: 'rads', name: 'Radiology' }
+  { id: 'cardiology', name: 'Cardiology' },
+  { id: 'neurology', name: 'Neurology' },
+  // Make sure there is NO { id: '', name: '...' }
 ];
 
 // Mock Scanned Notes Data
@@ -890,7 +857,7 @@ const ScannedNotesView = () => {
       <CardContent className="p-2.5 flex-1 flex flex-col overflow-hidden">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs mb-2">
           <Label htmlFor="scannedStatus" className="shrink-0 text-xs">Status</Label>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <Select value={statusFilter || undefined} onValueChange={setStatusFilter}>
             <SelectTrigger id="scannedStatus" className="h-6 w-24 text-xs">
               <SelectValue placeholder="ALL" className="text-xs" />
             </SelectTrigger>
@@ -1074,7 +1041,7 @@ const ClinicalReportView = () => {
         <CardContent className="p-2.5 flex-1 flex flex-col overflow-hidden">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs mb-2">
             <Label htmlFor="reportDepartment" className="shrink-0 text-xs">Department</Label>
-            <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
+            <Select value={departmentFilter || undefined} onValueChange={setDepartmentFilter}>
               <SelectTrigger id="reportDepartment" className="h-6 w-24 text-xs">
                 <SelectValue placeholder="ALL" className="text-xs" />
               </SelectTrigger>
@@ -1289,7 +1256,7 @@ const ClinicalReminderView = () => {
       <CardContent className="p-2.5 flex-1 flex flex-col overflow-hidden">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs mb-2">
           <Label htmlFor="reminderStatus" className="shrink-0 text-xs">Status</Label>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <Select value={statusFilter || undefined} onValueChange={setStatusFilter}>
             <SelectTrigger id="reminderStatus" className="h-6 w-24 text-xs">
               <SelectValue placeholder="ALL" className="text-xs" />
             </SelectTrigger>
@@ -1302,7 +1269,7 @@ const ClinicalReminderView = () => {
           </Select>
 
           <Label htmlFor="reminderPriority" className="shrink-0 text-xs">Priority</Label>
-          <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+          <Select value={priorityFilter || undefined} onValueChange={setPriorityFilter}>
             <SelectTrigger id="reminderPriority" className="h-6 w-24 text-xs">
               <SelectValue placeholder="ALL" className="text-xs" />
             </SelectTrigger>
@@ -1495,7 +1462,7 @@ const ClinicalReminderAnalysisView = () => {
         <CardContent className="p-2.5 flex-1 flex flex-col overflow-hidden">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs mb-2">
             <Label htmlFor="analysisDepartment" className="shrink-0 text-xs">Department</Label>
-            <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
+            <Select value={departmentFilter || undefined} onValueChange={setDepartmentFilter}>
               <SelectTrigger id="analysisDepartment" className="h-6 w-24 text-xs">
                 <SelectValue placeholder="ALL" className="text-xs" />
               </SelectTrigger>
@@ -1687,7 +1654,7 @@ const ClinicalTemplateView = () => {
         <CardContent className="p-2.5 flex-1 flex flex-col overflow-hidden">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs mb-2">
             <Label htmlFor="templateDepartment" className="shrink-0 text-xs">Department</Label>
-            <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
+            <Select value={departmentFilter || undefined} onValueChange={setDepartmentFilter}>
               <SelectTrigger id="templateDepartment" className="h-6 w-24 text-xs">
                 <SelectValue placeholder="ALL" className="text-xs" />
               </SelectTrigger>

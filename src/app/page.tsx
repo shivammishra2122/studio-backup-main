@@ -835,18 +835,9 @@ const complaintsList = Object.values(complaints);
     closeFloatingDialog(dialogId);
 
     // Reset the form
-    setAllergyInputs(prev => ({
-      ...prev,
-      [dialogId]: { 
-        severity: '', // Add missing property to match type
-        allergies: '', 
-        natureOfReaction: '',
-        reactionType: '',
-        signSymptom: '',
-        dateTime: new Date().toISOString().slice(0, 16),
-        comment: '' 
-      },
-    }));
+    setAllergyInputs(
+      
+    );
   }, [closeFloatingDialog]);
 
   const handleSaveNewInfoItem = (dialogId: string) => {

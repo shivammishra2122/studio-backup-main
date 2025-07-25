@@ -24,6 +24,7 @@ import {
   BriefcaseMedical,
   FileQuestion,
 } from 'lucide-react'
+import { Patient } from '@/services/api';
 
 export type ProblemCategory = 'Common Problems' | 'Other'
 export type ProblemStatus = 'ACTIVE' | 'RESOLVED'
@@ -65,44 +66,6 @@ export interface Appointment {
   specialty: string
   date: string
   time: string
-}
-
-export interface Patient {
-  id: string
-  name: string
-  avatarUrl: string
-  gender: string
-  age: number
-  dob: string
-  wardNo: string
-  bedDetails: string
-  admissionDate: string
-  lengthOfStay: string
-  mobile: string
-  primaryConsultant: string
-  specialty: string
-  encounterProvider: string
-  finalDiagnosis: string
-  posting: string
-  reasonForVisit: string
-  ssn: string
-  "Admission Date": string
-  "IP No": number
-  "Mobile No": number
-  "Primary Consultant": string
-  "Secondary Consultant": string
-  "Treating Consultant": string
-  
-  // Aliases for backward compatibility
-  Age: string | number
-  Bed: string
-  DFN: number
-  DOB: string
-  Gender: string
-  LOS: string
-  Name: string
-  Specialty: string
-  Ward: string
 }
 
 export const MOCK_PROBLEMS: Problem[] = [
@@ -195,35 +158,16 @@ export const MOCK_WEIGHT_DATA: Array<{ date: string; weight: number }> = [
 export const MOCK_PATIENT: Patient = {
   id: 'pat123',
   name: 'Sarah Miller',
-  avatarUrl: '',
   gender: 'Female',
   age: 42,
-  dob: '1982-03-15',
+  dob: '1981-01-01',
   wardNo: 'C-305',
   bedDetails: 'Bed A',
   admissionDate: '2024-07-15',
   lengthOfStay: '5 days',
   mobile: '+1-555-0102',
-  primaryConsultant: 'Dr. Emily Carter',
+  primaryConsultant1: 'Dr. Smith',
   specialty: 'Cardiology',
   encounterProvider: 'City General Hospital',
   finalDiagnosis: 'Acute Bronchitis',
-  posting: 'General Medicine',
-  reasonForVisit: 'Routine Check-up & Consultation',
-  ssn: '123-45-6789',
-  "Admission Date": '2024-07-15',
-  Age: '42',
-  Bed: 'A',
-  DFN: 123456789,
-  DOB: '1982-03-15',
-  Gender: 'Female',
-  "IP No": 123456789,
-  LOS: '5 days',
-  "Mobile No": 5550102,
-  Name: 'Sarah Miller',
-  "Primary Consultant": 'Dr. Emily Carter',
-  "Secondary Consultant": '',
-  Specialty: 'Cardiology',
-  "Treating Consultant": 'Dr. Emily Carter',
-  Ward: 'C-305',
 }
