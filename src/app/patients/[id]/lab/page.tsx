@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { api, Patient } from '@/services/api';
+import { Patient } from '@/services/api';
 import LabPage from '@/app/lab/page';
 import { usePatient } from '@/hooks/use-patient';
 
@@ -19,7 +19,7 @@ export default function PatientLabPage() {
 
     return (
         <div className="flex flex-col h-[calc(100vh-var(--top-nav-height,40px))] bg-background text-sm">
-            <LabPage patient={patient} />
+            <LabPage />
         </div>
     );
 } 

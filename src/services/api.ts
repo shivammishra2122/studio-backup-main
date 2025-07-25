@@ -359,6 +359,22 @@ export const apiService = {
         }
     },
     
+    async deleteClinicalNote(noteId: string) {
+        // This matches the API route implementation
+        const body = {
+            UserName: 'CPRS-UAT',
+            Password: 'UAT@123',
+            LTIUTMPIEN: noteId,
+            DUZ: '80',
+            ihtLocation: '67',
+            NotPagTyp: 3
+        };
+        const response = await api.post(API_ENDPOINTS.NOTE_DELETE, body, {
+            headers: { 'Content-Type': 'application/json' }
+        });
+        return response.data;
+    },
+    
     async getIPMedications(patientSSN: string, params: Record<string, any> = {}) {
         try {
             const response = await axios.post(API_ENDPOINTS.IP_MEDICATIONS, {

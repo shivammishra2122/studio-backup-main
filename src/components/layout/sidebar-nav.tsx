@@ -61,7 +61,7 @@ export default function SidebarNav() {
               gender: found.Gender || '',
               age: typeof found.Age === 'number' ? found.Age : parseInt(found.Age) || 0,
               dob: found.DOB || '',
-              wardNo: found.Ward || '',
+              ward: found.Ward || '',
               bedDetails: found.Bed || '',
               admissionDate: found["Admission Date"] || '',
               lengthOfStay: found.LOS || '',
@@ -186,11 +186,11 @@ export default function SidebarNav() {
               <div className="space-y-1 px-4">
                 <div className="flex items-center gap-2">
                   <span className="font-medium text-blue-200">Ward:</span>
-                  <span>{patient.Ward}</span>
+                  <span>{patient.ward}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="font-medium text-blue-200">Bed:</span>
-                  <span>{patient.Bed}</span>
+                  <span>{patient.bedDetails}</span>
                 </div>
               </div>
               <div className="flex items-center gap-2 mt-2 mb-1 px-4">
@@ -198,7 +198,7 @@ export default function SidebarNav() {
                 <span className="truncate">{patient["Admission Date"]}</span>
               </div>
               <div className="mb-1 px-4">
-                <span className="font-semibold text-blue-200">LOS:</span> {patient.LOS ? patient.LOS.split('^')[0] : ''} 
+                <span className="font-semibold text-blue-200">LOS:</span> {patient.lengthOfStay ? patient.lengthOfStay.split('^')[0] : ''} 
               </div>
               <div className="mb-1 px-4">
                 <span className="font-semibold text-blue-200">Primary Consultant:</span> {patient["Primary Consultant"]}

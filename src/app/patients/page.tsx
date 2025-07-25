@@ -312,27 +312,26 @@ export default function PatientsPage() {
       
       if (name) {
         result = result.filter(patient => 
-          patient.Name?.toLowerCase().includes(name.toLowerCase())
+          patient.name?.toLowerCase().includes(name.toLowerCase())
         );
       }
       
       if (dob) {
         result = result.filter(patient => 
-          patient.DOB?.toLowerCase().includes(dob.toLowerCase())
+          patient.dob?.toLowerCase().includes(dob.toLowerCase())
         );
       }
       
       if (phone) {
         result = result.filter(patient => 
-          patient.Phone?.includes(phone) || 
-          patient.Mobile?.includes(phone)
+          patient.phone?.includes(phone) || 
+          patient.mobile?.includes(phone)
         );
       }
       
       if (ip) {
         result = result.filter(patient => 
-          patient.IPNo?.includes(ip) || 
-          patient.AdmissionNo?.includes(ip)
+          patient.ipNo?.includes(ip)
         );
       }
     }

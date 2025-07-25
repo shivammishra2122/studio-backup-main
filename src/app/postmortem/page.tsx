@@ -4,7 +4,7 @@ import type { NextPage } from 'next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Patient } from '@/services/api';
 
-const PostmortemPage: NextPage<{ patient?: Patient }> = ({ patient }) => {
+const PostmortemPage = () => {
   return (
     <div className="flex-1 flex flex-col p-2 gap-2 overflow-hidden h-[calc(100vh-var(--top-nav-height,60px))] items-center justify-center">
       <Card className="w-full max-w-lg shadow">

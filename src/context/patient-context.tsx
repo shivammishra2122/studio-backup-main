@@ -65,7 +65,7 @@ export const PatientProvider = ({ children }: { children: ReactNode }) => {
       // Update current patient with fresh data without adding a dependency cycle
       setCurrentPatientState(prevPatient => {
         if (!prevPatient) return null;
-        const updatedPatient = mappedPatients.find((p: any) => p.DFN === prevPatient.DFN);
+        const updatedPatient = mappedPatients.find((p: any) => p.id === prevPatient.id);
         if (updatedPatient) {
           sessionStorage.setItem('currentPatient', JSON.stringify(updatedPatient));
           return updatedPatient;

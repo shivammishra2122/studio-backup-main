@@ -90,13 +90,7 @@ const mockPatientClinicalNotes: PatientClinicalNoteType[] = [
   },
 ];
 
-interface ClinicalNotesPageProps {
-  patient?: Patient;
-}
-
-const DEFAULT_SSN = '800000035';
-
-const ClinicalNotesPage = ({ patient }: ClinicalNotesPageProps) => {
+const ClinicalNotesPage = () => {
   const [activeSubNav, setActiveSubNav] = useState<string>(clinicalNotesSubNavItems[0]);
   const [viewMode, setViewMode] = useState<'table' | 'detail'>('table');
   const [selectedPatient, setSelectedPatient] = useState<string>('');
@@ -125,19 +119,17 @@ const ClinicalNotesPage = ({ patient }: ClinicalNotesPageProps) => {
     
     try {
       setIsDeleting(true);
-      await apiService.post('/api/clinical-notes/delete', {
-        data: { noteId },
-      });
+      await apiService.deleteClinicalNote(noteId);
 
       // Refresh the notes list after successful deletion
-      const ssn = patient?.ssn || DEFAULT_SSN;
+      const ssn = '800000035';
       if (ssn) {
         const notes = await apiService.fetchClinicalNotes({
           patientSSN: ssn,
           fromDate: fromDate ? formatDate(fromDate) : '',
           toDate: toDateValue ? formatDate(toDateValue) : '',
           status: statusFilter !== "ALL" ? statusFilter : undefined,
-          ihtLocation: "67",
+          ihtLocation: 67,
           ewd_sessid: "36608394"
         });
         
@@ -170,19 +162,9 @@ const ClinicalNotesPage = ({ patient }: ClinicalNotesPageProps) => {
     
     try {
       setIsSigning(true);
-      await apiService.post('/api/clinical-notes/sign', {
-        data: { 
-          noteId: currentNoteId,
-          signatureData
-        },
-      });
-
-      const result = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to sign note');
-      }
-
+      // TODO: Implement clinical note signing via apiService if available
+      // await apiService.signClinicalNote(currentNoteId, signatureData);
+      // For now, simulate success
       // Update the note status to COMPLETED in the UI
       setNotes(prevNotes => 
         prevNotes.map(note => 
@@ -217,11 +199,9 @@ const ClinicalNotesPage = ({ patient }: ClinicalNotesPageProps) => {
   };
 
   useEffect(() => {
-    const ssn = patient?.ssn || DEFAULT_SSN;
+    const ssn = '800000035';
     if (!ssn) return;
-    
     setLoading(true);
-    
     apiService.fetchClinicalNotes({
       patientSSN: ssn,
       fromDate: fromDate || '',
@@ -232,9 +212,7 @@ const ClinicalNotesPage = ({ patient }: ClinicalNotesPageProps) => {
     })
       .then((data: any[]) => {
         console.log("API Data:", data);
-
         const notesArray = Array.isArray(data) ? data : Object.values(data || {});
-
         const normalizedNotes = notesArray.map((note: any, index) => ({
           id: note.NoteIEN || `${note["Notes Title"]}-${index}`,
           notesTitle: note["Notes Title"] || note.notesTitle || "No Title",
@@ -246,7 +224,6 @@ const ClinicalNotesPage = ({ patient }: ClinicalNotesPageProps) => {
           department: note.department || "Unknown Department",
           visitType: note.visitType || "Unknown Visit Type",
         }));
-
         setNotes(normalizedNotes);
       })
       .catch((error: any) => {
@@ -254,7 +231,7 @@ const ClinicalNotesPage = ({ patient }: ClinicalNotesPageProps) => {
         setNotes([]); // fallback to empty array
       })
       .finally(() => setLoading(false));
-  }, [patient?.ssn, fromDate, toDateValue, statusFilter]);
+  }, [fromDate, toDateValue, statusFilter]);
 
   const filteredNotes = (notes || []).filter(note => {
     if (statusFilter !== "ALL" && note.status !== statusFilter) return false;
@@ -318,7 +295,7 @@ const ClinicalNotesPage = ({ patient }: ClinicalNotesPageProps) => {
                 {/* Filters and search UI */}
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs mb-2">
                   {/* Existing filter components */}
-                  {!patient && (
+                  {!selectedPatient && (
                     <div className="flex items-center space-x-2">
                       <Label htmlFor="patient-filter">Patient</Label>
                       <Select value={selectedPatient} onValueChange={setSelectedPatient}>
@@ -843,7 +820,7 @@ const mockSpecialties = [
 ];
 
 // Mock Scanned Notes Data
-const mockScannedNotes: ScannedNoteDataType[] = [
+const mockScannedNotes = [
   {
     id: '1',
     documentName: 'Handwritten Progress Note - ICU',

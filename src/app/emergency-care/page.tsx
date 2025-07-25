@@ -276,7 +276,7 @@ const PatientCOPDListView = () => {
 
 const subNavItems = ["COPD List", "MLC/Non-MLC Note"];
 
-const EmergencyCarePage = ({ patient }: { patient?: Patient }) => {
+const EmergencyCarePage = () => {
   const [activeSubNav, setActiveSubNav] = useState<string>(subNavItems[0]);
 
   return (

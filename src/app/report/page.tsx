@@ -59,7 +59,7 @@ const patientReportCategories: ReportCategory[] = [
 ];
 
 
-const ReportPage: NextPage<{ patient?: Patient }> = ({ patient }) => {
+const ReportPage = () => {
   const [activeReportTab, setActiveReportTab] = useState<string>(reportNavItems[0]);
 
   return (

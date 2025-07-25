@@ -52,11 +52,7 @@ const mockSummaryEntries: SummaryEntryDataType[] = [
   },
 ];
 
-interface DischargeSummaryPageProps {
-  patient?: Patient;
-}
-
-const DischargeSummaryPage: NextPage<DischargeSummaryPageProps> = ({ patient }) => {
+const DischargeSummaryPage = () => {
   const [showEntries, setShowEntries] = useState<string>("10");
   const [visitDate, setVisitDate] = useState<string>("15 MAY, 2025 19:45");
   const [searchText, setSearchText] = useState<string>("");

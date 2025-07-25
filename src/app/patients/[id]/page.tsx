@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { api, Patient } from '@/services/api';
+import { Patient } from '@/services/api';
 import DashboardPage from '@/app/page';
 import { usePatient } from '@/hooks/use-patient';
 
@@ -25,5 +25,6 @@ export default function PatientPage() {
         vitals: {}
     };
 
-    return <DashboardPage patient={patient} {...mockData} />;
-} 
+    // Pass patient as a prop inside mockData, not as a separate prop
+    return <DashboardPage {...mockData} patient={patient} />;
+}

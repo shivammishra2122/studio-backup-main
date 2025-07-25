@@ -812,11 +812,8 @@ const ChiefComplaintsView = dynamic(() => import('./ChiefComplaintsView'), { loa
 const AllergiesView = dynamic(() => import('./AllergiesView'), { loading: () => <Skeleton className="w-full h-32" /> });
 const OpdIpdDetailsView = dynamic(() => import('./OpdIpdDetailsView'), { loading: () => <Skeleton className="w-full h-32" /> });
 
-const VitalsDashboardPage: NextPage<{ patient?: Patient }> = ({ patient }) => {
+const VitalsDashboardPage = () => {
   const [activeVerticalTab, setActiveVerticalTab] = useState<string>(verticalNavItems[0]);
-
-  // Add a default patient object if not provided
-  const currentPatient = patient || { ssn: '' };
 
   return (
     <div className="flex flex-col h-[calc(100vh-var(--top-nav-height,60px))] bg-background text-sm px-3 pb-3 pt-0">
@@ -836,13 +833,13 @@ const VitalsDashboardPage: NextPage<{ patient?: Patient }> = ({ patient }) => {
         ))}
       </div>
       <main className="flex-1 flex flex-col gap-3 overflow-hidden">
-        {activeVerticalTab === "Vitals" && <VitalsView patient={currentPatient} />}
-        {activeVerticalTab === "Intake/Output" && <IntakeOutputView patient={currentPatient} />}
-        {activeVerticalTab === "Problems" && <ProblemsView patient={currentPatient} />}
-        {activeVerticalTab === "Final Diagnosis" && <FinalDiagnosisView patient={currentPatient} />}
-        {activeVerticalTab === "Chief-Complaints" && <ChiefComplaintsView patient={currentPatient} />}
-        {activeVerticalTab === "Allergies" && <AllergiesView patient={currentPatient} />}
-        {activeVerticalTab === "OPD/IPD Details" && <OpdIpdDetailsView patient={currentPatient} />}
+        {activeVerticalTab === "Vitals" && <VitalsView />}
+        {activeVerticalTab === "Intake/Output" && <IntakeOutputView />}
+        {activeVerticalTab === "Problems" && <ProblemsView />}
+        {activeVerticalTab === "Final Diagnosis" && <FinalDiagnosisView />}
+        {activeVerticalTab === "Chief-Complaints" && <ChiefComplaintsView />}
+        {activeVerticalTab === "Allergies" && <AllergiesView />}
+        {activeVerticalTab === "OPD/IPD Details" && <OpdIpdDetailsView />}
         {![
           "Vitals", "Intake/Output", "Problems", "Final Diagnosis",
           "Chief-Complaints", "Allergies", "OPD/IPD Details"

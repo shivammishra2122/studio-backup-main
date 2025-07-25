@@ -123,7 +123,7 @@ const physiotherapyData = [
 
 const statusOptions = ["All", "Active", "Pending", "Completed", "Discontinued"];
 
-const ReferralPage: NextPage<{ patient?: Patient }> = ({ patient }) => {
+const ReferralPage = () => {
   const [activeSubNav, setActiveSubNav] = useState<ReferralSubNav>("Consult Order");
   const [fromDate, setFromDate] = useState<Date | undefined>(new Date());
   const [toDate, setToDate] = useState<Date | undefined>(new Date());

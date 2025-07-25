@@ -12,12 +12,7 @@ import { fetchRadiologyOrders, type RadiologyEntry } from '@/services/radiology'
 
 const radiologySubNavItems = ["Radiology Test", "Pending Results", "Archived Scans"];
 
-interface RadiologyPageProps {
-  patient: Patient;
-}
-
-export default function RadiologyPage({ patient }: RadiologyPageProps) {
-  console.log('RadiologyPage rendered with patient:', patient);
+export default function RadiologyPage() {
   const [activeSubNav, setActiveSubNav] = useState<string>(radiologySubNavItems[0]);
   const [isLoading, setIsLoading] = useState(false);
   console.log('Current loading state:', isLoading);

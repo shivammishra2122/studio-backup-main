@@ -70,7 +70,7 @@ const mockLabResults: LabResultEntryType[] = [
   },
 ];
 
-export default function LabPage({ patient }: { patient?: Patient }) {
+export default function LabPage() {
   const { id } = useParams();
   const [activeSubNav, setActiveSubNav] = useState(labSubNavItems[0]);
 
