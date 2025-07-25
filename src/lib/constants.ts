@@ -171,3 +171,5 @@ export const MOCK_PATIENT: Patient = {
   encounterProvider: 'City General Hospital',
   finalDiagnosis: 'Acute Bronchitis',
 }
+
+export { Patient };

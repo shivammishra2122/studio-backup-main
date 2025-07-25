@@ -17,64 +17,43 @@ export function useClinicalNotes(patientSSN?: string) {
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
+    if (!patientSSN) {
+      setNotes([]);
+      setError(new Error('No patient SSN provided.'));
+      setLoading(false);
+      return;
+    }
     const loadNotes = async () => {
-      // Use the provided SSN or fall back to the default SSN if not available
-      const effectiveSSN = patientSSN || FALLBACK_SSN;
-      
-      if (!effectiveSSN) {
-        console.error('No patient SSN provided and no fallback SSN available');
-        setNotes([]);
-        setLoading(false);
-        return;
-      }
-
-      console.log(`Fetching clinical notes for SSN: ${effectiveSSN}`);
-      
       try {
         setLoading(true);
-        const data = await apiService.fetchClinicalNotes({ patientSSN: effectiveSSN });
-        
-        console.log('Raw clinical notes data:', data); // Log the raw data
-        
-        // Transform the API response to match the ClinicalNote interface
-        const formattedNotes = data.map((note: any) => {
-          // Log each note to see its structure
-          console.log('Processing note:', note);
-          
-          // Try different possible field names for the title
-          const title = note["Notes Title"] || 
-                       note.notesTitle || 
-                       note.title || 
-                       note.NoteTitle || 
-                       'Untitled Note';
-          
-          console.log(`Note ID: ${note.NoteIEN || note.id}, Title: ${title}`);
-          
-          return {
-            id: note.NoteIEN || note.id,
-            notesTitle: title,
-            dateOfEntry: note["Date of Entry"] || note.dateOfEntry || note.DateOfEntry || '',
-            status: note.Status || note.status || 'UNKNOWN',
-            author: note.Author || note.author || 'Unknown',
-            // Include the raw note for debugging
-            _raw: note
-          };
-        });
-
-        console.log('Formatted notes:', formattedNotes);
-        setNotes(formattedNotes);
         setError(null);
+        const response = await fetch('http://192.168.1.53/cgi-bin/apiCLNoteList.sh', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            UserName: 'CPRS-UAT',
+            Password: 'UAT@123',
+            PatientSSN: patientSSN,
+            DUZ: '80',
+            ihtLocation: '67',
+            status: '5',
+            fromDate: '',
+            toDate: ''
+          })
+        });
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        setNotes(data);
       } catch (err) {
-        console.error('Error fetching clinical notes:', err);
         setError(err instanceof Error ? err : new Error('Failed to fetch clinical notes'));
-        setNotes([]);
       } finally {
         setLoading(false);
       }
     };
-
     loadNotes();
-  }, [patientSSN]); // Re-run when patientSSN changes
+  }, [patientSSN]);
 
   return { notes, loading, error };
 }

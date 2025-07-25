@@ -38,83 +38,56 @@ export interface Medication {
   "View Order"?: string;
 }
 
-export function useMedications() {
+export function useMedications(patientSSN?: string) {
   const [data, setData] = useState<Medication[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchData() {
-      const hardcodedPatientId = '800000035';
-      console.log('Fetching medications for hardcoded patient ID:', hardcodedPatientId);
-      
+      if (!patientSSN) {
+        setData([]);
+        setError('No patient SSN provided.');
+        setLoading(false);
+        return;
+      }
       try {
         const requestBody = {
           UserName: 'CPRS-UAT',
           Password: 'UAT@123',
-          PatientSSN: hardcodedPatientId,
+          PatientSSN: patientSSN,
           DUZ: '80',
           rcpoeOrdIP: 99,
           rordFrmDtPha: '',
           rordToDtPha: ''
         };
-
-        console.log('Sending request to API with body:', JSON.stringify(requestBody, null, 2));
-        
         const response = await fetch('http://192.168.1.53/cgi-bin/apiOrdMedList.sh', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(requestBody)
         });
-
-        console.log('API response status:', response.status);
-        
         if (!response.ok) {
           const errorText = await response.text();
-          console.error('API error response:', errorText);
           throw new Error(`Failed to fetch medications: ${response.status} ${response.statusText} - ${errorText}`);
         }
-        
         const result = await response.json();
-        console.log('Raw API response data:', result);
-        
-        // Convert the object of medications to an array
         let medications: Medication[] = [];
-        
-        if (result && typeof result === 'object') {
-          // If the response is an object with numeric keys
-          if (Object.keys(result).every(key => !isNaN(Number(key)))) {
-            medications = Object.values(result);
-          } 
-          // Handle other possible response formats if needed
-          else if (Array.isArray(result.data)) {
-            medications = result.data;
-          } else if (Array.isArray(result.medications)) {
-            medications = result.medications;
-          } else if (result.medicationList && Array.isArray(result.medicationList)) {
-            medications = result.medicationList;
-          } else if (result.medication) {
-            medications = [result.medication];
-          } else if (Object.keys(result).length > 0) {
-            medications = [result];
-          }
-        } else if (Array.isArray(result)) {
-          // If the response is already an array
+        if (Array.isArray(result)) {
           medications = result;
+        } else if (typeof result === 'object' && result !== null) {
+          medications = Object.values(result);
         }
-        
-        console.log('Processed medications:', medications);
         setData(medications);
+        setError(null);
       } catch (err) {
-        console.error('Error in useMedications:', err);
-        setError((err as Error).message);
+        setError(err instanceof Error ? err.message : 'Failed to fetch medications');
+        setData([]);
       } finally {
         setLoading(false);
       }
     }
-
     fetchData();
-  }, []);
+  }, [patientSSN]);
 
   return { data, loading, error };
 }

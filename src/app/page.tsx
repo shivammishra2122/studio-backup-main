@@ -46,6 +46,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
+import { usePatients } from '@/context/patient-context';
 
 // Chart configurations
 const glucoseChartConfig: ChartConfig = { level: { label: 'Glucose (mg/dL)', color: 'hsl(var(--chart-2))' } };
@@ -131,11 +132,18 @@ interface RadiologyTest {
 
 export default function DashboardPage() {
   // Use a default patient or fetch patient data here
-  const patient: Patient = MOCK_PATIENT; // Or fetch from context/api
+  const { currentPatient } = usePatients();
+  // Prefer 'SSN' if present, otherwise 'SSN No', otherwise empty string
+  const patientSSN =
+    currentPatient && typeof currentPatient === 'object'
+      ? (('SSN' in currentPatient && currentPatient.SSN) ||
+         ('SSN No' in currentPatient && (currentPatient as any)['SSN No']) ||
+         '')
+      : '';
   const initialProblems: Problem[] = [];
   const initialMedications: Medication[] = [];
   const initialAllergies: any[] = [];
-  const vitals: any = {};
+  const vitals: Record<string, any> = {};
 
   // State for allergy dialog
   const [showAllergyDialog, setShowAllergyDialog] = useState(false);
@@ -144,7 +152,7 @@ export default function DashboardPage() {
   const [isSearchingSSN, setIsSearchingSSN] = useState(false);
   
   // Use the useMedications hook to fetch medications
-  const { data: medications = initialMedications, loading: medicationsLoading, error: medicationsError } = useMedications();
+  const { data: medications = initialMedications, loading: medicationsLoading, error: medicationsError } = useMedications(patientSSN);
 
   // Use the useProblemSave hook
   const { saveProblem, isLoading: isSavingProblem } = useProblemSave();
@@ -176,10 +184,9 @@ export default function DashboardPage() {
   }>>({});
 
   // Fetch up-to-date problems for the patient (fallback to provided problems until fetch completes)
-  const effectiveSSN = '800000035';
-  const { problems: fetchedProblems } = usePatientProblems(effectiveSSN);
-  const { allergies: fetchedAllergies, loading: allergiesLoading } = usePatientAllergies(effectiveSSN);
-  const { notes: clinicalNotes, loading: clinicalNotesLoading } = useClinicalNotes(effectiveSSN);
+  const { problems: fetchedProblems } = usePatientProblems(patientSSN);
+  const { allergies: fetchedAllergies, loading: allergiesLoading } = usePatientAllergies(patientSSN);
+  const { notes: clinicalNotes, loading: clinicalNotesLoading } = useClinicalNotes(patientSSN);
   
   // Map the API Problem type to our local Problem type
   const problemsToShow = fetchedProblems.length 
@@ -222,7 +229,7 @@ export default function DashboardPage() {
 
 
   // Add with other state declarations
-const { diagnosis, loading: diagnosisLoading, error: diagnosisError } = usePatientDiagnosis(patient?.ssn || '');
+const { diagnosis, loading: diagnosisLoading, error: diagnosisError } = usePatientDiagnosis(patientSSN);
 
 // Convert the diagnosis object to an array for easier mapping
 const diagnosisList = Object.entries(diagnosis).map(([key, value]) => ({
@@ -276,16 +283,15 @@ const diagnosisList = Object.entries(diagnosis).map(([key, value]) => ({
   const [showAllergyDropdown, setShowAllergyDropdown] = useState(false);
 
   // Add with other state declarations
-const { complaints, loading: complaintsLoading } = usePatientComplaints(patient?.ssn || '');
+const { complaints, loading: complaintsLoading } = usePatientComplaints(patientSSN);
 const complaintsList = Object.values(complaints);
 
   // Debounced allergy search function
-  const searchAllergies = useCallback(debounce(async (searchTerm: string) => {
+  const searchAllergies = useCallback(async (searchTerm: string) => {
     if (!searchTerm.trim()) {
       setAllergySearchResults([]);
       return;
     }
-
     setIsSearchingAllergies(true);
     try {
       const response = await fetch('http://192.168.1.53/cgi-bin/apiAllergySrh.sh', {
@@ -296,107 +302,88 @@ const complaintsList = Object.values(complaints);
         body: JSON.stringify({
           UserName: 'CPRS-UAT',
           Password: 'UAT@123',
-          PatientSSN: '800000035',
-          cpProvDiag: searchTerm,
+          PatientSSN: patientSSN,
           iAllrgy: searchTerm,
           DUZ: '80'
         }),
       });
-
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-
       const responseText = await response.text();
       let data;
-      
       try {
         data = responseText ? JSON.parse(responseText) : [];
       } catch (e) {
-        console.warn('Response is not valid JSON, treating as text:', responseText);
-        data = responseText.split('\n').filter(Boolean).map((item, index) => ({
-          id: index,
-          name: item.trim()
-        }));
+        data = responseText.split('\n').filter(Boolean).map((item, index) => ({ id: index, name: item.trim() }));
       }
-
-      // Handle different response formats
       if (Array.isArray(data)) {
         setAllergySearchResults(data);
       } else if (data && typeof data === 'object') {
-        // Handle object with numeric keys
-        const results = Object.entries(data).map(([id, name]) => ({
-          id,
-          name: String(name)
-        }));
+        const results = Object.entries(data).map(([id, name]) => ({ id, name: String(name) }));
         setAllergySearchResults(results);
       }
     } catch (error) {
-      console.error('Error searching allergies:', error);
-      toast.error('Failed to search for allergies. Please try again.');
       setAllergySearchResults([]);
     } finally {
       setIsSearchingAllergies(false);
     }
-  }, 300), []);
+  }, [patientSSN]);
 
   // Debounced SSN search function
-  const searchSSN = useCallback(debounce(async (searchTerm: string) => {
-    if (!searchTerm.trim()) {
-      setSSNSearchResults([]);
-      return;
-    }
-
-    setIsSearchingSSN(true);
-    try {
-      const response = await fetch('http://192.168.1.53/cgi-bin/apiAllergySrh.sh', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          UserName: 'CPRS-UAT',
-          Password: 'UAT@123',
-          PatientSSN: searchTerm,
-          DUZ: '80'
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+  const searchSSN = useCallback(
+    debounce(async (searchTerm: string) => {
+      if (!searchTerm.trim()) {
+        setSSNSearchResults([]);
+        return;
       }
-
-      const responseText = await response.text();
-      let data;
-      
+      setIsSearchingSSN(true);
       try {
-        data = responseText ? JSON.parse(responseText) : [];
-      } catch (e) {
-        console.warn('Response is not valid JSON, treating as text:', responseText);
-        data = responseText.split('\n').filter(Boolean).map((item, index) => ({
-          id: index,
-          name: item.trim()
-        }));
+        const response = await fetch('http://192.168.1.53/cgi-bin/apiAllergySrh.sh', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            UserName: 'CPRS-UAT',
+            Password: 'UAT@123',
+            PatientSSN: searchTerm,
+            DUZ: '80'
+          }),
+        });
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const responseText = await response.text();
+        let data;
+        try {
+          data = responseText ? JSON.parse(responseText) : [];
+        } catch (e) {
+          console.warn('Response is not valid JSON, treating as text:', responseText);
+          data = responseText.split('\n').filter(Boolean).map((item, index) => ({
+            id: index,
+            name: item.trim()
+          }));
+        }
+        if (Array.isArray(data)) {
+          setSSNSearchResults(data);
+        } else if (data && typeof data === 'object') {
+          const results = Object.entries(data).map(([id, name]) => ({
+            id,
+            name: String(name)
+          }));
+          setSSNSearchResults(results);
+        }
+      } catch (error) {
+        console.error('Error searching SSN:', error);
+        toast.error('Failed to search for SSN. Please try again.');
+        setSSNSearchResults([]);
+      } finally {
+        setIsSearchingSSN(false);
       }
-
-      // Handle different response formats
-      if (Array.isArray(data)) {
-        setSSNSearchResults(data);
-      } else if (data && typeof data === 'object') {
-        const results = Object.entries(data).map(([id, name]) => ({
-          id,
-          name: String(name)
-        }));
-        setSSNSearchResults(results);
-      }
-    } catch (error) {
-      console.error('Error searching SSN:', error);
-      toast.error('Failed to search for SSN. Please try again.');
-      setSSNSearchResults([]);
-    } finally {
-      setIsSearchingSSN(false);
-    }
-  }, 300), []);
+    }, 300),
+    []
+  );
   const [isPopoverOpen, setIsPopoverOpen] = useState<{[key: string]: boolean}>({});
   // Update search term and trigger search
   const handleAllergySearchChange = (value: string) => {
@@ -736,7 +723,7 @@ const complaintsList = Object.values(complaints);
       
       // Map the form data to the API payload
       const payload = {
-        PatientSSN: patient.ssn || '800000035',
+        PatientSSN: patientSSN,
         DUZ: '1', // Default DUZ value
         ihtLocation: '1', // Default location
         cdpProbL: problemDescription,
@@ -780,7 +767,7 @@ const complaintsList = Object.values(complaints);
       // Error is already handled by the useProblemSave hook
       console.error('Error saving problem:', error);
     }
-  }, [problemInputs, patient.ssn, saveProblem]);
+  }, [problemInputs, patientSSN, saveProblem]);
 
   const handleAddMedication = (dialogId: string) => {
     const input = medicationInputs[dialogId];
@@ -835,9 +822,7 @@ const complaintsList = Object.values(complaints);
     closeFloatingDialog(dialogId);
 
     // Reset the form
-    setAllergyInputs(
-      
-    );
+    setAllergyInputs({});
   }, [closeFloatingDialog]);
 
   const handleSaveNewInfoItem = (dialogId: string) => {
@@ -922,13 +907,13 @@ const complaintsList = Object.values(complaints);
     debounce((searchTerm: string, dialogId: string) => {
       if (searchTerm.trim().length >= 2) {  // Only search if 2 or more characters
         console.log('Initiating search for:', searchTerm);
-        searchProblems(searchTerm, patient.ssn || '800000035');
+        searchProblems(searchTerm, patientSSN);
       } else {
         console.log('Search term too short, clearing results');
         clearProblemSearch();
       }
     }, 300),
-    [searchProblems, patient.ssn, clearProblemSearch]
+    [searchProblems, patientSSN, clearProblemSearch]
   );
 
   // Handle input change with immediate feedback
@@ -1653,7 +1638,7 @@ const complaintsList = Object.values(complaints);
           
           // For Clinical Notes, use the useClinicalNotes hook data
           if (title === 'Clinical Notes') {
-            const { notes: clinicalNotes, loading: clinicalNotesLoading } = useClinicalNotes(patient?.ssn);
+            const { notes: clinicalNotes, loading: clinicalNotesLoading } = useClinicalNotes(patientSSN);
             const itemCount = clinicalNotes?.length || 0;
             
             return (
@@ -1888,7 +1873,7 @@ const complaintsList = Object.values(complaints);
                               onFocus={() => {
                                 const currentValue = problemInputs[dialog.id]?.input || '';
                                 if (currentValue.trim().length >= 2 && searchResults.length === 0) {
-                                  searchProblems(currentValue, patient.ssn || '800000035');
+                                  searchProblems(currentValue, patientSSN);
                                 }
                               }}
                               placeholder="Search or enter a problem..."
@@ -3160,20 +3145,7 @@ const complaintsList = Object.values(complaints);
                               <Button 
                                 variant="outline"
                                 onClick={() => {
-                                  setAllergyInputs(prev => ({
-                                    ...prev,
-                                    [dialog.id]: {
-                                      allergies: '',
-                                      natureOfReaction: '',
-                                      reactionType: '',
-                                      signSymptom: '',
-                                    
-                                      dateTime: '',
-                                      reactionDateTime: '',
-                                      severity: '',
-                                      comment: ''
-                                    }
-                                  }));
+                                  setAllergyInputs({});
                                 }}
                                 className="px-4 text-xs h-8"
                               >

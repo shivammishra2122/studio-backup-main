@@ -32,11 +32,14 @@ export function usePatientProblems(patientSSN: string): UsePatientProblemsResult
   const [isSearching, setIsSearching] = useState<boolean>(false);
   const [searchError, setSearchError] = useState<Error | null>(null);
 
-  // Use fallback SSN if patientSSN is empty
-  const effectiveSSN = patientSSN || '800000035';
-
   // Fetch patient's existing problems
   const fetchProblems = useCallback(async () => {
+    if (!patientSSN) {
+      setProblems([]);
+      setError(new Error('No patient SSN provided.'));
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
       const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://192.168.1.53/cgi-bin';
@@ -48,7 +51,7 @@ export function usePatientProblems(patientSSN: string): UsePatientProblemsResult
         body: JSON.stringify({
           UserName: 'CPRS-UAT',
           Password: 'UAT@123',
-          PatientSSN: effectiveSSN,
+          PatientSSN: patientSSN,
           DUZ: '80',
           ihtLocation: '67',
         }),
@@ -80,11 +83,11 @@ export function usePatientProblems(patientSSN: string): UsePatientProblemsResult
     } finally {
       setLoading(false);
     }
-  }, [effectiveSSN]);
+  }, [patientSSN]);
 
   // Search for problems
   const searchProblems = useCallback(async (searchTerm: string) => {
-    if (!searchTerm.trim()) {
+    if (!searchTerm.trim() || !patientSSN) {
       setSearchResults([]);
       return;
     }
@@ -96,7 +99,7 @@ export function usePatientProblems(patientSSN: string): UsePatientProblemsResult
       const params: ProblemSearchParams = {
         UserName: 'CPRS-UAT',
         Password: 'UAT@123',
-        PatientSSN: effectiveSSN,
+        PatientSSN: patientSSN,
         DUZ: '80',
         cdpProbCat: '',
         other: searchTerm
@@ -110,7 +113,7 @@ export function usePatientProblems(patientSSN: string): UsePatientProblemsResult
     } finally {
       setIsSearching(false);
     }
-  }, [effectiveSSN]);
+  }, [patientSSN]);
 
   useEffect(() => {
     fetchProblems();

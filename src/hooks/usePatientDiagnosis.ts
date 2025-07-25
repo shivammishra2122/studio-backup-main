@@ -25,53 +25,50 @@ export function usePatientDiagnosis(patientSSN: string): UsePatientDiagnosisResu
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
 
-  // Use fallback SSN if patientSSN is empty
-  const effectiveSSN = patientSSN || '800000035';
-
-  const fetchDiagnosis = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const response = await fetch('http://192.168.1.53/cgi-bin/apiDiagList.sh', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          "UserName": "CPRS-UAT",
-          "Password": "UAT@123",
-          "PatientSSN": effectiveSSN,
-          "DUZ": "80",
-          "ihtLocation": "67",
-          "rcpAdmDateL": " "
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      console.log('Diagnosis API Response for SSN:', effectiveSSN, 'Data:', data);
-      setDiagnosis(data);
-    } catch (err) {
-      console.error('Error fetching diagnosis data:', err);
-      setError(err instanceof Error ? err : new Error('Failed to fetch diagnosis data'));
-    } finally {
-      setLoading(false);
-    }
-  }, [effectiveSSN]);
-
   useEffect(() => {
+    if (!patientSSN) {
+      setDiagnosis({});
+      setError(new Error('No patient SSN provided.'));
+      setLoading(false);
+      return;
+    }
+    const fetchDiagnosis = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await fetch('http://192.168.1.53/cgi-bin/apiDiagList.sh', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            "UserName": "CPRS-UAT",
+            "Password": "UAT@123",
+            "PatientSSN": patientSSN,
+            "DUZ": "80",
+            "ihtLocation": "67",
+            "rcpAdmDateL": " "
+          })
+        });
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        setDiagnosis(data);
+      } catch (err) {
+        setError(err instanceof Error ? err : new Error('Failed to fetch diagnosis data'));
+      } finally {
+        setLoading(false);
+      }
+    };
     fetchDiagnosis();
-  }, [fetchDiagnosis]);
+  }, [patientSSN]);
 
   return {
     diagnosis,
     loading,
     error,
-    refresh: fetchDiagnosis
+    refresh: () => {} // Optionally implement refresh logic
   };
 }
 

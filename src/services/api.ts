@@ -464,24 +464,26 @@ export interface ProblemSearchParams {
       other?: string;
     }): Promise<Problem[]> => {
       try {
+        if (!params.PatientSSN) {
+          throw new Error('No patient SSN provided.');
+        }
         // For problem view (when no search query is provided)
         if (!params.other) {
           const viewParams = {
             UserName: params.UserName || 'CPRS-UAT',
             Password: params.Password || 'UAT@123',
-            PatientSSN: params.PatientSSN || '800000035',
+            PatientSSN: params.PatientSSN,
             DUZ: params.DUZ || '80',
             ihtLocation: params.ihtLocation || '67'
           };
           const response = await api.post(API_ENDPOINTS.PROBLEMS, viewParams);
           return response.data.map(transformProblem);
         }
-        
         // For problem search (when there is a search query)
         const searchParams = {
           UserName: params.UserName || 'CPRS-UAT',
           Password: params.Password || 'UAT@123',
-          PatientSSN: params.PatientSSN || '800000035',
+          PatientSSN: params.PatientSSN,
           DUZ: params.DUZ || '80',
           cdpProbCat: params.cdpProbCat || '',
           other: params.other
