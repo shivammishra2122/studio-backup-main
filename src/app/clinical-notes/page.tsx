@@ -12,8 +12,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle as DialogUITitle, Dial
 import { Settings, RefreshCw, CalendarDays, ArrowUpDown, Trash2, Edit2, CheckCircle2, ImageUp, X, FileSignature, Droplets, Loader2, Search, ArrowLeft, Printer, PlusCircle } from 'lucide-react';
 import { DigitalSignatureDialog } from '@/components/DigitalSignatureDialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Patient } from '@/lib/constants';
 import { apiService } from '@/services/api';
+import { usePatient } from '@/hooks/use-patient';
 
 const clinicalNotesSubNavItems = [
   "Notes View", "New Notes", "Scanned Notes",
@@ -90,13 +90,14 @@ const mockPatientClinicalNotes: PatientClinicalNoteType[] = [
   },
 ];
 
-interface ClinicalNotesPageProps {
-  patient?: Patient;
+type ClinicalNotesPageProps = {
+  // No props should be required here as it's a page component
 }
 
 const DEFAULT_SSN = '800000035';
 
-const ClinicalNotesPage = ({ patient }: ClinicalNotesPageProps) => {
+const ClinicalNotesPage = () => {
+  const patient = usePatient();
   const [activeSubNav, setActiveSubNav] = useState<string>(clinicalNotesSubNavItems[0]);
   const [viewMode, setViewMode] = useState<'table' | 'detail'>('table');
   const [selectedPatient, setSelectedPatient] = useState<string>('');

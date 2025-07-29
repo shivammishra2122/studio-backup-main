@@ -46,6 +46,7 @@ import { useMedications } from '@/hooks/useMedications'; // Import the useMedica
 import { fetchRadiologyOrders } from '@/services/radiology';
 import { fetchNursingOrders } from '@/services/nursing';
 import { fetchProcedureOrders, ProcedureOrder } from '@/services/procedure';
+import { usePatient } from '@/hooks/use-patient';
 
 // Add OrdersPageProps interface
 interface OrdersPageProps {
@@ -2091,14 +2092,14 @@ interface ApiPatientResponse {
 }
 
 // Main Orders Page
-const OrdersPage: NextPage<OrdersPageProps> = ({ patient: initialPatient }) => {
+const OrdersPage = () => {
+  const patient = usePatient();
   const [activeSubNav, setActiveSubNav] = useState<string>(orderSubNavItems[0]);
-  const [patient, setPatient] = useState<Patient | null>(initialPatient || null);
-  const [loadingLabOrders, setLoadingLabOrders] = useState(!initialPatient);
+  const [loadingLabOrders, setLoadingLabOrders] = useState(!patient);
 
   useEffect(() => {
     const fetchDefaultPatient = async () => {
-      if (!initialPatient) {
+      if (!patient) {
         try {
           setLoadingLabOrders(true);
           console.log('Fetching default patient data with default SSN...');

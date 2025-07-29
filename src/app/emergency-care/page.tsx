@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader as ShadcnTableHeade
 import { Card, CardContent, CardFooter, CardHeader as ShadcnCardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowUpDown, RefreshCw, CalendarDays } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
-import { Patient } from '@/services/api';
+import { usePatient } from '@/hooks/use-patient';
 
 // MLC/Non-MLC Note Data Type
 type MLCNonMLCNoteDataType = {
@@ -276,7 +276,9 @@ const PatientCOPDListView = () => {
 
 const subNavItems = ["COPD List", "MLC/Non-MLC Note"];
 
-const EmergencyCarePage = ({ patient }: { patient?: Patient }) => {
+const EmergencyCarePage = () => {
+  // Get patient data from context
+  const patient = usePatient();
   const [activeSubNav, setActiveSubNav] = useState<string>(subNavItems[0]);
 
   return (

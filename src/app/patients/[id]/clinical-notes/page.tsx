@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { api, Patient } from '@/services/api';
+import { apiService } from '@/services/api';
 import ClinicalNotesPage from '@/app/clinical-notes/page';
-import { usePatient } from '@/hooks/use-patient';
+import { usePatient, PatientProvider } from '@/hooks/use-patient';
 
 export default function PatientClinicalNotesPage() {
     const patient = usePatient();
@@ -19,7 +19,9 @@ export default function PatientClinicalNotesPage() {
 
     return (
         <div className="flex flex-col h-[calc(100vh-var(--top-nav-height,40px))] bg-background text-sm">
-            <ClinicalNotesPage patient={patient} />
+            <PatientProvider patient={patient}>
+                <ClinicalNotesPage />
+            </PatientProvider>
         </div>
     );
-} 
+}

@@ -1,10 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
-import { api, Patient } from '@/services/api';
 import EmergencyCarePage from '@/app/emergency-care/page';
-import { usePatient } from '@/hooks/use-patient';
+import { usePatient, PatientProvider } from '@/hooks/use-patient';
 
 export default function PatientEmergencyCarePage() {
     const patient = usePatient();
@@ -19,7 +16,9 @@ export default function PatientEmergencyCarePage() {
 
     return (
         <div className="flex flex-col h-[calc(100vh-var(--top-nav-height,40px))] bg-background text-sm">
-            <EmergencyCarePage patient={patient} />
+            <PatientProvider patient={patient}>
+                <EmergencyCarePage />
+            </PatientProvider>
         </div>
     );
-} 
+}

@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Edit3, RefreshCw, ArrowUpDown, MessageSquare, FileSignature, Trash2, CheckCircle2 } from 'lucide-react';
-import { Patient } from '@/services/api';
+import { usePatient } from '@/hooks/use-patient';
 
 type SummaryEntryDataType = {
   id: string;
@@ -52,11 +52,12 @@ const mockSummaryEntries: SummaryEntryDataType[] = [
   },
 ];
 
-interface DischargeSummaryPageProps {
-  patient?: Patient;
+type DischargeSummaryPageProps = {
+  // No props should be required here as it's a page component
 }
 
-const DischargeSummaryPage: NextPage<DischargeSummaryPageProps> = ({ patient }) => {
+const DischargeSummaryPage: NextPage<DischargeSummaryPageProps> = () => {
+  const patient = usePatient();
   const [showEntries, setShowEntries] = useState<string>("10");
   const [visitDate, setVisitDate] = useState<string>("15 MAY, 2025 19:45");
   const [searchText, setSearchText] = useState<string>("");

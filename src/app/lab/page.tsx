@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { RefreshCw, Printer } from 'lucide-react';
-import { Patient } from '@/services/api';
+import { usePatient } from '@/hooks/use-patient';
 
 interface ApiPatient {
   DFN: string;
@@ -70,7 +70,8 @@ const mockLabResults: LabResultEntryType[] = [
   },
 ];
 
-export default function LabPage({ patient }: { patient?: Patient }) {
+export default function LabPage() {
+  const patient = usePatient();
   const { id } = useParams();
   const [activeSubNav, setActiveSubNav] = useState(labSubNavItems[0]);
 

@@ -91,9 +91,9 @@ export interface Patient {
   name: string;
   gender: string;
   dob: string;
-  age: string;
+  age: string | number;
   aadhaarNo?: string;
-  mobile?: string;
+  mobile?: string | number;
   phone?: string;
   email?: string;
   address?: string;
@@ -115,7 +115,7 @@ export interface Patient {
   primaryConsultant1?: string;
   primaryConsultant2?: string;
   admissionType?: string;
-  ipNo?: string;
+  ipNo?: string | number;
   transferred?: string;
   specialty?: string;
   chiefComplaints?: string;
@@ -154,6 +154,25 @@ export interface Patient {
   lengthOfStay?: string;
   bedDetails?: string;
   wardNo?: string;
+  
+  // SSN fields (added for consistency)
+  ssn?: string;
+  'SSN No'?: string;
+  PatientSSN?: string;
+  
+  // Additional fields found in usage
+  'IP No'?: number;
+  'Admission Date'?: string;
+  'Mobile No'?: number;
+  'Primary Consultant'?: string;
+  'Secondary Consultant'?: string;
+  'Treating Consultant'?: string;
+  LOS?: string;
+  Specialty?: string;
+  Ward?: string;
+  Bed?: string;
+  DFN?: string | number;
+  posting?: string;
 }
 
 interface PatientSearchParams {
