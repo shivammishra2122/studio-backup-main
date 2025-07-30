@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { RefreshCw, ArrowUpDown } from 'lucide-react';
+import { RefreshCw, ArrowUpDown, Eye, XCircle } from 'lucide-react';
 import { usePatientAllergies } from '@/hooks/usePatientAllergies';
 // import { Patient } from '@/services/api'; // Uncomment if Patient type is needed
 
@@ -20,15 +20,15 @@ const AllergiesView = ({ patient }: { patient?: any }) => {
     console.log('Allergies data in component:', allergies);
   }, [allergies]);
 
-  const tableHeaders = ["S.No", "Allergies", "Date", "Nature of Reaction", "Observed/Historical", "Originator", "Symptoms", "Actions"];
+  const tableHeaders = ["Allergies", "Date", "Nature of Reaction", "Observed/Historical", "Originator", "Symptoms", "Actions"];
 
-  const handleAllergyAction = (allergyId: string, action: 'add' | 'remove') => {
+  const handleAllergyAction = (allergyId: string, action: boolean) => {
     setSelectedAllergies(prev => ({
       ...prev,
-      [allergyId]: action === 'add'
+      [allergyId]: action
     }));
     // In a real app, you would make an API call here to update the allergy status
-    console.log(`${action === 'add' ? 'Adding' : 'Removing'} allergy:`, allergyId);
+    console.log(`${action ? 'Adding' : 'Removing'} allergy:`, allergyId);
   };
 
   return (
@@ -101,30 +101,26 @@ const AllergiesView = ({ patient }: { patient?: any }) => {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={tableHeaders.length} className="text-center py-10">
-                      <div className="flex flex-col items-center justify-center space-y-2">
-                        <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
-                        <span>Loading allergies data...</span>
-                      </div>
+                    <TableCell colSpan={tableHeaders.length} className="text-center py-4">
+                      <p className="text-muted-foreground">Loading allergies data...</p>
                     </TableCell>
                   </TableRow>
                 ) : error ? (
                   <TableRow>
-                    <TableCell colSpan={tableHeaders.length} className="text-center py-10 text-red-500">
-                      Error loading allergies data. <Button variant="link" className="h-auto p-0 text-red-500" onClick={refresh}>Retry</Button>
+                    <TableCell colSpan={tableHeaders.length} className="text-center py-4">
+                      <p className="text-destructive">{error.message || 'Error loading allergies data'}</p>
                     </TableCell>
                   </TableRow>
                 ) : Object.keys(allergies).length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={tableHeaders.length} className="text-center py-10 text-muted-foreground">
-                      No allergies found
+                    <TableCell colSpan={tableHeaders.length} className="text-center py-4">
+                      <p className="text-muted-foreground">No allergies data available</p>
                     </TableCell>
                   </TableRow>
                 ) : (
                   Object.entries(allergies).map(([id, allergy], index) => (
                     <TableRow key={id} className="even:bg-muted/30">
-                      <TableCell>{index + 1}</TableCell>
-                      <TableCell className="font-medium">{allergy.Allergies}</TableCell>
+                      <TableCell>{allergy.Allergies}</TableCell>
                       <TableCell>{allergy.Date}</TableCell>
                       <TableCell>
                         {allergy["Nature of Reaction"] && (
@@ -139,18 +135,34 @@ const AllergiesView = ({ patient }: { patient?: any }) => {
                       <TableCell>{allergy.Originator}</TableCell>
                       <TableCell>{allergy.Symptoms}</TableCell>
                       <TableCell className="text-center">
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className={`h-7 text-xs ${
-                            selectedAllergies[id] 
-                              ? 'bg-red-50 text-red-600 hover:bg-red-100' 
-                              : 'bg-green-50 text-green-600 hover:bg-green-100'
-                          }`}
-                          onClick={() => handleAllergyAction(id, selectedAllergies[id] ? 'remove' : 'add')}
-                        >
-                          {selectedAllergies[id] ? 'Remove' : 'Add'}
-                        </Button>
+                        <div className="flex justify-center space-x-2">
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className={`h-7 w-7 p-1.5 rounded-full ${
+                              selectedAllergies[id] 
+                                ? 'text-blue-500 hover:bg-blue-50' 
+                                : 'text-blue-500 hover:bg-blue-50'
+                            }`}
+                            onClick={() => handleAllergyAction(id, false)}
+                          >
+                            <Eye className="h-4 w-4" />
+                            <span className="sr-only">View</span>
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className={`h-7 w-7 p-1.5 rounded-full ${
+                              selectedAllergies[id] 
+                                ? 'text-red-500 hover:bg-red-50' 
+                                : 'text-gray-400 hover:bg-gray-50'
+                            }`}
+                            onClick={() => handleAllergyAction(id, true)}
+                          >
+                            <XCircle className="h-4 w-4" />
+                            <span className="sr-only">Remove</span>
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))
