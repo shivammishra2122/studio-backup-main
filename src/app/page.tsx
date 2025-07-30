@@ -46,6 +46,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
+import { usePatient } from '@/hooks/use-patient';
 
 // Chart configurations
 const glucoseChartConfig: ChartConfig = { level: { label: 'Glucose (mg/dL)', color: 'hsl(var(--chart-2))' } };
@@ -130,18 +131,26 @@ interface RadiologyTest {
 }
 
 export default function DashboardPage({
-  patient,
   problems: initialProblems = [],
   medications: initialMedications = [],
   allergies: initialAllergies = [],
   vitals = {},
 }: {
-  patient: Patient;
   problems?: Problem[];
   medications?: Medication[];
   allergies?: any[];
   vitals?: any;
-}): JSX.Element {
+} = {}): JSX.Element {
+  const patient = usePatient();
+  
+  if (!patient) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <p className="text-muted-foreground">Loading patient data...</p>
+      </div>
+    );
+  }
+  
   // State for allergy dialog
   const [showAllergyDialog, setShowAllergyDialog] = useState(false);
   const [ssnSearch, setSSNSearch] = useState('');

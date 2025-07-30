@@ -47,11 +47,10 @@ import { fetchRadiologyOrders } from '@/services/radiology';
 import { fetchNursingOrders } from '@/services/nursing';
 import { fetchProcedureOrders, ProcedureOrder } from '@/services/procedure';
 import { usePatient } from '@/hooks/use-patient';
+import { usePatientActions } from '@/hooks/use-patient-actions';
 
 // Add OrdersPageProps interface
-interface OrdersPageProps {
-  patient: Patient;
-}
+
 
 // Navigation items
 const orderSubNavItems = [
@@ -165,7 +164,7 @@ type RadiologyDataType = {
   startDate?: string;
   startTime?: string;
   provider: string;
-  status: "UNRELEASED" | "PENDING" | "COMPLETED";
+  status: "UNRELEASED" | "PENDING" | "COMPLETED" | "ACTIVE";
   location: string;
   result?: string;  // Add optional result field
   'Order IEN'?: string;  // Add optional Order IEN field
@@ -175,7 +174,8 @@ type RadiologyDataType = {
 // Components
 
 // CPOE Order List View
-const CpoeOrderListView = ({ patient }: { patient: Patient }) => {
+const CpoeOrderListView = () => {
+  const patient = usePatient();
   const [orders, setOrders] = useState<any[]>([]);
   const [loadingLabOrders, setLoadingLabOrders] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -452,7 +452,8 @@ const CpoeOrderListView = ({ patient }: { patient: Patient }) => {
   );
 };
 
-const IpMedicationView = ({ patient }: { patient: Patient }) => {
+const IpMedicationView = () => {
+  const patient = usePatient();
   const [isAddIpMedicationDialogOpen, setIsAddIpMedicationDialogOpen] = useState(false);
   const [visitDate, setVisitDate] = useState<string | undefined>(undefined);
   
@@ -855,7 +856,8 @@ const DelayOrdersView = () => {
   );
 };
 
-const RadiologyView = ({ patient }: { patient: Patient }) => {
+const RadiologyView = () => {
+  const patient = usePatient();
   const [radiologyOrders, setRadiologyOrders] = useState<RadiologyDataType[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -1079,7 +1081,8 @@ const RadiologyView = ({ patient }: { patient: Patient }) => {
 };
 
 // Lab CPOE List View
-const LabCpoeListViewUpdated = ({ patient }: { patient: Patient }) => {
+const LabCpoeListViewUpdated = () => {
+  const patient = usePatient();
   const [labOrders, setLabOrders] = useState<LabCpoeDataType[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -1280,7 +1283,8 @@ const LabCpoeListViewUpdated = ({ patient }: { patient: Patient }) => {
 };
 
 // Visit/ADT View
-const VisitAdtView = ({ patient }: { patient: Patient }) => {
+const VisitAdtView = () => {
+  const patient = usePatient();
   const [visitDate, setVisitDate] = useState<string | undefined>("Select");
   const [visitDetails, setVisitDetails] = useState<VisitData[]>([]);
   const [loadingLabOrders, setLoadingLabOrders] = useState(true);
@@ -1303,7 +1307,7 @@ const VisitAdtView = ({ patient }: { patient: Patient }) => {
     const requestBody = {
       UserName: "CPRS-UAT",
       Password: "UAT@123",
-      PatientSSN: patient.ssn,
+      Patientssn: patient.ssn,
       DUZ: "80"
     };
 
@@ -1453,20 +1457,22 @@ const ProcedureOrderView = () => (
   </Card>
 );
 
+interface NursingCareViewProps {
+  patientSSN: string;
+}
+
 const NursingCareView = () => {
+  const patient = usePatient();
   const [nursingOrders, setNursingOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [showEntries, setShowEntries] = useState<string>('10');
   const [currentPage, setCurrentPage] = useState<number>(1);
-  
-  // Use hardcoded SSN for testing
-  const patientSSN = '800000035';
 
   useEffect(() => {
     const fetchNursingCareOrders = async () => {
-      if (!patientSSN) {
+      if (!patient?.ssn) {
         setError('No patient SSN available');
         setLoading(false);
         return;
@@ -1476,7 +1482,7 @@ const NursingCareView = () => {
       setError(null);
       
       try {
-        const data = await fetchNursingOrders(patientSSN);
+        const data = await fetchNursingOrders(patient.ssn);
         setNursingOrders(data);
       } catch (err) {
         console.error('Error fetching nursing orders:', err);
@@ -1488,7 +1494,7 @@ const NursingCareView = () => {
     };
 
     fetchNursingCareOrders();
-  }, [patientSSN]);
+  }, [patient.ssn]);
 
   const filteredOrders = nursingOrders.filter(order => 
     Object.values(order).some(
@@ -1529,8 +1535,8 @@ const NursingCareView = () => {
   };
 
   const handleRetry = () => {
-    if (patientSSN) {
-      fetchNursingOrders(patientSSN)
+    if (patient?.ssn) {
+      fetchNursingOrders(patient.ssn)
         .then(setNursingOrders)
         .catch(console.error);
     }
@@ -1695,23 +1701,41 @@ const NursingCareView = () => {
             <Button
               variant="outline"
               size="sm"
+              onClick={() => setCurrentPage(1)}
+              disabled={currentPage === 1}
+              className="h-8 w-8 p-0"
+            >
+              <ChevronsLeft className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-              disabled={currentPage <= 1}
-              className="h-7 w-7 p-0"
+              disabled={currentPage === 1}
+              className="h-8 w-8 p-0"
             >
               <ChevronLeft className="h-3.5 w-3.5" />
             </Button>
-            <span className="px-2">
-              Page {currentPage} of {Math.max(1, totalPages)}
-            </span>
+            <div className="flex items-center justify-center text-sm font-medium w-8">
+              {currentPage}
+            </div>
             <Button
               variant="outline"
               size="sm"
               onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
               disabled={currentPage >= totalPages}
-              className="h-7 w-7 p-0"
+              className="h-8 w-8 p-0"
             >
               <ChevronRight className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(totalPages)}
+              disabled={currentPage >= totalPages}
+              className="h-8 w-8 p-0"
+            >
+              <ChevronsRight className="h-3.5 w-3.5" />
             </Button>
           </div>
         </div>
@@ -1724,7 +1748,10 @@ interface ProcedureOrdersViewProps {
   patientSSN: string;
 }
 
-const ProcedureOrdersView = ({ patientSSN }: ProcedureOrdersViewProps) => {
+const ProcedureOrdersView = () => {
+  const patient = usePatient();
+  // Ensure patientSSN is always a string, even if null or undefined
+  const effectivePatientSSN = patient?.ssn || '';
   const [procedureOrders, setProcedureOrders] = useState<ProcedureOrder[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -1735,7 +1762,7 @@ const ProcedureOrdersView = ({ patientSSN }: ProcedureOrdersViewProps) => {
   const [orderToDate, setOrderToDate] = useState<string>('');
 
   const fetchProcedureOrdersData = useCallback(async () => {
-    if (!patientSSN) {
+    if (!patient?.ssn) {
       setError('No patient SSN available');
       setLoading(false);
       return;
@@ -1745,7 +1772,7 @@ const ProcedureOrdersView = ({ patientSSN }: ProcedureOrdersViewProps) => {
     setError(null);
     
     try {
-      const data = await fetchProcedureOrders(patientSSN);
+      const data = await fetchProcedureOrders(patient.ssn);
       setProcedureOrders(data);
     } catch (err) {
       console.error('Error fetching procedure orders:', err);
@@ -1754,7 +1781,7 @@ const ProcedureOrdersView = ({ patientSSN }: ProcedureOrdersViewProps) => {
     } finally {
       setLoading(false);
     }
-  }, [patientSSN]);
+  }, [patient.ssn]);
 
   useEffect(() => {
     fetchProcedureOrdersData();
@@ -1802,7 +1829,7 @@ const ProcedureOrdersView = ({ patientSSN }: ProcedureOrdersViewProps) => {
 
   const getStatusBadge = (status: string) => {
     const statusMap: Record<string, { variant: 'default' | 'secondary' | 'destructive' | 'outline' | 'success' | null | undefined; label: string }> = {
-      'COMPLETE': { variant: 'success', label: 'Complete' },
+      'COMPLETE': { variant: 'default', label: 'Complete' },
       'PENDING': { variant: 'secondary', label: 'Pending' },
       'IN PROGRESS': { variant: 'default', label: 'In Progress' },
       'DISCONTINUED': { variant: 'destructive', label: 'Discontinued' },
@@ -2015,56 +2042,54 @@ const ProcedureOrdersView = ({ patientSSN }: ProcedureOrdersViewProps) => {
         </Table>
       </div>
 
-      {paginatedOrders.length > 0 && (
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="text-sm text-muted-foreground">
-            Showing {startIndex + 1} to {Math.min(startIndex + parseInt(showEntries), filteredOrders.length)} of{' '}
-            {filteredOrders.length} entries
-          </div>
-          
-          <div className="flex items-center space-x-1">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(1)}
-              disabled={currentPage === 1}
-              className="h-8 w-8 p-0"
-            >
-              <ChevronsLeft className="h-3.5 w-3.5" />
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
-              className="h-8 w-8 p-0"
-            >
-              <ChevronLeft className="h-3.5 w-3.5" />
-            </Button>
-            <div className="flex items-center justify-center text-sm font-medium w-8">
-              {currentPage}
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-              disabled={currentPage >= totalPages}
-              className="h-8 w-8 p-0"
-            >
-              <ChevronRight className="h-3.5 w-3.5" />
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(totalPages)}
-              disabled={currentPage >= totalPages}
-              className="h-8 w-8 p-0"
-            >
-              <ChevronsRight className="h-3.5 w-3.5" />
-            </Button>
-          </div>
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="text-sm text-muted-foreground">
+          Showing {startIndex + 1} to {Math.min(startIndex + parseInt(showEntries), filteredOrders.length)} of{' '}
+          {filteredOrders.length} entries
         </div>
-      )}
+        
+        <div className="flex items-center space-x-1">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage(1)}
+            disabled={currentPage === 1}
+            className="h-8 w-8 p-0"
+          >
+            <ChevronsLeft className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+            disabled={currentPage === 1}
+            className="h-8 w-8 p-0"
+          >
+            <ChevronLeft className="h-3.5 w-3.5" />
+          </Button>
+          <div className="flex items-center justify-center text-sm font-medium w-8">
+            {currentPage}
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+            disabled={currentPage >= totalPages}
+            className="h-8 w-8 p-0"
+          >
+            <ChevronRight className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage(totalPages)}
+            disabled={currentPage >= totalPages}
+            className="h-8 w-8 p-0"
+          >
+            <ChevronsRight className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      </div>
     </div>
   );
 };
@@ -2105,10 +2130,10 @@ const OrdersPage = () => {
           console.log('Fetching default patient data with default SSN...');
           // Fetch default patient using the default SSN
           const defaultSSN = "800000035";
-          const data = await apiService.getPatients({ searchSSN: defaultSSN }) as ApiPatientResponse[];
+          const data = await apiService.getPatients({ searchSSN: defaultSSN });
           console.log('Default Patient API response:', JSON.stringify(data, null, 2));
 
-          if (data && data.length > 0) {
+          if (data && Array.isArray(data) && data.length > 0) {
             // Map API data to Patient type from constants.ts
             const defaultPatientData = data[0]; // Get the first patient from the results
             console.log('Raw patient data for mapping:', defaultPatientData);
@@ -2153,7 +2178,7 @@ const OrdersPage = () => {
               DOB: defaultPatientData.DOB || '',
               Gender: defaultPatientData.Gender || '',
               Name: defaultPatientData.Name || '',
-              reasonForVisit: ''
+              SSN: String(defaultPatientData.SSN || defaultPatientData.ssn || defaultSSN)
             };
             
             console.log('Mapped patient data with SSN:', defaultPatient.ssn);
@@ -2168,14 +2193,11 @@ const OrdersPage = () => {
         } finally {
           setLoadingLabOrders(false);
         }
-      } else {
-        console.log('Using initial patient data with SSN:', initialPatient.ssn);
-        setPatient(initialPatient);
       }
     };
 
     fetchDefaultPatient();
-  }, [initialPatient]);
+  }, [patient, setPatient]);
 
   if (loadingLabOrders) {
     return (

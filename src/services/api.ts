@@ -188,6 +188,15 @@ interface PatientSearchParams {
 }
 
 export const apiService = {
+  async post(endpoint: string, data: any) {
+    try {
+      const response = await api.post(endpoint, data);
+      return response.data;
+    } catch (error) {
+      console.error(`Error in post request to ${endpoint}:`, error);
+      throw error;
+    }
+  },
     async getPatients(searchParams: Record<string, any> = {}) {
         try {
             // Get auth params from session

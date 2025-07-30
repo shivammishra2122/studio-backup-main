@@ -12,7 +12,7 @@ interface PatientContextType {
   currentPatient: Patient | null;
   loading: boolean;
   error: string | null;
-  fetchPatients: (searchParams?: Record<string, any>) => Promise<void>;
+  fetchPatients: (searchParams?: Record<string, any>) => Promise<Patient[]>;
   setCurrentPatient: (patient: Patient | null) => void;
   clearError: () => void;
 }
@@ -46,18 +46,27 @@ export const PatientProvider = ({ children }: { children: ReactNode }) => {
     setLoading(true);
     setError(null);
     try {
-      const data = await apiService.getPatients(searchParams) as unknown as any;
+      const data = await apiService.getPatients(searchParams);
       
-      let patientsData = [];
-      if (Array.isArray(data)) {
-        patientsData = data;
-      } else if (data && typeof data === 'object') {
-        patientsData = Object.values(data);
-      }
+      // Handle different response formats
+      const patientsArray = Array.isArray(data) 
+        ? data 
+        : data && typeof data === 'object' 
+          ? Object.values(data as Record<string, Patient>) 
+          : [];
       
-      const mappedPatients = patientsData.map((patient: any) => ({
+      // Ensure all patients have SSN and other required fields
+      const mappedPatients: Patient[] = patientsArray.map((patient: Partial<Patient>) => ({
         ...patient,
-        SSN: patient.PatientSSN || patient['SSN No'] || ''
+        ssn: patient.ssn || patient.PatientSSN || patient['SSN No'] || '',
+        id: patient.id || String(patient.DFN || ''),
+        name: patient.name || '',
+        age: patient.age || 0,
+        gender: patient.gender || '',
+        dob: patient.dob || '',
+        // Ensure all required fields have defaults
+        'SSN No': patient['SSN No'] || patient.PatientSSN || patient.ssn || '',
+        PatientSSN: patient.PatientSSN || patient['SSN No'] || patient.ssn || ''
       }));
       
       setPatients(mappedPatients);
@@ -65,7 +74,7 @@ export const PatientProvider = ({ children }: { children: ReactNode }) => {
       // Update current patient with fresh data without adding a dependency cycle
       setCurrentPatientState(prevPatient => {
         if (!prevPatient) return null;
-        const updatedPatient = mappedPatients.find((p: any) => p.DFN === prevPatient.DFN);
+        const updatedPatient = mappedPatients.find(p => p.id === prevPatient?.id || p.DFN === prevPatient?.DFN);
         if (updatedPatient) {
           sessionStorage.setItem('currentPatient', JSON.stringify(updatedPatient));
           return updatedPatient;

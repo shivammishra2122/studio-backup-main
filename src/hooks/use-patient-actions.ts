@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { usePatients } from '@/context/patient-context';
-import { api } from '@/services/api';
+import { apiService } from '@/services/api';
 
 interface PatientSearchParams {
   searchType?: string;

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { fetchProcedureOrders, type ProcedureOrder } from '@/services/procedure';
 import { Loader2, AlertCircle, ExternalLink, Calendar, MapPin, User, ClipboardList } from 'lucide-react';
+import { usePatient } from '@/hooks/use-patient';
 
 const nursingSubNavItems = ["Nurse Order", "Nurse Chart List", "Pharmacy"];
 
@@ -16,10 +17,14 @@ const nurseOrderOptions = [
 ];
 
 const NursingPage = () => {
+  const patient = usePatient();
   const [activeSubNav, setActiveSubNav] = useState<string>(nursingSubNavItems[0]);
   const [procedureOrders, setProcedureOrders] = useState<ProcedureOrder[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Get patient SSN safely
+  const patientSSN = patient?.ssn || '';
 
   // Nurse Order button click handler
   const handleNurseOrderClick = (option: string) => {
@@ -28,7 +33,7 @@ const NursingPage = () => {
   };
 
   useEffect(() => {
-    if (activeSubNav === 'Nurse Order') {
+    if (activeSubNav === 'Nurse Order' && patientSSN) {
       let isMounted = true;
       
       const fetchData = async () => {
@@ -37,11 +42,11 @@ const NursingPage = () => {
           setLoading(true);
           setError(null);
           
-          const data = await fetchProcedureOrders('670768354'); // Using default SSN from the API
+          const data = await fetchProcedureOrders(patientSSN);
           
           if (isMounted) {
             console.log('Successfully fetched procedure orders:', data);
-            setProcedureOrders(data);
+            setProcedureOrders(Array.isArray(data) ? data : []);
           }
         } catch (err) {
           console.error('Failed to fetch procedure orders:', err);
@@ -61,12 +66,12 @@ const NursingPage = () => {
       return () => {
         isMounted = false;
       };
-    } else {
+    } else if (activeSubNav !== 'Nurse Order') {
       // Reset state when switching tabs
       setProcedureOrders([]);
       setError(null);
     }
-  }, [activeSubNav]);
+  }, [activeSubNav, patientSSN]);
 
   const getStatusBadge = (status: string) => {
     const statusMap: Record<string, { bg: string; text: string; label: string }> = {
@@ -84,6 +89,15 @@ const NursingPage = () => {
       </span>
     );
   };
+
+  if (!patient) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[calc(100vh-var(--top-nav-height,60px))] bg-background text-sm p-4">
+        <AlertCircle className="h-8 w-8 text-muted-foreground mb-2" />
+        <p className="text-muted-foreground text-center">No patient selected. Please select a patient to view nursing information.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-[calc(100vh-var(--top-nav-height,60px))] bg-background text-sm p-2">

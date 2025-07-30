@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { api, Patient } from '@/services/api';
+import { apiService as api } from '@/services/api';
 import DashboardPage from '@/app/page';
 import { usePatient } from '@/hooks/use-patient';
 
@@ -25,5 +25,5 @@ export default function PatientPage() {
         vitals: {}
     };
 
-    return <DashboardPage patient={patient} {...mockData} />;
+    return <DashboardPage {...mockData} />;
 } 

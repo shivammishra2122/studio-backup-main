@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { api, Patient } from '@/services/api';
+import { apiService as api } from '@/services/api';
 import OrdersPage from '@/app/orders/page';
 import { usePatient } from '@/hooks/use-patient';
 
@@ -17,5 +17,5 @@ export default function PatientOrdersPage() {
         );
     }
 
-    return <OrdersPage patient={patient} />;
+    return <OrdersPage />;
 } 

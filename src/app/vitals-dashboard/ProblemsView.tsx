@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
@@ -7,30 +7,67 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
-import { CalendarDays, ArrowUpDown, Edit3, Ban } from 'lucide-react';
+import { CalendarDays, ArrowUpDown, Edit3, Ban, RefreshCw } from 'lucide-react';
 import { usePatientProblems } from '@/hooks/usePatientProblems';
 import { format } from 'date-fns';
 // You may need to adjust the import for Problem type
 // import { Problem } from '@/types/problem';
 
 const ProblemsView = ({ patient }: { patient?: any }) => {
-  const [showEntriesValue, setShowEntriesValueState] = useState<string>("10");
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [rowsPerPage, setRowsPerPage] = useState<number>(10);
   const [searchValue, setSearchValueState] = useState<string>("");
   const [selectedProblem, setSelectedProblem] = useState<any | null>(null);
   const [isViewOpen, setIsViewOpen] = useState<boolean>(false);
   const [isPopupOpen, setIsPopupOpen] = useState<boolean>(false);
+  const [problemsWithCoMorbidity, setProblemsWithCoMorbidity] = useState<Record<string, boolean>>({});
   
   // Use the patient's SSN or a default one
   const { problems, loading, error } = usePatientProblems(patient?.ssn);
   
-  const tableHeaders = ["S.No", "Problem", "Type", "Date", "Status", "Actions"];
+  // Initialize co-morbidity state when problems are loaded
+  useEffect(() => {
+    if (problems && problems.length > 0) {
+      const initialCoMorbidityState = problems.reduce((acc: Record<string, boolean>, problem: any) => {
+        acc[problem.id] = problem.coMorbidity || false;
+        return acc;
+      }, {});
+      setProblemsWithCoMorbidity(initialCoMorbidityState);
+    }
+  }, [problems]);
   
-  const filteredProblems = problems.filter((problem: any) => {
-    const matchesSearch = problem.problem.toLowerCase().includes(searchValue.toLowerCase());
-    const matchesStatus = true; // TODO: Add status filter
-    return matchesSearch && matchesStatus;
-  });
+  // Update the table headers to match the image
+  const tableHeaders = ["Problems", "Immediacy", "Status", "Date of OnSet", "Edit", "Remove", "Restore", "Co-Morbidity"];
   
+  // Filter problems based on search
+  const filteredProblems = useMemo(() => {
+    if (!problems) return [];
+    return problems.filter((problem: any) => {
+      const searchLower = searchValue.toLowerCase();
+      return (
+        problem.problem.toLowerCase().includes(searchLower) ||
+        (problem.immediacy && problem.immediacy.toLowerCase().includes(searchLower)) ||
+        (problem.status && problem.status.toLowerCase().includes(searchLower))
+      );
+    });
+  }, [problems, searchValue]);
+  
+  // Get current problems for pagination
+  const indexOfLastProblem = currentPage * rowsPerPage;
+  const indexOfFirstProblem = indexOfLastProblem - rowsPerPage;
+  const currentProblems = filteredProblems.slice(indexOfFirstProblem, indexOfLastProblem);
+  const totalPages = Math.ceil(filteredProblems.length / rowsPerPage);
+  
+  // Change page
+  const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
+  
+  // Handle rows per page change
+  const handleRowsPerPageChange = (value: string) => {
+    setRowsPerPage(Number(value));
+    setCurrentPage(1); // Reset to first page when changing rows per page
+  };
+  
+  // Format date helper function
   const formatDate = (dateString: string) => {
     if (!dateString) return 'N/A';
     try {
@@ -38,6 +75,17 @@ const ProblemsView = ({ patient }: { patient?: any }) => {
     } catch (e) {
       return dateString; // Return as is if date parsing fails
     }
+  };
+
+  const handleCoMorbidityToggle = (problemId: string, checked: boolean) => {
+    setProblemsWithCoMorbidity(prev => ({
+      ...prev,
+      [problemId]: checked
+    }));
+    
+    // Here you would typically make an API call to update the co-morbidity status
+    // For example:
+    // updateProblemCoMorbidity(problemId, checked);
   };
 
   if (loading) {
@@ -77,7 +125,7 @@ const ProblemsView = ({ patient }: { patient?: any }) => {
         <div className="flex flex-wrap items-center justify-between p-2 border-b gap-y-2 mb-2">
           <div className="flex items-center space-x-2">
             <Label htmlFor="showEntriesProblem" className="text-xs">Show</Label>
-            <Select value={showEntriesValue} onValueChange={setShowEntriesValueState}>
+            <Select value={rowsPerPage.toString()} onValueChange={handleRowsPerPageChange}>
               <SelectTrigger id="showEntriesProblem" className="h-7 w-20 text-xs">
                 <SelectValue placeholder="10" />
               </SelectTrigger>
@@ -103,7 +151,7 @@ const ProblemsView = ({ patient }: { patient?: any }) => {
           </div>
         </div>
         <div className="flex-1 overflow-hidden min-h-0">
-          <div className="flex-1 overflow-auto max-h-80">
+          <div className="flex-1 overflow-auto" style={{ maxHeight: 'calc(100vh - 250px)' }}>
             <Table className="text-xs min-h-0">
               <TableHeader className="bg-accent text-foreground sticky top-0 z-10">
                 <TableRow>
@@ -111,17 +159,18 @@ const ProblemsView = ({ patient }: { patient?: any }) => {
                     <TableHead key={header} className="py-2 px-3 text-xs h-8 whitespace-nowrap text-foreground font-medium bg-accent/50 hover:bg-accent transition-colors">
                       <div className="flex items-center justify-between">
                         {header}
-                        <ArrowUpDown className="h-3 w-3 ml-1 text-muted-foreground hover:text-foreground cursor-pointer" />
+                        {!["Edit", "Remove", "Restore"].includes(header) && (
+                          <ArrowUpDown className="h-3 w-3 ml-1 text-muted-foreground hover:text-foreground cursor-pointer" />
+                        )}
                       </div>
                     </TableHead>
                   ))}
                 </TableRow>
               </TableHeader>
-              <TableBody>
-                {filteredProblems.length > 0 ? (
-                  filteredProblems.map((problem: any, index: number) => (
+              <TableBody className="[&_tr:last-child]:border-0">
+                {currentProblems.length > 0 ? (
+                  currentProblems.map((problem: any, index: number) => (
                     <TableRow key={problem.id} className="even:bg-muted/30">
-                      <TableCell className="px-2 py-1 text-xs">{index + 1}</TableCell>
                       <TableCell className="px-2 py-1 text-xs">
                         <Button 
                           variant="link" 
@@ -135,7 +184,6 @@ const ProblemsView = ({ patient }: { patient?: any }) => {
                         </Button>
                       </TableCell>
                       <TableCell className="px-2 py-1 text-xs">{problem.immediacy || 'N/A'}</TableCell>
-                      <TableCell className="px-2 py-1 text-xs">{formatDate(problem.dateOfOnset)}</TableCell>
                       <TableCell className="px-2 py-1 text-xs">
                         <span className={`px-2 py-1 text-xs rounded-full ${
                           problem.status === 'A' 
@@ -145,7 +193,8 @@ const ProblemsView = ({ patient }: { patient?: any }) => {
                           {problem.status === 'A' ? 'Active' : 'Inactive'}
                         </span>
                       </TableCell>
-                      <TableCell className="px-2 py-1 space-x-1 text-xs">
+                      <TableCell className="px-2 py-1 text-xs">{formatDate(problem.dateOfOnSet)}</TableCell>
+                      <TableCell className="px-2 py-1 text-center">
                         <Button 
                           variant="ghost" 
                           size="icon" 
@@ -154,6 +203,8 @@ const ProblemsView = ({ patient }: { patient?: any }) => {
                         >
                           <Edit3 className="h-3.5 w-3.5" />
                         </Button>
+                      </TableCell>
+                      <TableCell className="px-2 py-1 text-center">
                         <Button 
                           variant="ghost" 
                           size="icon" 
@@ -162,6 +213,23 @@ const ProblemsView = ({ patient }: { patient?: any }) => {
                         >
                           <Ban className="h-3.5 w-3.5" />
                         </Button>
+                      </TableCell>
+                      <TableCell className="px-2 py-1 text-center">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-6 w-6 text-xs"
+                          onClick={() => window.open(problem.restoreUrl, '_blank')}
+                        >
+                          <RefreshCw className="h-3.5 w-3.5" />
+                        </Button>
+                      </TableCell>
+                      <TableCell className="px-2 py-1 text-center">
+                        <Switch 
+                          checked={problemsWithCoMorbidity[problem.id] || false}
+                          onCheckedChange={(checked) => handleCoMorbidityToggle(problem.id, checked)}
+                          className="data-[state=checked]:bg-primary"
+                        />
                       </TableCell>
                     </TableRow>
                   ))
@@ -177,11 +245,48 @@ const ProblemsView = ({ patient }: { patient?: any }) => {
           </div>
         </div>
         <div className="flex items-center justify-between p-2.5 border-t text-xs text-muted-foreground mt-auto">
-          <div>Showing 0 to 0 of 0 entries</div>
+          <div>
+            Showing {filteredProblems.length === 0 ? 0 : indexOfFirstProblem + 1} to{' '}
+            {Math.min(indexOfLastProblem, filteredProblems.length)} of {filteredProblems.length} entries
+          </div>
           <div className="flex items-center space-x-1">
-            <Button variant="outline" size="sm" className="h-7 text-xs px-2 py-1">Previous</Button>
-            <Button variant="outline" size="sm" className="h-7 text-xs px-2 py-1 bg-accent text-foreground border-border">1</Button>
-            <Button variant="outline" size="sm" className="h-7 text-xs px-2 py-1">Next</Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="h-7 text-xs px-2 py-1"
+              onClick={() => currentPage > 1 && setCurrentPage(currentPage - 1)}
+              disabled={currentPage === 1}
+            >
+              Previous
+            </Button>
+            {Array.from({ length: Math.min(3, totalPages) }, (_, i) => {
+              // Show first page, last page, and current page with one page on each side
+              if (totalPages <= 3 || i < 2 || i >= totalPages - 2) {
+                return (
+                  <Button
+                    key={i + 1}
+                    variant={currentPage === i + 1 ? 'default' : 'outline'}
+                    size="sm"
+                    className={`h-7 text-xs px-2 py-1 ${currentPage === i + 1 ? 'bg-accent text-foreground' : ''}`}
+                    onClick={() => paginate(i + 1)}
+                  >
+                    {i + 1}
+                  </Button>
+                );
+              } else if (i === 2 && totalPages > 3) {
+                return <span key="ellipsis" className="px-2">...</span>;
+              }
+              return null;
+            })}
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="h-7 text-xs px-2 py-1"
+              onClick={() => currentPage < totalPages && setCurrentPage(currentPage + 1)}
+              disabled={currentPage === totalPages || totalPages === 0}
+            >
+              Next
+            </Button>
           </div>
         </div>
       </CardContent>

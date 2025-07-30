@@ -138,7 +138,7 @@ const ClinicalNotesPage = () => {
           fromDate: fromDate ? formatDate(fromDate) : '',
           toDate: toDateValue ? formatDate(toDateValue) : '',
           status: statusFilter !== "ALL" ? statusFilter : undefined,
-          ihtLocation: "67",
+          ihtLocation: 67,
           ewd_sessid: "36608394"
         });
         
@@ -171,27 +171,19 @@ const ClinicalNotesPage = () => {
     
     try {
       setIsSigning(true);
-      await apiService.post('/api/clinical-notes/sign', {
+      const response = await apiService.post('/api/clinical-notes/sign', {
         data: { 
-          noteId: currentNoteId,
-          signatureData
-        },
+           noteId: currentNoteId,
+           signatureData
+         }
       });
-
-      const result = await response.json();
       
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to sign note');
-      }
-
       // Update the note status to COMPLETED in the UI
       setNotes(prevNotes => 
         prevNotes.map(note => 
           note.id === currentNoteId ? { ...note, status: 'COMPLETED' } : note
         )
       );
-      
-      // No return value needed as we're returning void
     } catch (error) {
       console.error('Error signing note:', error);
       throw error; // Re-throw to be handled by the dialog
@@ -844,6 +836,16 @@ const mockSpecialties = [
 ];
 
 // Mock Scanned Notes Data
+interface ScannedNoteDataType {
+  id: string;
+  documentName: string;
+  scanDate: string;
+  scanTime: string;
+  uploadedBy: string;
+  status: "VERIFIED" | "PENDING";
+  location: string;
+}
+
 const mockScannedNotes: ScannedNoteDataType[] = [
   {
     id: '1',
