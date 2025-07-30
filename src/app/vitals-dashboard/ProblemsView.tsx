@@ -155,26 +155,52 @@ const ProblemsView = ({ patient }: { patient?: any }) => {
             <Table className="text-xs min-h-0">
               <TableHeader className="bg-accent text-foreground sticky top-0 z-10">
                 <TableRow>
-                  {tableHeaders.map((header) => (
-                    <TableHead key={header} className="py-2 px-3 text-xs h-8 whitespace-nowrap text-foreground font-medium bg-accent/50 hover:bg-accent transition-colors">
-                      <div className="flex items-center justify-between">
-                        {header}
-                        {!["Edit", "Remove", "Restore"].includes(header) && (
-                          <ArrowUpDown className="h-3 w-3 ml-1 text-muted-foreground hover:text-foreground cursor-pointer" />
-                        )}
-                      </div>
-                    </TableHead>
-                  ))}
+                  <TableHead className="py-2 px-2 text-xs h-8 whitespace-nowrap text-foreground font-medium bg-accent/50 hover:bg-accent transition-colors w-1/4">
+                    <div className="flex items-center justify-between">
+                      Problems
+                      <ArrowUpDown className="h-3 w-3 ml-1 text-muted-foreground hover:text-foreground cursor-pointer" />
+                    </div>
+                  </TableHead>
+                  <TableHead className="py-2 px-2 text-xs h-8 whitespace-nowrap text-foreground font-medium bg-accent/50 hover:bg-accent transition-colors w-1/6">
+                    <div className="flex items-center justify-between">
+                      Immediacy
+                      <ArrowUpDown className="h-3 w-3 ml-1 text-muted-foreground hover:text-foreground cursor-pointer" />
+                    </div>
+                  </TableHead>
+                  <TableHead className="py-2 px-2 text-xs h-8 whitespace-nowrap text-foreground font-medium bg-accent/50 hover:bg-accent transition-colors w-1/6">
+                    <div className="flex items-center justify-between">
+                      Status
+                      <ArrowUpDown className="h-3 w-3 ml-1 text-muted-foreground hover:text-foreground cursor-pointer" />
+                    </div>
+                  </TableHead>
+                  <TableHead className="py-2 px-2 text-xs h-8 whitespace-nowrap text-foreground font-medium bg-accent/50 hover:bg-accent transition-colors w-1/6">
+                    <div className="flex items-center justify-between">
+                      Date of OnSet
+                      <ArrowUpDown className="h-3 w-3 ml-1 text-muted-foreground hover:text-foreground cursor-pointer" />
+                    </div>
+                  </TableHead>
+                  <TableHead className="py-2 px-2 text-xs h-8 whitespace-nowrap text-foreground font-medium bg-accent/50 hover:bg-accent transition-colors w-1/12">
+                    Edit
+                  </TableHead>
+                  <TableHead className="py-2 px-2 text-xs h-8 whitespace-nowrap text-foreground font-medium bg-accent/50 hover:bg-accent transition-colors w-1/12">
+                    Remove
+                  </TableHead>
+                  <TableHead className="py-2 px-2 text-xs h-8 whitespace-nowrap text-foreground font-medium bg-accent/50 hover:bg-accent transition-colors w-1/12">
+                    Restore
+                  </TableHead>
+                  <TableHead className="py-2 px-2 text-xs h-8 whitespace-nowrap text-foreground font-medium bg-accent/50 hover:bg-accent transition-colors w-1/6">
+                    Co-Morbidity
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody className="[&_tr:last-child]:border-0">
                 {currentProblems.length > 0 ? (
-                  currentProblems.map((problem: any, index: number) => (
-                    <TableRow key={problem.id} className="even:bg-muted/30">
-                      <TableCell className="px-2 py-1 text-xs">
+                  currentProblems.map((problem: any) => (
+                    <TableRow key={problem.id} className="even:bg-muted/30 hover:bg-muted/50">
+                      <TableCell className="px-2 py-2 text-xs align-top">
                         <Button 
                           variant="link" 
-                          className="h-auto p-0 text-xs text-left"
+                          className="h-auto p-0 text-xs text-left font-normal hover:no-underline hover:text-primary"
                           onClick={() => {
                             setSelectedProblem(problem);
                             setIsViewOpen(true);
@@ -183,9 +209,11 @@ const ProblemsView = ({ patient }: { patient?: any }) => {
                           {problem.problem.split(' (')[0]}
                         </Button>
                       </TableCell>
-                      <TableCell className="px-2 py-1 text-xs">{problem.immediacy || 'N/A'}</TableCell>
-                      <TableCell className="px-2 py-1 text-xs">
-                        <span className={`px-2 py-1 text-xs rounded-full ${
+                      <TableCell className="px-2 py-2 text-xs align-top">
+                        {problem.immediacy || 'N/A'}
+                      </TableCell>
+                      <TableCell className="px-2 py-2 text-xs align-top">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                           problem.status === 'A' 
                             ? 'bg-green-100 text-green-800' 
                             : 'bg-gray-100 text-gray-800'
@@ -193,43 +221,47 @@ const ProblemsView = ({ patient }: { patient?: any }) => {
                           {problem.status === 'A' ? 'Active' : 'Inactive'}
                         </span>
                       </TableCell>
-                      <TableCell className="px-2 py-1 text-xs">{formatDate(problem.dateOfOnSet)}</TableCell>
-                      <TableCell className="px-2 py-1 text-center">
+                      <TableCell className="px-2 py-2 text-xs align-top">
+                        {formatDate(problem.dateOfOnSet)}
+                      </TableCell>
+                      <TableCell className="px-2 py-2 text-center align-top">
                         <Button 
                           variant="ghost" 
                           size="icon" 
-                          className="h-6 w-6 text-xs"
+                          className="h-7 w-7 p-1.5 text-muted-foreground hover:text-foreground"
                           onClick={() => window.open(problem.editUrl, '_blank')}
                         >
                           <Edit3 className="h-3.5 w-3.5" />
                         </Button>
                       </TableCell>
-                      <TableCell className="px-2 py-1 text-center">
+                      <TableCell className="px-2 py-2 text-center align-top">
                         <Button 
                           variant="ghost" 
                           size="icon" 
-                          className="h-6 w-6 text-xs text-red-500 hover:text-red-600"
+                          className="h-7 w-7 p-1.5 text-red-500 hover:text-red-600 hover:bg-red-50"
                           onClick={() => window.open(problem.removeUrl, '_blank')}
                         >
                           <Ban className="h-3.5 w-3.5" />
                         </Button>
                       </TableCell>
-                      <TableCell className="px-2 py-1 text-center">
+                      <TableCell className="px-2 py-2 text-center align-top">
                         <Button 
                           variant="ghost" 
                           size="icon" 
-                          className="h-6 w-6 text-xs"
+                          className="h-7 w-7 p-1.5 text-muted-foreground hover:text-foreground"
                           onClick={() => window.open(problem.restoreUrl, '_blank')}
                         >
                           <RefreshCw className="h-3.5 w-3.5" />
                         </Button>
                       </TableCell>
-                      <TableCell className="px-2 py-1 text-center">
-                        <Switch 
-                          checked={problemsWithCoMorbidity[problem.id] || false}
-                          onCheckedChange={(checked) => handleCoMorbidityToggle(problem.id, checked)}
-                          className="data-[state=checked]:bg-primary"
-                        />
+                      <TableCell className="px-2 py-2 text-center align-middle">
+                        <div className="flex justify-center">
+                          <Switch 
+                            checked={problemsWithCoMorbidity[problem.id] || false}
+                            onCheckedChange={(checked) => handleCoMorbidityToggle(problem.id, checked)}
+                            className="data-[state=checked]:bg-primary h-4 w-8"
+                          />
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))
