@@ -13,8 +13,9 @@ const FinalDiagnosisView = ({ patient }: { patient?: any }) => {
   const [showEntriesValue, setShowEntriesValueState] = useState<string>("10");
   const [visitDateValue, setVisitDateValueState] = useState<string>("10 SEP, 2024 13:10");
   const [searchValue, setSearchValueState] = useState<string>("");
-  const [selectedDiagnosis, setSelectedDiagnosis] = useState<Record<string, string>>({});
-  
+  const [selectedDiagnosis, setSelectedDiagnosis] = useState<Record<string, 'add' | 'remove' | null>>({});
+  const [diagnosisType, setDiagnosisType] = useState<Record<string, 'Primary' | 'Secondary'>>({});
+
   // Use the patient's SSN or a default one
   const { diagnosis, loading, error, refresh } = usePatientDiagnosis(patient?.ssn);
   
@@ -25,8 +26,40 @@ const FinalDiagnosisView = ({ patient }: { patient?: any }) => {
     console.log('Error state:', error);
   }, [diagnosis, loading, error]);
   
-  const tableHeaders = ["S.No", "Type", "Diagnosis Description", "Comment", "Entered Date", "Provider", "Actions"];
+  // Update diagnosis type handler to ensure only one primary
+  const handleDiagnosisTypeChange = (diagnosisId: string, isPrimary: boolean) => {
+    if (isPrimary) {
+      // Set this diagnosis as primary and all others as secondary
+      const updatedTypes = Object.keys(diagnosis).reduce((acc, id) => ({
+        ...acc,
+        [id]: id === diagnosisId ? 'Primary' : 'Secondary'
+      }), {});
+      setDiagnosisType(updatedTypes);
+    } else {
+      // If unchecking, just set to secondary (shouldn't happen with radio buttons)
+      setDiagnosisType(prev => ({
+        ...prev,
+        [diagnosisId]: 'Secondary'
+      }));
+    }
+    // In a real app, you would update this on the server
+    console.log(`Setting diagnosis ${diagnosisId} to ${isPrimary ? 'Primary' : 'Secondary'}`);
+  };
+
+  // Update the table headers to match the image
+  const tableHeaders = [
+    "Type",
+    "Diagnosis Description",
+    "Onset Date",
+    "Status",
+    <div key="diagnosis-type" className="text-center">
+      <span>Primary</span>
+    </div>,
+    "Comments",
+    "Actions"
+  ];
   
+  // Update diagnosis action handler
   const handleDiagnosisAction = (diagnosisId: string, action: 'add' | 'remove') => {
     setSelectedDiagnosis(prev => ({
       ...prev,
@@ -35,6 +68,22 @@ const FinalDiagnosisView = ({ patient }: { patient?: any }) => {
     
     // In a real app, you would make an API call here to update the diagnosis
     console.log(`${action === 'add' ? 'Adding' : 'Removing'} diagnosis:`, diagnosisId);
+    
+    // Simulate API call with timeout
+    setTimeout(() => {
+      if (action === 'remove') {
+        // Remove the diagnosis from the list
+        const updatedDiagnosis = { ...diagnosis };
+        delete updatedDiagnosis[diagnosisId];
+        // In a real app, you would update the state from the API response
+        // setDiagnosis(updatedDiagnosis);
+      }
+      // Reset the loading state
+      setSelectedDiagnosis(prev => ({
+        ...prev,
+        [diagnosisId]: null
+      }));
+    }, 1000);
   };
 
   return (
@@ -86,11 +135,18 @@ const FinalDiagnosisView = ({ patient }: { patient?: any }) => {
             <Table className="text-xs min-h-0">
               <TableHeader className="bg-accent text-foreground sticky top-0 z-10">
                 <TableRow>
-                  {tableHeaders.map(header => (
-                    <TableHead key={header} className="py-2 px-3 text-xs h-8 whitespace-nowrap text-foreground font-medium bg-accent/50 hover:bg-accent transition-colors">
+                  {tableHeaders.map((header, index) => (
+                    <TableHead 
+                      key={header} 
+                      className={`py-2 px-3 text-xs h-8 whitespace-nowrap text-foreground font-medium bg-accent/50 hover:bg-accent transition-colors ${
+                        header === 'Actions' ? 'text-center' : ''
+                      }`}
+                    >
                       <div className="flex items-center justify-between">
                         {header}
-                        <ArrowUpDown className="h-3 w-3 ml-1 text-muted-foreground hover:text-foreground cursor-pointer" />
+                        {header !== 'Actions' && (
+                          <ArrowUpDown className="h-3 w-3 ml-1 text-muted-foreground hover:text-foreground cursor-pointer" />
+                        )}
                       </div>
                     </TableHead>
                   ))}
@@ -99,45 +155,54 @@ const FinalDiagnosisView = ({ patient }: { patient?: any }) => {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={tableHeaders.length} className="text-center py-10">
-                      <div className="flex flex-col items-center justify-center space-y-2">
-                        <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
-                        <span>Loading diagnosis data...</span>
-                      </div>
+                    <TableCell colSpan={tableHeaders.length} className="text-center py-4">
+                      <p className="text-muted-foreground">Loading diagnosis data...</p>
                     </TableCell>
                   </TableRow>
                 ) : error ? (
                   <TableRow>
-                    <TableCell colSpan={tableHeaders.length} className="text-center py-10 text-red-500">
-                      Error loading diagnosis data. <Button variant="link" className="h-auto p-0 text-red-500" onClick={refresh}>Retry</Button>
+                    <TableCell colSpan={tableHeaders.length} className="text-center py-4">
+                      <p className="text-destructive">{error.message || 'Error loading diagnosis data'}</p>
                     </TableCell>
                   </TableRow>
                 ) : Object.keys(diagnosis).length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={tableHeaders.length} className="text-center py-10 text-muted-foreground">
-                      No diagnosis data found
+                    <TableCell colSpan={tableHeaders.length} className="text-center py-4">
+                      <p className="text-muted-foreground">No diagnosis data available</p>
                     </TableCell>
                   </TableRow>
                 ) : (
-                  Object.entries(diagnosis).map(([id, diag]: [string, any], idx) => (
+                  Object.entries(diagnosis).map(([id, diag]) => (
                     <TableRow key={id} className="even:bg-muted/30">
-                      <TableCell>{idx + 1}</TableCell>
                       <TableCell className="capitalize">{diag.Type || 'N/A'}</TableCell>
                       <TableCell>{diag["Diagnosis Description"] || 'N/A'}</TableCell>
-                      <TableCell>{diag.Comment || 'N/A'}</TableCell>
                       <TableCell>{diag["Entered Date"] || 'N/A'}</TableCell>
-                      <TableCell>{diag.Provider || 'N/A'}</TableCell>
+                      <TableCell>{diag.Status || 'Active'}</TableCell>
+                      <TableCell className="text-center">
+                        <div className="flex justify-center">
+                          <input 
+                            type="radio" 
+                            name="primary-diagnosis"
+                            className="h-4 w-4 text-primary focus:ring-primary"
+                            checked={diagnosisType[id] === 'Primary' || (!diagnosisType[id] && diag.Primary)}
+                            onChange={(e) => handleDiagnosisTypeChange(id, e.target.checked)}
+                          />
+                        </div>
+                      </TableCell>
+                      <TableCell>{diag.Comment || 'N/A'}</TableCell>
                       <TableCell className="space-x-1">
                         {selectedDiagnosis[id] === 'add' ? (
                           <Button variant="outline" size="sm" className="h-7 text-xs" disabled>
-                            Added
+                            <RefreshCw className="h-3.5 w-3.5 animate-spin mr-1" />
+                            Adding...
                           </Button>
                         ) : selectedDiagnosis[id] === 'remove' ? (
                           <Button variant="outline" size="sm" className="h-7 text-xs" disabled>
-                            Removed
+                            <RefreshCw className="h-3.5 w-3.5 animate-spin mr-1" />
+                            Removing...
                           </Button>
                         ) : (
-                          <>
+                          <div className="flex space-x-2">
                             <Button 
                               variant="outline" 
                               size="sm" 
@@ -149,12 +214,12 @@ const FinalDiagnosisView = ({ patient }: { patient?: any }) => {
                             <Button 
                               variant="outline" 
                               size="sm" 
-                              className="h-7 text-xs text-red-500 hover:text-red-600"
+                              className="h-7 text-xs text-red-500 hover:text-red-600 hover:bg-red-50"
                               onClick={() => handleDiagnosisAction(id, 'remove')}
                             >
                               Remove
                             </Button>
-                          </>
+                          </div>
                         )}
                       </TableCell>
                     </TableRow>
